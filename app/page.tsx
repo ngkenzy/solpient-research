@@ -3,6 +3,7 @@ import { getSupabase } from "@/lib/supabase";
 import { getAllCompanyIntelligence } from "@/lib/market-intelligence";
 import { CapitalActivity, type CapitalActivityItem } from "@/components/CapitalActivity";
 import styles from "./home.module.css";
+import { SolpientBrand } from "@/components/SolpientBrand";
 
 export const dynamic = "force-dynamic";
 
@@ -345,10 +346,7 @@ export default async function Home() {
   return (
     <div className={styles.commandPage}>
       <header className={styles.topbar}>
-        <Link href="/" className={styles.wordmark}>
-          <strong>SOLPIENT</strong>
-          <span>See clearly. Invest deliberately.</span>
-        </Link>
+        <SolpientBrand className={styles.wordmark} subtitle="Research" priority />
 
         <nav className={styles.nav}>
           <Link className={styles.activeNav} href="/">Home</Link>
