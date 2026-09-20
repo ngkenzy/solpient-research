@@ -1,0 +1,148 @@
+{
+  "ticker": "ADBE",
+  "company_name": "Adobe Inc.",
+  "cik": "0000796343",
+  "exchange": "NASDAQ",
+  "sector": "Technology",
+  "industry": "Application Software",
+  "description": "Adobe is a software company focused on creativity, digital documents, productivity and digital experience, with a predominantly subscription-based revenue model.",
+  "research": {
+    "researched_at": "2026-09-20T04:00:00Z",
+    "price_at_research": 248.92,
+    "market_cap": 98323000000,
+    "source_period": "Q3 FY2026 ended 2026-08-28",
+    "status": "published",
+    "summary": "Adobe remains a high-quality, recurring-revenue software franchise whose core business is still growing at double-digit rates despite persistent AI-disruption concerns. Q3 FY2026 revenue rose 13% year over year to $6.76B, subscription revenue rose 14%, ARR reached $27.50B and management raised full-year revenue and EPS targets. At a last-close price of $248.92, the market is valuing Adobe at roughly 13.7x the midpoint of FY2026 GAAP EPS guidance, creating a large gap between current operating performance and the pessimism embedded in the share price.",
+    "full_report": "INVESTMENT THESIS\n\nAdobe combines a durable subscription model, very high gross margins, strong cash generation and entrenched creative/document workflows. The current debate is not whether Adobe is profitable; it is whether generative AI will weaken its pricing power, customer lock-in and long-term growth. Q3 FY2026 evidence does not yet show a collapsing franchise. Revenue grew 13% year over year, subscription revenue grew 14%, total ARR reached $27.50B, AI-first ARR grew more than 150% year over year, and management raised FY2026 revenue and EPS targets.\n\nBUSINESS QUALITY\n\nAdobe's business is overwhelmingly recurring. Fiscal 2025 subscription revenue was $22.9B, or approximately 96% of total revenue. Creative, Acrobat and Experience products are embedded in professional workflows and have meaningful switching costs through file formats, collaboration, training, integrations and enterprise processes. The company reported more than one billion monthly active users across creativity and productivity solutions in Q3 FY2026.\n\nFINANCIAL PERFORMANCE\n\nQ3 FY2026 revenue was $6.760B versus $5.988B a year earlier, up about 12.9%. Gross profit was $5.997B, implying an 88.7% gross margin. GAAP operating income was $2.354B, or a 34.8% operating margin. GAAP net income was $1.827B, or a 27.0% net margin. Operating cash flow was $2.523B in the quarter.\n\nFor fiscal 2025, Adobe produced $23.769B of revenue, $7.130B of net income and $10.031B of operating cash flow. Capital expenditures were $179M, implying approximately $9.852B of simple free cash flow and a free-cash-flow margin above 40%.\n\nBALANCE SHEET\n\nAt Aug. 28, 2026, Adobe held $4.359B in cash and $1.280B in short-term investments. Total debt was approximately $6.363B, leaving modest net debt relative to the company's cash generation. Current assets were $9.158B versus current liabilities of $11.888B, so the conventional current ratio is below 1.0; this is partly consistent with a subscription software model carrying substantial deferred revenue, but it remains worth monitoring.\n\nVALUATION\n\nThe last market close before this research date was $248.92. Adobe's raised FY2026 GAAP EPS target is $18.12-$18.17, implying roughly 13.7x the midpoint of guidance. That is a relatively low multiple for a business still reporting double-digit revenue growth and strong free-cash-flow economics.\n\nA simplified DCF anchored to fiscal 2025 free cash flow produces a wide valuation range because terminal assumptions matter heavily. Using approximately $9.85B of base free cash flow, 395M shares and modest net debt:\n- Bear case: about $332/share\n- Base case: about $451/share\n- Bull case: about $565/share\n\nThe base case assumes 8% annual FCF growth for five years, a 10% discount rate and 3% terminal growth. These values are model outputs, not market-price forecasts.\n\nAI: OPPORTUNITY AND THREAT\n\nAI is the central thesis variable. The opportunity is that Adobe can use Firefly and agentic workflows to increase product utility, user acquisition, content creation volume and enterprise automation. Adobe reported AI-first ARR growth above 150% year over year in Q3 FY2026, evidence that AI is currently contributing to monetization.\n\nThe threat is structural. Generative AI lowers the cost of creating images, video and marketing content, while new competitors can bypass traditional professional workflows. Adobe must prove that its distribution, trusted enterprise position, data, workflows and integrated tools remain more valuable than standalone AI generation.\n\nKEY RISKS\n\n1. Generative AI compresses Adobe's pricing power or reduces demand for traditional creative tools.\n2. Freemium acquisition grows users but fails to translate into durable paid conversion or ARPU.\n3. Enterprise digital-experience competition slows growth.\n4. Buybacks destroy value if executed above intrinsic value or merely offset stock compensation.\n5. Valuation models overstate durability by extrapolating today's margins too far into the future.\n\nWHAT MUST REMAIN TRUE\n\nThe thesis remains intact if recurring revenue continues growing near double digits, AI products deepen engagement and monetization, free cash flow remains structurally strong, and Adobe preserves professional/enterprise workflow relevance. The thesis weakens materially if AI-driven user growth fails to monetize, ARR growth falls into sustained low single digits, or margins deteriorate because Adobe must spend aggressively simply to defend its installed base.\n\nSOLPIENT VIEW\n\nAdobe qualifies for deeper research because business quality remains high while market expectations appear materially lower than the current operating evidence suggests. The key question for future research versions is not simply whether quarterly revenue beats estimates; it is whether AI strengthens or erodes Adobe's moat."
+  },
+  "financial_metrics": {
+    "revenue": 6760000000,
+    "revenue_growth_1y": 12.89,
+    "revenue_cagr_5y": null,
+    "gross_margin": 88.71,
+    "operating_margin": 34.82,
+    "net_margin": 27.03,
+    "operating_cash_flow": 2523000000,
+    "free_cash_flow": 2438000000,
+    "fcf_growth": null,
+    "fcf_margin": 36.07,
+    "cash": 4359000000,
+    "total_debt": 6363000000,
+    "long_term_debt": 4766000000,
+    "current_ratio": 0.77,
+    "quick_ratio": 0.64,
+    "debt_to_equity": 0.54,
+    "roe": null,
+    "roic": null,
+    "roa": null,
+    "eps": 4.62,
+    "eps_growth_1y": 10.53,
+    "eps_cagr_5y": null,
+    "shares_outstanding": 395000000,
+    "pe": null,
+    "forward_pe": 13.72,
+    "peg": null,
+    "price_to_fcf": null,
+    "fcf_yield": null
+  },
+  "scores": {
+    "quality_score": 92,
+    "growth_score": 84,
+    "valuation_score": 91,
+    "financial_strength_score": 82,
+    "moat_score": 90,
+    "thesis_integrity_score": 86,
+    "overall_score": 88
+  },
+  "valuations": {
+    "dcf_value": 451.06,
+    "owner_earnings_value": null,
+    "earnings_multiple_value": 363,
+    "historical_multiple_value": null,
+    "peer_value": null,
+    "bear_value": 331.86,
+    "base_value": 451.06,
+    "bull_value": 564.75,
+    "mos_25_price": 338.3,
+    "mos_35_price": 293.19,
+    "mos_50_price": 225.53,
+    "discount_rate": 10,
+    "terminal_growth": 3,
+    "revenue_growth_assumption": 8,
+    "margin_assumption": null
+  },
+  "thesis_variables": [
+    {
+      "variable_name": "Recurring revenue durability",
+      "expectation": "Subscription and ARR growth should remain near double digits.",
+      "observed_value": "Q3 total customer group subscription revenue grew 14% YoY; total Adobe ARR reached $27.50B.",
+      "status": "strengthened",
+      "evidence": "Adobe Q3 FY2026 earnings release."
+    },
+    {
+      "variable_name": "AI monetization",
+      "expectation": "AI must increase engagement and monetization rather than only cannibalize existing workflows.",
+      "observed_value": "Adobe reported AI-first ARR growth above 150% YoY in Q3 FY2026.",
+      "status": "strengthened",
+      "evidence": "Adobe Q3 FY2026 earnings release."
+    },
+    {
+      "variable_name": "Cash generation",
+      "expectation": "Operating and free cash flow should remain structurally strong.",
+      "observed_value": "Q3 operating cash flow was a record $2.523B; FY2025 operating cash flow was $10.031B.",
+      "status": "strengthened",
+      "evidence": "Adobe Q3 FY2026 earnings release and FY2025 Form 10-K."
+    },
+    {
+      "variable_name": "Creative workflow moat",
+      "expectation": "Adobe must retain relevance in professional and enterprise creative workflows despite generative AI competition.",
+      "observed_value": "Revenue and ARR remain strong, but long-term competitive disruption from AI remains unresolved.",
+      "status": "unchanged",
+      "evidence": "Current operating performance supports resilience, while competitive structure remains a forward-looking uncertainty."
+    },
+    {
+      "variable_name": "Balance sheet flexibility",
+      "expectation": "Debt should remain manageable relative to recurring cash generation.",
+      "observed_value": "Cash plus short-term investments were $5.639B versus total debt of about $6.363B at Aug. 28, 2026.",
+      "status": "unchanged",
+      "evidence": "Adobe Q3 FY2026 condensed balance sheet."
+    }
+  ],
+  "sources": [
+    {
+      "source_type": "8-K Exhibit 99.1",
+      "title": "Adobe Reports Record Q3 Results — FY2026 Q3",
+      "url": "https://www.sec.gov/Archives/edgar/data/796343/000079634326000147/adbeex991q326.htm",
+      "filing_date": "2026-09-10",
+      "accession_number": "0000796343-26-000147"
+    },
+    {
+      "source_type": "10-K",
+      "title": "Adobe Inc. Fiscal 2025 Form 10-K",
+      "url": "https://www.sec.gov/Archives/edgar/data/796343/000079634326000003/adbe-20251128.htm",
+      "filing_date": "2026-01-16",
+      "accession_number": "0000796343-26-000003"
+    },
+    {
+      "source_type": "Investor presentation",
+      "title": "Adobe Q3 FY2026 Earnings Script and Slides",
+      "url": "https://www.adobe.com/cc-shared/assets/investor-relations/pdfs/01906202/c6yetrerew.pdf",
+      "filing_date": "2026-09-10",
+      "accession_number": null
+    },
+    {
+      "source_type": "Market data",
+      "title": "ADBE closing price — September 18, 2026",
+      "url": "https://www.marketwatch.com/data-news/adobe-inc-stock-underperforms-friday-when-compared-to-competitors-e49b16d3-be3e5782f310",
+      "filing_date": "2026-09-18",
+      "accession_number": null
+    }
+  ],
+  "ranking": {
+    "ranked_at": "2026-09-20T04:00:00Z",
+    "rank": 1,
+    "overall_score": 88,
+    "price": 248.92,
+    "base_fair_value": 451.06
+  }
+}
