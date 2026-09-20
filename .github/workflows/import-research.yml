@@ -1,0 +1,39 @@
+name: Import research to Supabase
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "data/research/**/*.json"
+      - "scripts/import-research.mjs"
+      - "supabase/migrations/**"
+  workflow_dispatch:
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Import research files
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          if [ -d "data/research" ]; then
+            find data/research -type f -name '*.json' -print0 | sort -z | while IFS= read -r -d '' file; do
+              node scripts/import-research.mjs "$file"
+            done
+          fi
