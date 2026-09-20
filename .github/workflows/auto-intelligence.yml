@@ -35,9 +35,12 @@ jobs:
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          SEC_USER_AGENT: "SOLPIENT Research ngkenzy@users.noreply.github.com"
-          SEC_CONTACT: "ngkenzy@users.noreply.github.com"
-        run: node scripts/sync-sec-fundamentals.mjs
+        run: |
+          curl --fail-with-body --retry 2 --retry-delay 2 \
+            -X POST "${SUPABASE_URL}/functions/v1/sec-fundamentals-sync" \
+            -H "Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY}" \
+            -H "Content-Type: application/json" \
+            -d '{}'
 
       - name: Refresh end-of-day market snapshots
         env:
