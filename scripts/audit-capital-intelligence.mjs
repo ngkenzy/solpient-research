@@ -5,7 +5,7 @@ import {
   CAPITAL_ORCHESTRATOR_VERSION,
   feedFreshness,
   providerHealthRow,
-  summarizeCapitalCoverage,
+  summarizeCapitalCoverageMatrix,
 } from "../lib/capital-intelligence-orchestrator.mjs";
 
 const url=process.env.SUPABASE_URL;
@@ -22,14 +22,15 @@ const {data:run,error:runError}=await supabase.from("automation_runs").insert({
 if(runError)throw runError;
 
 try{
-  const [companiesR,activityR,healthR,directRunsR]=await Promise.all([
+  const [companiesR,activityR,coverageR,healthR,directRunsR]=await Promise.all([
     supabase.from("companies").select("id,ticker,company_name").order("ticker"),
     supabase.from("capital_activity").select("company_id,activity_type,provider,verified_at,created_at"),
+    supabase.from("capital_coverage_checks").select("*"),
     supabase.from("capital_provider_health").select("*"),
     supabase.from("automation_runs").select("status,started_at,completed_at,records_written,message,details")
       .eq("pipeline","capital_intelligence").order("started_at",{ascending:false}).limit(1).maybeSingle(),
   ]);
-  for(const result of [companiesR,activityR,healthR,directRunsR])if(result.error)throw result.error;
+  for(const result of [companiesR,activityR,coverageR,healthR,directRunsR])if(result.error)throw result.error;
 
   const companies=companiesR.data??[];
   const activity=activityR.data??[];
@@ -127,13 +128,15 @@ try{
     if(error)throw error;
   }
 
-  const coverage=summarizeCapitalCoverage(activity,companies);
-  const fullyCovered=coverage.filter((row)=>row.categories_covered===3).length;
-  const anyCovered=coverage.filter((row)=>row.categories_covered>0).length;
-  const missing=coverage.filter((row)=>row.categories_covered===0).map((row)=>row.ticker);
+  const coverage=summarizeCapitalCoverageMatrix(coverageR.data??[],activity,companies);
+  const fullyReviewed=coverage.filter((row)=>row.fully_reviewed).length;
+  const fullyVerified=coverage.filter((row)=>row.fully_verified).length;
+  const anyReviewed=coverage.filter((row)=>row.categories_reviewed>0).length;
+  const pendingCells=coverage.reduce((sum,row)=>sum+(3-row.categories_reviewed),0);
+  const incomplete=coverage.filter((row)=>!row.fully_verified).map((row)=>row.ticker);
 
-  const status=anyCovered===companies.length?"success":anyCovered>0?"partial":"failed";
-  const message="Capital intelligence coverage: "+anyCovered+"/"+companies.length+" companies have at least one verified category; "+fullyCovered+" have all three.";
+  const status=fullyVerified===companies.length?"success":anyReviewed>0?"partial":"failed";
+  const message="Capital intelligence verification: "+fullyVerified+"/"+companies.length+" companies have all three categories verified; "+pendingCells+" of "+(companies.length*3)+" cells remain unresolved.";
 
   const {error:finishError}=await supabase.from("automation_runs").update({
     status,
@@ -142,9 +145,12 @@ try{
     details:{
       orchestrator_version:CAPITAL_ORCHESTRATOR_VERSION,
       companies:companies.length,
-      companies_with_any_coverage:anyCovered,
-      companies_with_full_coverage:fullyCovered,
-      missing_companies:missing,
+      companies_with_any_review:anyReviewed,
+      companies_fully_reviewed:fullyReviewed,
+      companies_fully_verified:fullyVerified,
+      total_coverage_cells:companies.length*3,
+      pending_or_unresolved_cells:pendingCells,
+      incomplete_companies:incomplete,
       coverage,
       providers:healthRows.map((row)=>({provider:row.provider,feed_type:row.feed_type,status:row.status})),
     },
@@ -152,7 +158,7 @@ try{
   }).eq("id",run.id);
   if(finishError)throw finishError;
 
-  console.log(JSON.stringify({status,message,missing,coverage},null,2));
+  console.log(JSON.stringify({status,message,incomplete,pendingCells,coverage},null,2));
 }catch(error){
   await supabase.from("automation_runs").update({
     status:"failed",
