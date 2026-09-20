@@ -24,14 +24,6 @@ async function secJson(url) {
   return response.json();
 }
 
-const tickerRows = await secJson("https://www.sec.gov/files/company_tickers.json");
-const tickerCik = new Map(
-  Object.values(tickerRows).map((row) => [
-    String(row.ticker).toUpperCase(),
-    String(row.cik_str).padStart(10, "0"),
-  ])
-);
-
 function allUnits(facts, namespace, concepts, unit) {
   for (const concept of concepts) {
     const rows = facts?.facts?.[namespace]?.[concept]?.units?.[unit];
@@ -90,7 +82,7 @@ const failures = [];
 try {
   for (const config of companies) {
     const ticker = String(config.ticker).toUpperCase();
-    const cik = String(config.cik || tickerCik.get(ticker) || "").padStart(10, "0");
+    const cik = String(config.cik || "").padStart(10, "0");
     if (!cik || /^0+$/.test(cik)) {
       failures.push({ ticker, error: "Unable to resolve CIK" });
       continue;
