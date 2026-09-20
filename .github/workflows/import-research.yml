@@ -6,6 +6,8 @@ on:
     paths:
       - "data/research/**/*.json"
       - "scripts/import-research.mjs"
+      - "scripts/test-research-changes.mjs"
+      - "lib/research-changes.mjs"
       - "supabase/migrations/**"
   workflow_dispatch:
 
@@ -26,6 +28,9 @@ jobs:
 
       - name: Install dependencies
         run: npm install
+
+      - name: Test research change engine
+        run: npm run test:changes
 
       - name: Import research files
         env:
