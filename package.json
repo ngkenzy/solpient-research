@@ -11,7 +11,9 @@
     "test:standard": "node scripts/test-research-standard.mjs",
     "validate:research": "node scripts/validate-research-standard.mjs",
     "factory:baseline": "node scripts/build-baseline-draft.mjs",
-    "test:factory": "node scripts/test-baseline-factory.mjs"
+    "test:factory": "node scripts/test-baseline-factory.mjs",
+    "test:review": "node scripts/test-review-workbench.mjs",
+    "promote:baseline": "node scripts/promote-baseline-review.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.4",

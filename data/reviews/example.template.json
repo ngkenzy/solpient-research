@@ -1,0 +1,21 @@
+{
+  "research": {"summary": "Replace with reviewed summary.", "full_report": ""},
+  "business_assessment": {
+    "business_quality_rating": "", "moat_rating": "", "pricing_power": "",
+    "revenue_model": "", "market_position": "", "growth_runway": "",
+    "management_quality": "", "capital_allocation_assessment": "",
+    "bull_thesis": "", "bear_thesis": "", "capital_allocation_test": "",
+    "biggest_unknown": "", "evidence": []
+  },
+  "metric_observations": [],
+  "scores": {
+    "quality_score": null, "growth_score": null, "valuation_score": null,
+    "financial_strength_score": null, "moat_score": null,
+    "thesis_integrity_score": null, "overall_score": null
+  },
+  "valuations": {"bear_value": null, "base_value": null, "bull_value": null},
+  "risk_register": [],
+  "thesis_variables": [],
+  "expected_return_scenarios": [],
+  "sources": []
+}

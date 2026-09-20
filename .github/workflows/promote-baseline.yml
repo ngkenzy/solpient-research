@@ -1,0 +1,35 @@
+name: Promote reviewed baseline
+
+on:
+  workflow_dispatch:
+    inputs:
+      draft_id:
+        description: "Baseline draft UUID"
+        required: true
+        type: string
+      review_file:
+        description: "Repository path to reviewed JSON patch"
+        required: true
+        type: string
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install dependencies
+        run: npm install
+      - name: Test review and promotion rules
+        run: npm run test:review
+      - name: Promote reviewed baseline
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: node scripts/promote-baseline-review.mjs "${{ inputs.draft_id }}" "${{ inputs.review_file }}"
