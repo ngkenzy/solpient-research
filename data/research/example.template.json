@@ -68,5 +68,44 @@
       "filing_date": null,
       "accession_number": null
     }
-  ]
+  ],
+  "prediction": {
+    "model_version": "solpient-research-v1",
+    "predicted_at": "2026-09-19T00:00:00Z",
+    "horizon_months": 12,
+    "benchmark_ticker": "SPY",
+    "price_at_prediction": null,
+    "benchmark_price_at_prediction": null,
+    "confidence": null,
+    "thesis_status": "intact",
+    "rationale": "Explain the central forward-looking assumptions.",
+    "outcomes": [
+      {
+        "metric_key": "revenue_growth_pct",
+        "label": "Revenue growth",
+        "outcome_type": "fundamental",
+        "predicted_low": null,
+        "predicted_high": null,
+        "unit": "%",
+        "target_date": "2027-09-19"
+      },
+      {
+        "metric_key": "relative_return_pct",
+        "label": "Excess return vs SPY",
+        "outcome_type": "relative_return",
+        "predicted_low": null,
+        "predicted_high": null,
+        "unit": "%",
+        "target_date": "2027-09-19"
+      },
+      {
+        "metric_key": "prob_outperform_benchmark",
+        "label": "Probability of outperforming SPY",
+        "outcome_type": "relative_return",
+        "predicted_probability": null,
+        "unit": "%",
+        "target_date": "2027-09-19"
+      }
+    ]
+  }
 }
