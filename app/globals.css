@@ -3849,3 +3849,371 @@ h2 { letter-spacing: -.02em; }
     grid-column: 2;
   }
 }
+
+
+.standardSection {
+  margin-top: 18px;
+  display: grid;
+  gap: 14px;
+}
+
+.standardHeader,
+.standardPanel,
+.standardCard,
+.standardFooter {
+  border: 1px solid var(--line);
+  background: #0f1216;
+  border-radius: 18px;
+}
+
+.standardHeader {
+  padding: 20px;
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  align-items: flex-start;
+}
+
+.standardHeader > div:first-child {
+  max-width: 820px;
+}
+
+.standardHeader h2,
+.standardPanel h3,
+.standardCard h3 {
+  margin: 5px 0 8px;
+}
+
+.standardHeader p,
+.standardCard p,
+.standardMethod,
+.standardRisk p {
+  color: var(--muted);
+  line-height: 1.65;
+}
+
+.standardStatus {
+  min-width: 104px;
+  padding: 12px 14px;
+  border: 1px solid rgba(215,181,109,.28);
+  border-radius: 14px;
+  background: var(--accent-soft);
+  display: grid;
+  gap: 3px;
+  text-align: right;
+}
+
+.standardStatus > span {
+  color: var(--accent);
+  text-transform: uppercase;
+  font-size: 8px;
+  letter-spacing: .13em;
+}
+
+.standardStatus strong {
+  font-size: 24px;
+}
+
+.standardStatus small {
+  color: var(--muted);
+  font-size: 8px;
+}
+
+.standardSummaryGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.standardCard {
+  padding: 18px;
+}
+
+.standardFacts {
+  margin: 12px 0 16px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.standardFacts > div {
+  padding: 10px 12px;
+  display: grid;
+  gap: 4px;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.standardFacts span,
+.standardUnknown span,
+.standardBreaker span {
+  color: var(--muted);
+  font-size: 8px;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
+.standardFacts strong {
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.capitalTestCard {
+  border-color: rgba(215,181,109,.24);
+}
+
+.standardUnknown {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 6px;
+}
+
+.standardUnknown strong {
+  line-height: 1.45;
+  font-size: 10px;
+}
+
+.standardPanel {
+  padding: 18px;
+}
+
+.standardPanelHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.standardPanelHeader small {
+  color: var(--muted);
+  font-size: 8px;
+}
+
+.standardMetricGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0,1fr));
+  gap: 8px;
+}
+
+.standardMetric {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #111419;
+  display: grid;
+  gap: 5px;
+}
+
+.standardMetric > span {
+  color: var(--muted);
+  font-size: 8px;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+
+.standardMetric strong {
+  font-size: 14px;
+}
+
+.standardMetric small {
+  color: #7f8996;
+  font-size: 8px;
+  text-transform: capitalize;
+}
+
+.standardMetric p {
+  margin: 3px 0 0;
+  color: var(--muted);
+  font-size: 8px;
+  line-height: 1.45;
+}
+
+.standardMetricMissing {
+  opacity: .72;
+}
+
+.returnScenarioGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.returnScenario {
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #111419;
+  display: grid;
+  gap: 10px;
+}
+
+.returnScenario > span {
+  color: var(--accent);
+  font-size: 8px;
+  text-transform: uppercase;
+  letter-spacing: .12em;
+}
+
+.returnScenario > strong {
+  font-size: 18px;
+}
+
+.returnScenario > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  border-top: 1px solid var(--line);
+  padding-top: 7px;
+}
+
+.returnScenario small {
+  color: var(--muted);
+  font-size: 8px;
+}
+
+.returnScenario b {
+  font-size: 9px;
+  font-weight: 600;
+}
+
+.standardMethod {
+  margin: 11px 0 0;
+  font-size: 9px;
+}
+
+.standardRiskList {
+  display: grid;
+  gap: 8px;
+}
+
+.standardRisk {
+  padding: 13px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #111419;
+}
+
+.standardRiskTop {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.standardRiskTop > div:first-child {
+  display: grid;
+  gap: 4px;
+}
+
+.standardRiskTop > div:first-child > span {
+  color: var(--muted);
+  font-size: 8px;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
+.standardRiskTop strong {
+  font-size: 10px;
+}
+
+.standardRiskLevels {
+  display: flex;
+  gap: 5px;
+  align-items: flex-start;
+}
+
+.standardRiskLevels span {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 4px 7px;
+  font-size: 7px;
+  text-transform: uppercase;
+}
+
+.standardRiskHigh {
+  color: #ef8585;
+}
+
+.standardRiskMedium {
+  color: #d7b56d;
+}
+
+.standardRiskLow {
+  color: #74dda0;
+}
+
+.standardRisk p {
+  margin: 9px 0;
+  font-size: 9px;
+}
+
+.standardBreaker {
+  display: grid;
+  gap: 5px;
+  padding-top: 9px;
+  border-top: 1px solid var(--line);
+}
+
+.standardBreaker strong {
+  font-size: 9px;
+  line-height: 1.45;
+}
+
+.standardFooter {
+  padding: 11px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 8px;
+}
+
+.standardFooter span {
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
+.standardFooter strong {
+  margin-right: 14px;
+  font-size: 8px;
+  font-weight: 600;
+}
+
+@media (max-width: 900px) {
+  .standardSummaryGrid,
+  .returnScenarioGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .standardMetricGrid {
+    grid-template-columns: repeat(2, minmax(0,1fr));
+  }
+}
+
+@media (max-width: 620px) {
+  .standardHeader,
+  .standardPanelHeader,
+  .standardRiskTop {
+    flex-direction: column;
+  }
+
+  .standardStatus {
+    width: 100%;
+    text-align: left;
+  }
+
+  .standardMetricGrid,
+  .standardFacts {
+    grid-template-columns: 1fr;
+  }
+
+  .standardFooter {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+}
