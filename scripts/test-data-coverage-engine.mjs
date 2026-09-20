@@ -118,3 +118,17 @@ assert.equal(report.market_history_pct,100);
 assert.equal(report.status,"sufficient");
 assert.equal(report.primary_source_quarters,20);
 console.log("Data Coverage Engine tests passed.");
+
+const annualFundamentals=Array.from({length:4},(_,i)=>({
+  provider:"yahoo_fundamentals",period_end:String(2022+i)+"-12-31",fiscal_year:2022+i,fiscal_period:"FY",
+  revenue:100+i*10,net_income:20,operating_cash_flow:30,free_cash_flow:25,shares_outstanding:10,eps_diluted:2,
+  raw_payload:{balance_sheet:{cashAndCashEquivalents:50,totalDebt:20,currentAssets:100,currentLiabilities:50,stockholdersEquity:120,retainedEarnings:80}}
+}));
+const recentQuarter=Array.from({length:4},(_,i)=>({
+  provider:"yahoo_fundamentals",period_end:"2026-"+String((i+1)*3).padStart(2,"0")+"-28",fiscal_year:2026,fiscal_period:null,
+  revenue:120,net_income:25,operating_cash_flow:35,free_cash_flow:28,shares_outstanding:10,eps_diluted:2.5,
+  raw_payload:{balance_sheet:{cashAndCashEquivalents:55,totalDebt:18,currentAssets:110,currentLiabilities:45,stockholdersEquity:130,retainedEarnings:90}}
+}));
+const annualReport=buildCoverageReport({company,fundamentals:[...recentQuarter,...annualFundamentals],marketDays:1260,context:{summary:{configured_peers:2,peers_with_local_data:1}},draft:{draft_payload:{metric_observations:[]}},asOfDate:"2026-09-20"});
+assert.equal(annualReport.history_pct,80,"annual history coverage");
+console.log("Annual history coverage test passed.");
