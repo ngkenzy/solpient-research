@@ -22,18 +22,18 @@ if(companyError)throw companyError;
 const summary=[];
 
 for(const company of companies??[]){
-  const [fundR,marketR,contextR,filingR]=await Promise.all([
+  const [fundR,marketLatestR,marketHistoryCountR,contextR,filingR]=await Promise.all([
     sb.from("fundamental_snapshots").select("*").eq("company_id",company.id).order("period_end",{ascending:false}).limit(160),
-    sb.from("market_snapshots").select("trading_date,price,market_cap,observed_at,source_url,provider").eq("company_id",company.id).order("trading_date",{ascending:false}).limit(4000),
+    sb.from("market_snapshots").select("trading_date,price,market_cap,observed_at,source_url,provider").eq("company_id",company.id).order("trading_date",{ascending:false}).limit(1).maybeSingle(),
+    sb.from("market_snapshots").select("id",{count:"exact",head:true}).eq("company_id",company.id).eq("provider","yahoo-chart-history"),
     sb.from("research_context_packs").select("summary").eq("company_id",company.id).order("as_of_date",{ascending:false}).limit(1).maybeSingle(),
     sb.from("filing_events").select("id,provider,form_type,filed_at,accepted_at,accession_number,filing_url,period_end,title").eq("company_id",company.id).order("filed_at",{ascending:false}).limit(25),
   ]);
-  for(const r of [fundR,marketR,contextR,filingR])if(r.error)throw r.error;
+  for(const r of [fundR,marketLatestR,marketHistoryCountR,contextR,filingR])if(r.error)throw r.error;
 
-  const marketRows=marketR.data??[];
   const temporaryBaseline=buildBaselineDraft({
     company,
-    market:marketRows[0]??null,
+    market:marketLatestR.data??null,
     fundamentals:fundR.data??[],
     filings:filingR.data??[],
   });
@@ -41,7 +41,7 @@ for(const company of companies??[]){
   const report=buildCoverageReport({
     company,
     fundamentals:fundR.data??[],
-    marketDays:new Set(marketRows.map(row=>row.trading_date).filter(Boolean)).size,
+    marketDays:Number(marketHistoryCountR.count??0),
     context:contextR.data,
     draft:{draft_payload:temporaryBaseline.payload},
     asOfDate,
