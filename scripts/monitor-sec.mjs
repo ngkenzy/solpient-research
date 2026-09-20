@@ -24,6 +24,7 @@ state.companies = state.companies ?? {};
 state.managers = state.managers ?? {};
 
 const now = new Date().toISOString();
+let successfulRequests = 0;
 
 async function sleep(ms) {
   await new Promise((resolve) => setTimeout(resolve, ms));
@@ -44,6 +45,7 @@ async function secText(url) {
     throw new Error("SEC request failed " + response.status + " for " + url);
   }
 
+  successfulRequests += 1;
   return response.text();
 }
 
@@ -336,6 +338,12 @@ for (const manager of managers) {
   };
 
   console.log("Checked 13F filings for " + manager.name + ": " + unseen.length + " new.");
+}
+
+if (successfulRequests === 0) {
+  throw new Error(
+    "No direct SEC requests succeeded. The direct cloud provider is unavailable; use the orchestrated monitor instead."
+  );
 }
 
 const existingEvents = Array.isArray(eventFile.events) ? eventFile.events : [];
