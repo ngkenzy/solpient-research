@@ -84,6 +84,26 @@ Recommended when relevant:
 
 Industry modules add metrics rather than replacing the universal core.
 
+#### Consumer / brand module
+
+For branded consumer companies, SOLPIENT additionally requires:
+- top-two brand revenue concentration
+- direct-to-consumer revenue mix
+- international revenue mix
+- leading-brand growth
+- second-brand growth
+- direct-to-consumer growth
+- international growth
+- year-over-year inventory growth using comparable seasonal dates
+- year-over-year share-count change
+- buyback spend
+- average buyback price
+- stock-based compensation as a percent of revenue
+
+Recommended supporting observations include brand-level gross margins, wholesale growth, domestic growth, buyback authorization, SBC/FCF, and inventory growth relative to revenue growth.
+
+The module exists to answer whether brand strength is converting into disciplined inventory, full-price demand, channel quality, international expansion, and improving per-share ownership economics.
+
 ### 3. Valuation
 
 Use methods appropriate to the business. Normally consider DCF, owner earnings / normalized FCF, earnings or FCF multiple, historical valuation, and peer valuation. Bear, base, and bull cases must expose major assumptions.

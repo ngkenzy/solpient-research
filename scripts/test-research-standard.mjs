@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { validateResearchStandard, REQUIRED_METRIC_KEYS } from "../lib/research-standard-v1.mjs";
+import { validateResearchStandard, REQUIRED_METRIC_KEYS, INDUSTRY_MODULES } from "../lib/research-standard-v1.mjs";
 
 const observations = REQUIRED_METRIC_KEYS.map((metric_key) => ({
   metric_key,
@@ -44,6 +44,29 @@ const result = validateResearchStandard(payload);
 assert.equal(result.valid, true);
 assert.equal(result.status, "complete");
 assert.equal(result.metricCoveragePct, 100);
+
+const consumer = structuredClone(payload);
+consumer.research.industry_modules = ["consumer_brand"];
+consumer.metric_observations = [
+  ...consumer.metric_observations,
+  ...INDUSTRY_MODULES.consumer_brand.requiredMetricKeys.map((metric_key) => ({
+    module: "consumer_brand",
+    metric_key,
+    label: metric_key,
+    value_numeric: 1,
+    status: "available",
+    basis: "reported",
+  })),
+];
+const consumerResult = validateResearchStandard(consumer);
+assert.equal(consumerResult.valid, true);
+assert.equal(consumerResult.industryModuleCoveragePct, 100);
+
+const brokenConsumer = structuredClone(consumer);
+brokenConsumer.metric_observations = brokenConsumer.metric_observations.filter(
+  (row) => row.metric_key !== "inventory_growth_yoy"
+);
+assert.equal(validateResearchStandard(brokenConsumer).valid, false);
 
 const broken = structuredClone(payload);
 broken.metric_observations = broken.metric_observations.filter((row) => row.metric_key !== "fcf_yield");

@@ -42,6 +42,18 @@ function levelClass(value?: string | null) {
   return "standardRiskLow";
 }
 
+function moduleTitle(module: string) {
+  if (module === "consumer_brand") return "Consumer / brand module";
+  return module.replaceAll("_", " ");
+}
+
+function moduleDescription(module: string) {
+  if (module === "consumer_brand") {
+    return "Brand concentration, channel mix, international expansion, inventory discipline and per-share capital allocation.";
+  }
+  return "Industry-specific evidence layered on top of the universal core.";
+}
+
 export async function ResearchStandardV1({
   researchRunId,
 }: {
@@ -97,7 +109,13 @@ export async function ResearchStandardV1({
     .sort((a: any, b: any) => (scenarioOrder[a.scenario] ?? 99) - (scenarioOrder[b.scenario] ?? 99));
   const severityOrder: Record<string, number> = { high: 0, medium: 1, low: 2 };
   risks.sort((a: any, b: any) => (severityOrder[a.severity] ?? 99) - (severityOrder[b.severity] ?? 99));
-  const metricByKey = new Map(metrics.map((row: any) => [row.metric_key, row]));
+  const universalMetrics = metrics.filter((row: any) => row.module === "universal");
+  const industryMetricGroups = [...new Set(metrics.map((row: any) => row.module).filter((module: string) => module && module !== "universal"))]
+    .map((module) => ({
+      module,
+      rows: metrics.filter((row: any) => row.module === module),
+    }));
+  const metricByKey = new Map(universalMetrics.map((row: any) => [row.metric_key, row]));
   const featuredMetrics = [
     "fcf_yield",
     "price_to_fcf",
@@ -157,7 +175,7 @@ export async function ResearchStandardV1({
             <span className="panelKicker">AUDITABLE METRICS</span>
             <h3>Universal core</h3>
           </div>
-          <small>{metrics.length} observations</small>
+          <small>{universalMetrics.length} universal observations · {metrics.length} total</small>
         </div>
         <div className="standardMetricGrid">
           {featuredMetrics.map((row: any) => (
@@ -173,6 +191,32 @@ export async function ResearchStandardV1({
           ))}
         </div>
       </div>
+
+      {industryMetricGroups.map(({ module, rows }: any) => (
+        <div className="standardPanel" key={module}>
+          <div className="standardPanelHeader">
+            <div>
+              <span className="panelKicker">INDUSTRY EVIDENCE</span>
+              <h3>{moduleTitle(module)}</h3>
+              <p className="standardMethod">{moduleDescription(module)}</p>
+            </div>
+            <small>{rows.length} observations</small>
+          </div>
+          <div className="standardMetricGrid">
+            {rows.map((row: any) => (
+              <div className={"standardMetric " + (row.status !== "available" ? "standardMetricMissing" : "")} key={row.id}>
+                <span>{row.label}</span>
+                <strong>{metricValue(row)}</strong>
+                <small>
+                  {row.basis}
+                  {row.period_type ? " · " + row.period_type.replaceAll("_", " ") : ""}
+                </small>
+                {row.notes ? <p>{row.notes}</p> : null}
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
 
       <div className="standardPanel">
         <div className="standardPanelHeader">
