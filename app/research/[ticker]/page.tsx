@@ -6,6 +6,7 @@ import { CompanyIntelligence } from "@/components/CompanyIntelligence";
 import { ResearchControls } from "@/components/ResearchControls";
 import { PredictionHistory } from "@/components/PredictionHistory";
 import { SolpientBrand } from "@/components/SolpientBrand";
+import { ResearchStandardV1 } from "@/components/ResearchStandardV1";
 
 export const dynamic = "force-dynamic";
 
@@ -510,6 +511,8 @@ export default async function CompanyResearch({
             </div>
           </article>
         </section>
+
+        <ResearchStandardV1 researchRunId={run.id} />
 
         <HistoricalFinancials ticker={company.ticker} />
 
