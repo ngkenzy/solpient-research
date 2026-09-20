@@ -9,7 +9,7 @@ import { applyReviewPatch, mergeReviewPatches, validatePromotionReadiness } from
 // @ts-expect-error Node ESM research helper
 import { promoteReviewedBaseline } from "@/lib/promote-research.mjs";
 // @ts-expect-error Node ESM research helper
-import { buildEnrichmentReviewPatch, mergeReviewPatches } from "@/lib/evidence-enrichment.mjs";
+import { buildEnrichmentReviewPatch, mergeReviewPatches as mergeEnrichmentReviewPatches } from "@/lib/evidence-enrichment.mjs";
 
 export async function unlockReviewAction(formData:FormData) {
   const ok=await unlockReviewAccess(String(formData.get("key") ?? ""));
@@ -72,7 +72,7 @@ export async function applyEnrichmentAction(formData:FormData) {
   if (itemResult.error) throw itemResult.error;
 
   const enrichmentPatch=buildEnrichmentReviewPatch(itemResult.data ?? []);
-  const combinedPatch=mergeReviewPatches(reviewResult.data?.review_payload ?? {},enrichmentPatch);
+  const combinedPatch=mergeEnrichmentReviewPatches(reviewResult.data?.review_payload ?? {},enrichmentPatch);
   const merged=applyReviewPatch(draft.draft_payload,combinedPatch);
   const readiness=validatePromotionReadiness(merged);
   const now=new Date().toISOString();
