@@ -21,7 +21,7 @@ export default function AlertsPage() {
         <h1>Alerts</h1>
         <p className="utilityLede">
           Choose the evidence that matters to you: research changes, institutional holdings,
-          congressional disclosures, and insider activity.
+          political transaction disclosures, and insider activity.
         </p>
         <AlertsClient />
       </main>
