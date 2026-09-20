@@ -1,0 +1,14 @@
+[
+  {
+    "ticker": "ADBE",
+    "company_name": "Adobe Inc.",
+    "cik": "0000796343",
+    "forms": ["10-K", "10-Q", "8-K"]
+  },
+  {
+    "ticker": "DECK",
+    "company_name": "Deckers Outdoor Corporation",
+    "cik": "0000910521",
+    "forms": ["10-K", "10-Q", "8-K"]
+  }
+]
