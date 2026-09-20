@@ -182,3 +182,132 @@ h2 { letter-spacing: -.02em; }
   .dataGrid { grid-template-columns: 1fr; }
   .historyRow { grid-template-columns: 1fr; gap: 4px; }
 }
+
+
+.latestLink {
+  color: var(--accent);
+  font-size: 12px;
+  margin-top: 8px;
+}
+
+.changeSection {
+  border-color: rgba(215, 181, 109, .28);
+}
+
+.baselineNote {
+  background: var(--accent-soft);
+  border: 1px solid rgba(215, 181, 109, .22);
+  border-radius: 14px;
+  padding: 18px;
+}
+
+.baselineNote p {
+  margin: 6px 0 0;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.changeList {
+  display: grid;
+  gap: 10px;
+}
+
+.changeRow {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 18px;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 18px;
+}
+
+.changeMeta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.changeCategory {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+.changeDirection {
+  display: inline-flex;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 5px 8px;
+  font-size: 11px;
+  text-transform: capitalize;
+}
+
+.changeDirection.up,
+.changeDirection.strengthened {
+  background: rgba(65, 166, 98, .13);
+}
+
+.changeDirection.down,
+.changeDirection.weakened,
+.changeDirection.removed {
+  background: rgba(201, 81, 81, .13);
+}
+
+.changeDirection.unchanged,
+.changeDirection.unknown {
+  background: rgba(141, 147, 158, .10);
+}
+
+.changeBody {
+  min-width: 0;
+}
+
+.changeBody p {
+  margin: 6px 0 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.changeBody small {
+  display: block;
+  margin-top: 8px;
+  color: #c9cdd5;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.thesisRow small {
+  display: block;
+  margin-top: 8px;
+  color: #c9cdd5;
+  line-height: 1.45;
+}
+
+.historyRow {
+  transition: border-color .18s ease, background .18s ease;
+}
+
+.historyRow:hover {
+  border-color: #3a404d;
+}
+
+.historyRow.activeVersion {
+  border-color: rgba(215, 181, 109, .45);
+  background: var(--accent-soft);
+}
+
+@media (max-width: 720px) {
+  .changeRow {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .changeMeta {
+    flex-direction: row;
+    align-items: center;
+  }
+}
