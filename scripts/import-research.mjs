@@ -156,6 +156,53 @@ try {
     if (rankingError) throw rankingError;
   }
 
+  if (payload.prediction) {
+    const predictionKey = payload.prediction.prediction_key ?? ingestionKey + "#prediction";
+    const { data: predictionSnapshot, error: predictionError } = await supabase
+      .from("prediction_snapshots")
+      .insert({
+        company_id: company.id,
+        research_run_id: run.id,
+        prediction_key: predictionKey,
+        predicted_at: payload.prediction.predicted_at ?? payload.research.researched_at ?? new Date().toISOString(),
+        model_version: payload.prediction.model_version ?? "solpient-research-v1",
+        horizon_months: payload.prediction.horizon_months ?? 12,
+        benchmark_ticker: payload.prediction.benchmark_ticker ?? "SPY",
+        price_at_prediction: payload.prediction.price_at_prediction ?? payload.research.price_at_research ?? null,
+        benchmark_price_at_prediction: payload.prediction.benchmark_price_at_prediction ?? null,
+        confidence: payload.prediction.confidence ?? null,
+        thesis_status: payload.prediction.thesis_status ?? "intact",
+        rationale: payload.prediction.rationale ?? null,
+        feature_snapshot: payload.prediction.feature_snapshot ?? {
+          financial_metrics: payload.financial_metrics ?? null,
+          scores: payload.scores ?? null,
+          valuations: payload.valuations ?? null,
+        },
+        source_snapshot: payload.prediction.source_snapshot ?? payload.sources ?? [],
+      })
+      .select("id")
+      .single();
+    if (predictionError) throw predictionError;
+
+    if (Array.isArray(payload.prediction.outcomes) && payload.prediction.outcomes.length > 0) {
+      const rows = payload.prediction.outcomes.map((outcome) => ({
+        prediction_snapshot_id: predictionSnapshot.id,
+        metric_key: outcome.metric_key,
+        label: outcome.label,
+        outcome_type: outcome.outcome_type,
+        predicted_value: outcome.predicted_value ?? null,
+        predicted_low: outcome.predicted_low ?? null,
+        predicted_high: outcome.predicted_high ?? null,
+        predicted_probability: outcome.predicted_probability ?? null,
+        predicted_text: outcome.predicted_text ?? null,
+        unit: outcome.unit ?? null,
+        target_date: outcome.target_date ?? null,
+      }));
+      const { error: outcomeError } = await supabase.from("prediction_outcomes").insert(rows);
+      if (outcomeError) throw outcomeError;
+    }
+  }
+
   const changes = buildResearchChanges({
     companyId: company.id,
     currentRunId: run.id,
