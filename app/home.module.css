@@ -315,7 +315,7 @@
 .rankHeader,
 .rankRow {
   display: grid;
-  grid-template-columns: 34px minmax(190px,1.6fr) 70px 90px 95px 130px 58px;
+  grid-template-columns: 34px minmax(175px,1.35fr) 62px 82px 88px 120px 54px minmax(190px,1fr);
   align-items: center;
   gap: 8px;
 }
@@ -347,6 +347,12 @@
 
 .rankRow:hover {
   background: #151920;
+}
+
+.rankWhy {
+  color: #858f9c;
+  font-size: 8px;
+  line-height: 1.35;
 }
 
 .rankNumber {
@@ -914,8 +920,8 @@
 
   .rankHeader,
   .rankRow {
-    grid-template-columns: 30px minmax(180px,1.6fr) 60px 80px 90px 120px 50px;
-    min-width: 760px;
+    grid-template-columns: 30px minmax(170px,1.4fr) 58px 78px 84px 112px 50px minmax(180px,1fr);
+    min-width: 980px;
   }
 
   .rankingPanel {
