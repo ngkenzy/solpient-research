@@ -5,6 +5,7 @@ import {
   CAPITAL_ORCHESTRATOR_VERSION,
   normalizeCoverageCheck,
   providerHealthRow,
+  shouldReplaceCoverage,
 } from "../lib/capital-intelligence-orchestrator.mjs";
 
 const url=process.env.SUPABASE_URL;
@@ -33,10 +34,23 @@ coverage.forEach((item,index)=>{
   else rejected.push({index,ticker:result.ticker,errors:result.errors});
 });
 
+let applied=accepted;
 if(accepted.length){
-  const {error}=await supabase.from("capital_coverage_checks")
-    .upsert(accepted,{onConflict:"company_id,activity_type",ignoreDuplicates:false});
-  if(error)throw error;
+  const companyIds=[...new Set(accepted.map((row)=>row.company_id))];
+  const {data:existing,error:existingError}=await supabase.from("capital_coverage_checks")
+    .select("*")
+    .in("company_id",companyIds);
+  if(existingError)throw existingError;
+  const existingByKey=new Map((existing??[]).map((row)=>[[row.company_id,row.activity_type].join("|"),row]));
+  applied=accepted.filter((row)=>shouldReplaceCoverage(
+    existingByKey.get([row.company_id,row.activity_type].join("|")),
+    row,
+  ));
+  if(applied.length){
+    const {error}=await supabase.from("capital_coverage_checks")
+      .upsert(applied,{onConflict:"company_id,activity_type",ignoreDuplicates:false});
+    if(error)throw error;
+  }
 }
 
 const categories=[...new Set(accepted.map((row)=>row.activity_type))];
@@ -57,6 +71,7 @@ const {error:batchError}=await supabase.from("capital_ingest_batches").insert({
     orchestrator_version:CAPITAL_ORCHESTRATOR_VERSION,
     coverage_received:coverage.length,
     coverage_accepted:accepted.length,
+    coverage_applied:applied.length,
     coverage_rejected:rejected.length,
     source:body.source??null,
   },
@@ -101,6 +116,7 @@ console.log(JSON.stringify({
   verified_at:verifiedAt,
   coverage_received:coverage.length,
   coverage_accepted:accepted.length,
+  coverage_applied:applied.length,
   coverage_rejected:rejected.length,
   companies_covered:covered,
   rejected,
