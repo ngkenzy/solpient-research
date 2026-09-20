@@ -10,6 +10,23 @@ const supabase = createClient(supabaseUrl, serviceRoleKey, {
   auth: { persistSession: false, autoRefreshToken: false },
 });
 
+async function fetchAllCapitalActivity() {
+  const pageSize = 1000;
+  const rows = [];
+  for (let from = 0; from < 100000; from += pageSize) {
+    const { data, error } = await supabase
+      .from("capital_activity")
+      .select("id,company_id,activity_type,actor_name,actor_detail,action,shares,price,value,change_pct,amount_range,transaction_date,disclosure_date,position_date,source_url,provider")
+      .order("id", { ascending: true })
+      .range(from, from + pageSize - 1);
+    if (error) throw error;
+    const page = data ?? [];
+    rows.push(...page);
+    if (page.length < pageSize) break;
+  }
+  return rows;
+}
+
 async function startRun() {
   const { data, error } = await supabase
     .from("automation_runs")
@@ -128,17 +145,13 @@ let written = 0;
 const failures = [];
 
 try {
-  const [filingsResult, activityResult, changesResult] = await Promise.all([
+  const [filingsResult, activityRows, changesResult] = await Promise.all([
     supabase
       .from("filing_events")
       .select("id,company_id,provider,form_type,filed_at,accepted_at,filing_url,title")
       .order("filed_at", { ascending: false })
       .limit(1000),
-    supabase
-      .from("capital_activity")
-      .select("id,company_id,activity_type,actor_name,actor_detail,action,shares,price,value,change_pct,amount_range,transaction_date,disclosure_date,position_date,source_url,provider")
-      .order("created_at", { ascending: false })
-      .limit(1000),
+    fetchAllCapitalActivity(),
     supabase
       .from("research_changes")
       .select("id,company_id,current_run_id,category,metric_key,label,old_value,new_value,old_text,new_text,direction,materiality,summary,created_at,research_runs!research_changes_current_run_id_fkey(researched_at)")
@@ -146,13 +159,13 @@ try {
       .limit(1000),
   ]);
 
-  for (const result of [filingsResult, activityResult, changesResult]) {
+  for (const result of [filingsResult, changesResult]) {
     if (result.error) throw result.error;
   }
 
   const rows = [
     ...(filingsResult.data ?? []).map(filingRow),
-    ...(activityResult.data ?? []).map(activityRow),
+    ...activityRows.map(activityRow),
     ...(changesResult.data ?? []).map(changeRow),
   ];
 
@@ -166,7 +179,7 @@ try {
 
   await finishRun(runId, "success", written, "Normalized " + written + " evidence events.", {
     filings: filingsResult.data?.length ?? 0,
-    capital_activity: activityResult.data?.length ?? 0,
+    capital_activity: activityRows.length,
     research_changes: changesResult.data?.length ?? 0,
   });
 
