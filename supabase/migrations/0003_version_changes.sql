@@ -37,6 +37,9 @@ create index if not exists research_changes_company_idx
 
 alter table public.research_changes enable row level security;
 
+drop policy if exists "public read published research changes"
+  on public.research_changes;
+
 create policy "public read published research changes"
   on public.research_changes
   for select
