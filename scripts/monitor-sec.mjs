@@ -7,9 +7,13 @@ const managersPath = path.join(root, "data/monitor/managers.json");
 const statePath = path.join(root, "data/monitor/sec-state.json");
 const eventsPath = path.join(root, "data/monitor/sec-events.json");
 
+const secContact =
+  process.env.SEC_CONTACT ||
+  "ngkenzy@users.noreply.github.com";
+
 const userAgent =
   process.env.SEC_USER_AGENT ||
-  "SOLPIENT Research contact@solpient.local";
+  "SOLPIENT Research " + secContact;
 
 const companies = JSON.parse(await fs.readFile(companiesPath, "utf8"));
 const managers = JSON.parse(await fs.readFile(managersPath, "utf8"));
@@ -92,6 +96,8 @@ async function secJson(url) {
   const response = await fetch(url, {
     headers: {
       "User-Agent": userAgent,
+      From: secContact,
+      Host: "data.sec.gov",
       "Accept-Encoding": "gzip, deflate",
       Accept: "application/json",
     },
@@ -108,6 +114,8 @@ async function secText(url) {
   const response = await fetch(url, {
     headers: {
       "User-Agent": userAgent,
+      From: secContact,
+      Host: "www.sec.gov",
       "Accept-Encoding": "gzip, deflate",
       Accept: "application/atom+xml,text/xml,application/xml,text/html",
     },
