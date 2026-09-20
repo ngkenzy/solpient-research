@@ -1,49 +1,5 @@
 {
-  "initialized_at": "2026-09-20T05:57:54.931Z",
-  "companies": {
-    "ADBE": {
-      "cik": "0000796343",
-      "checked_at": "2026-09-20T05:58:22.453Z",
-      "seen_accessions": [],
-      "ownership_seen_accessions": []
-    },
-    "DECK": {
-      "cik": "0000910521",
-      "checked_at": "2026-09-20T05:58:22.453Z",
-      "seen_accessions": [],
-      "ownership_seen_accessions": []
-    }
-  },
-  "managers": {
-    "0001167557": {
-      "name": "AQR Capital Management",
-      "checked_at": "2026-09-20T05:57:54.931Z",
-      "seen_accessions": []
-    },
-    "0001009207": {
-      "name": "D. E. Shaw & Co.",
-      "checked_at": "2026-09-20T05:57:54.931Z",
-      "seen_accessions": []
-    },
-    "0001079114": {
-      "name": "Greenlight Capital",
-      "checked_at": "2026-09-20T05:57:54.931Z",
-      "seen_accessions": []
-    },
-    "0001423053": {
-      "name": "Citadel Advisors",
-      "checked_at": "2026-09-20T05:57:54.931Z",
-      "seen_accessions": []
-    },
-    "0000763212": {
-      "name": "PRIMECAP Management",
-      "checked_at": "2026-09-20T05:57:54.931Z",
-      "seen_accessions": []
-    },
-    "0000200217": {
-      "name": "Dodge & Cox",
-      "checked_at": "2026-09-20T05:57:54.931Z",
-      "seen_accessions": []
-    }
-  }
+  "initialized_at": null,
+  "companies": {},
+  "managers": {}
 }
