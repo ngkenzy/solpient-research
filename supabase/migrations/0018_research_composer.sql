@@ -14,6 +14,7 @@ create table if not exists public.research_compositions (
   constraint research_compositions_status_check check (status in ('generated','applied','superseded'))
 );
 create index if not exists research_compositions_company_generated_idx on public.research_compositions(company_id,generated_at desc);
+create index if not exists research_compositions_context_pack_idx on public.research_compositions(context_pack_id);
 alter table public.research_compositions enable row level security;
 revoke all on table public.research_compositions from public,anon,authenticated;
 grant all on table public.research_compositions to service_role;
