@@ -107,7 +107,7 @@ export function ResearchControls({ ticker, name }: { ticker: string; name: strin
           <div className="alertToggleList">
             {[
               ["smartMoney", "Smart money", "13F holder changes and notable fund activity"],
-              ["congress", "Congress", "Newly disclosed congressional purchases and sales"],
+              ["congress", "Political trades", "Newly disclosed political purchases and sales"],
               ["insiders", "Insiders", "Open-market Form 4 purchases and sales"],
               ["research", "Research", "New SOLPIENT research versions and thesis changes"],
             ].map(([key, label, detail]) => {
