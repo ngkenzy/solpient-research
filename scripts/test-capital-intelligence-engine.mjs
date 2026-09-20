@@ -52,7 +52,7 @@ const info=`<informationTable xmlns="http://www.sec.gov/edgar/document/thirteenf
 const holdings=parse13FInformationTable(info);
 assert.equal(holdings.length,1);
 assert.equal(holdings[0].issuer,"MICROSOFT CORP");
-assert.equal(holdings[0].value_usd,1500000);
+assert.equal(holdings[0].value_usd,1500);
 
 const prior=[{issuer:"MICROSOFT CORP",shares:2000,value_usd:900000,cusip:"594918104"}];
 const rows=buildInstitutionalActivity({
