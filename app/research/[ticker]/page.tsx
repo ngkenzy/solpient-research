@@ -2,6 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getSupabase } from "@/lib/supabase";
 import { HistoricalFinancials } from "@/components/HistoricalFinancials";
+import { CompanyIntelligence } from "@/components/CompanyIntelligence";
+import { ResearchControls } from "@/components/ResearchControls";
 
 export const dynamic = "force-dynamic";
 
@@ -275,14 +277,18 @@ export default async function CompanyResearch({
           <span>Research</span>
         </Link>
         <nav>
-          <Link href="/research">Research</Link>
-          <Link href="/research">SOLPIENT 20</Link>
+          <Link href="/research">Rankings</Link>
+          <Link href="/watchlist">Watchlist</Link>
+          <Link href="/alerts">Alerts</Link>
           <span>Evidence-led investing</span>
         </nav>
       </header>
 
       <main className="researchShell">
-        <Link className="backLink" href="/research">← All research</Link>
+        <div className="researchTopbar">
+          <Link className="backLink" href="/research">← All research</Link>
+          <ResearchControls ticker={company.ticker} name={company.company_name} />
+        </div>
 
         <section className="researchHero">
           <div className="researchHeroCopy">
@@ -493,6 +499,8 @@ export default async function CompanyResearch({
         </section>
 
         <HistoricalFinancials ticker={company.ticker} />
+
+        <CompanyIntelligence ticker={company.ticker} />
 
         <section className="dashboardGrid lowerDashboard">
           <article className="dashboardPanel changeSection">
