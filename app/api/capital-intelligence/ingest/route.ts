@@ -7,6 +7,7 @@ import {
   normalizeCapitalRecord,
   normalizeCoverageCheck,
   providerHealthRow,
+  shouldReplaceCoverage,
 } from "@/lib/capital-intelligence-orchestrator.mjs";
 
 export const dynamic = "force-dynamic";
@@ -188,11 +189,26 @@ export async function POST(request: Request) {
   }
 
   const acceptedCoverage = [...coverageByKey.values()];
+  let coverageToWrite = acceptedCoverage;
   if (acceptedCoverage.length) {
-    const { error } = await supabase
+    const companyIds = [...new Set(acceptedCoverage.map((row: any) => row.company_id))];
+    const { data: existingCoverage, error: existingCoverageError } = await supabase
       .from("capital_coverage_checks")
-      .upsert(acceptedCoverage, { onConflict: "company_id,activity_type", ignoreDuplicates: false });
-    if (error) throw error;
+      .select("*")
+      .in("company_id", companyIds);
+    if (existingCoverageError) throw existingCoverageError;
+    const existingByKey = new Map(
+      (existingCoverage ?? []).map((row: any) => [[row.company_id,row.activity_type].join("|"), row]),
+    );
+    coverageToWrite = acceptedCoverage.filter((row: any) =>
+      shouldReplaceCoverage(existingByKey.get([row.company_id,row.activity_type].join("|")), row)
+    );
+    if (coverageToWrite.length) {
+      const { error } = await supabase
+        .from("capital_coverage_checks")
+        .upsert(coverageToWrite, { onConflict: "company_id,activity_type", ignoreDuplicates: false });
+      if (error) throw error;
+    }
   }
 
   const acceptedAnything = accepted.length + acceptedCoverage.length;
@@ -223,6 +239,8 @@ export async function POST(request: Request) {
       orchestrator_version: CAPITAL_ORCHESTRATOR_VERSION,
       coverage_received: coverage.length,
       coverage_accepted: acceptedCoverage.length,
+    coverage_applied: coverageToWrite.length,
+      coverage_applied: coverageToWrite.length,
       coverage_rejected: rejected.filter((item) => item.kind === "coverage").length,
     },
   });
