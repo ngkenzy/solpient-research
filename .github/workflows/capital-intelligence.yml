@@ -9,6 +9,9 @@ on:
     paths:
       - "lib/capital-intelligence-engine.mjs"
       - "lib/capital-intelligence-orchestrator.mjs"
+      - "lib/yahoo-capital-intelligence.mjs"
+      - "scripts/sync-yahoo-capital-intelligence.mjs"
+      - "scripts/test-yahoo-capital-intelligence.mjs"
       - "scripts/test-capital-coverage-verification.mjs"
       - "scripts/export-pending-capital-coverage.mjs"
       - "scripts/import-capital-coverage-batch.mjs"
@@ -42,6 +45,13 @@ jobs:
           npm run test:capital-intelligence
           npm run test:capital-orchestrator
           npm run test:capital-coverage
+          npm run test:yahoo-capital
+      - name: Refresh Yahoo capital fallback
+        continue-on-error: true
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: npm run sync:yahoo-capital
       - name: Try direct SEC adapter
         id: direct_sec
         continue-on-error: true
