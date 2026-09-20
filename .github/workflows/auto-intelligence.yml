@@ -48,6 +48,18 @@ jobs:
           MARKET_DATA_USER_AGENT: "SOLPIENT Research/1.0"
         run: node scripts/sync-market-data.mjs
 
+      - name: Normalize intelligence events
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: node scripts/sync-intelligence-events.mjs
+
+      - name: Refresh explainable rankings
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: node scripts/refresh-rankings.mjs
+
       - name: Evaluate matured predictions
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
