@@ -122,6 +122,29 @@ assert.equal(
   "Identical versions must not create false-positive change records"
 );
 
+
+const missingValuePayload = {
+  ...unchangedPayload,
+  financial_metrics: {
+    ...unchangedPayload.financial_metrics,
+    total_debt: null,
+  },
+};
+
+const missingValueChanges = buildResearchChanges({
+  ...base,
+  previousMetrics: {
+    ...base.previousMetrics,
+    total_debt: null,
+  },
+  payload: missingValuePayload,
+});
+
+assert.ok(
+  !missingValueChanges.some((c) => c.metric_key === "total_debt"),
+  "Missing numeric values must remain missing, not be coerced to zero"
+);
+
 assert.deepEqual(
   buildResearchChanges({
     ...base,
