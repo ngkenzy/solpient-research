@@ -1,14 +1,12 @@
 import Link from "next/link";
 import { WatchlistClient } from "./WatchlistClient";
+import { SolpientBrand } from "@/components/SolpientBrand";
 
 export default function WatchlistPage() {
   return (
     <>
       <header className="siteHeader">
-        <Link className="brand" href="/">
-          <strong>SOLPIENT</strong>
-          <span>Research</span>
-        </Link>
+        <SolpientBrand />
         <nav>
           <Link href="/research">Rankings</Link>
           <Link href="/watchlist">Watchlist</Link>
