@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "SOLPIENT Research",
-  description: "Fundamental investment research that remembers.",
+  description: "See clearly. Invest deliberately.",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
