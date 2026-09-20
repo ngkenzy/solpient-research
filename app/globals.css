@@ -2569,7 +2569,7 @@ h2 { letter-spacing: -.02em; }
 
 .rankingHeroStats {
   display: grid;
-  grid-template-columns: repeat(3, minmax(110px, 1fr));
+  grid-template-columns: repeat(4, minmax(110px, 1fr));
   gap: 8px;
 }
 
@@ -3755,4 +3755,97 @@ h2 { letter-spacing: -.02em; }
   .predictionLedgerHead { flex-direction: column; }
   .predictionLedgerHead > div:last-child { justify-items: start; }
   .predictionOutcomeGrid { grid-template-columns: 1fr; }
+}
+
+
+.coverageQueue {
+  margin-top: 14px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: #0f1216;
+}
+
+.coverageQueueHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 13px;
+}
+
+.coverageQueueHeader > div {
+  display: grid;
+  gap: 5px;
+}
+
+.coverageQueueHeader h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.coverageQueueHeader > strong {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.coverageQueueGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--line);
+}
+
+.coverageQueueRow {
+  min-width: 0;
+  padding: 12px;
+  display: grid;
+  grid-template-columns: 36px minmax(0,1fr) auto;
+  gap: 10px;
+  align-items: center;
+  background: #111419;
+}
+
+.coverageQueueRow .rankMonogram {
+  width: 34px;
+  height: 34px;
+}
+
+.coverageQueueRow > div:nth-child(2) {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.coverageQueueRow strong {
+  font-size: 10px;
+}
+
+.coverageQueueRow span,
+.coverageQueueRow small {
+  color: var(--muted);
+  font-size: 8px;
+}
+
+.coverageQueueRow span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 820px) {
+  .coverageQueueGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .coverageQueueRow {
+    grid-template-columns: 36px minmax(0,1fr);
+  }
+
+  .coverageQueueRow small {
+    grid-column: 2;
+  }
 }
