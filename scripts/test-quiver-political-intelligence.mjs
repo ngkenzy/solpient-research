@@ -62,4 +62,15 @@ assert.equal(none.rows.length,0);
 assert.equal(none.coverage.status,"verified_none");
 assert.match(none.coverage.source_url,/AOS/);
 
+const explicitNone=normalizeQuiverPolitical({
+  company,
+  html:"<html><body>No Congress Trading data for this ticker</body></html>",
+  verifiedAt:"2026-09-20T20:00:00Z",
+  sourceUrl:"https://www.quiverquant.com/stock/AOS/",
+  explicitNone:true,
+});
+assert.equal(explicitNone.rows.length,0);
+assert.equal(explicitNone.coverage.status,"verified_none");
+assert.equal(explicitNone.coverage.source_url,"https://www.quiverquant.com/stock/AOS/");
+
 console.log("Quiver political intelligence tests passed.");

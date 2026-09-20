@@ -47,6 +47,7 @@ const institutionHtml=`
 <table><tbody>
 <tr><td>9/18/2026</td><td>Security National Bank of SO Dak</td><td>18,949</td><td>$7.07M</td><td>3.3%</td><td>-10.2%</td><td>0.000%</td><td>Details</td></tr>
 <tr><td>9/18/2026</td><td>Security National Bank of Sioux City Iowa IA</td><td>22,364</td><td>$8.34M</td><td>3.4%</td><td>+35.9%</td><td>0.000%</td><td>Details</td></tr>
+<tr><td>9/18/2026</td><td>Security National Bank of Sioux City Iowa IA</td><td>22,364</td><td>$8.34M</td><td>3.4%</td><td>+35.9%</td><td>0.000%</td><td>Duplicate rendered row</td></tr>
 </tbody></table></body></html>`;
 assert.equal(marketBeatPageLooksValid(institutionHtml,{ticker:"MSFT",kind:"institutional"}),true);
 const institutions=normalizeMarketBeatInstitutional({

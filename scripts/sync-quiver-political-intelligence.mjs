@@ -17,22 +17,37 @@ const userAgent=process.env.QUIVER_USER_AGENT??"Mozilla/5.0 (compatible; SOLPIEN
 const sleep=(ms)=>new Promise((resolve)=>setTimeout(resolve,ms));
 let requests=0;
 
-async function fetchTickerPage(ticker){
-  const pageUrl="https://www.quiverquant.com/congresstrading/stock/"+encodeURIComponent(ticker);
+async function fetchPage(pageUrl,ticker){
   const response=await fetch(pageUrl,{
     headers:{
       "User-Agent":userAgent,
       Accept:"text/html,application/xhtml+xml",
       "Accept-Language":"en-US,en;q=0.8",
     },
+    signal:AbortSignal.timeout(15000),
   });
   requests+=1;
   const html=await response.text();
   if(!response.ok)throw new Error("Quiver HTTP "+response.status+" for "+ticker);
-  if(!/Congress Trading Activity|Congress Trades/i.test(html)){
-    throw new Error("Quiver page did not contain the expected Congress trading section for "+ticker);
-  }
   return html;
+}
+
+async function fetchTickerPage(ticker){
+  const congressUrl="https://www.quiverquant.com/congresstrading/stock/"+encodeURIComponent(ticker);
+  const congressHtml=await fetchPage(congressUrl,ticker);
+  if(/Congress Trading Activity|Congress Trades/i.test(congressHtml)){
+    return {html:congressHtml,pageUrl:congressUrl,explicitNone:false};
+  }
+  if(/No Congressional activity found for this ticker/i.test(congressHtml)){
+    return {html:congressHtml,pageUrl:congressUrl,explicitNone:true};
+  }
+
+  const stockUrl="https://www.quiverquant.com/stock/"+encodeURIComponent(ticker)+"/";
+  const stockHtml=await fetchPage(stockUrl,ticker);
+  if(/No Congress Trading data for this ticker|No Congressional activity found for this ticker/i.test(stockHtml)){
+    return {html:stockHtml,pageUrl:stockUrl,explicitNone:true};
+  }
+  throw new Error("Quiver did not expose a recognized Congress trading state for "+ticker);
 }
 
 const {data:run,error:runError}=await supabase.from("automation_runs").insert({
@@ -63,8 +78,14 @@ try{
 
   for(const company of companies){
     try{
-      const html=await fetchTickerPage(company.ticker);
-      const normalized=normalizeQuiverPolitical({company,html,verifiedAt});
+      const page=await fetchTickerPage(company.ticker);
+      const normalized=normalizeQuiverPolitical({
+        company,
+        html:page.html,
+        verifiedAt,
+        sourceUrl:page.pageUrl,
+        explicitNone:page.explicitNone,
+      });
 
       if(normalized.rows.length){
         const {error}=await supabase.from("capital_activity")
