@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import {
+  CAPITAL_ORCHESTRATOR_VERSION,
   dedupeCapitalRecords,
   feedFreshness,
   materialityForCapitalActivity,
@@ -65,7 +66,7 @@ const health = providerHealthRow({
   companiesCovered: 1,
 });
 assert.equal(health.feed_type, "insider");
-assert.equal(health.metadata.orchestrator_version, "capital-orchestrator-v1");
+assert.equal(health.metadata.orchestrator_version, CAPITAL_ORCHESTRATOR_VERSION);
 
 const coverage = summarizeCapitalCoverage([
   { company_id: "msft-id", activity_type: "insider", verified_at: "2026-09-20T20:00:00Z" },
