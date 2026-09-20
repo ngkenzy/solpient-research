@@ -2,31 +2,37 @@
   {
     "name": "AQR Capital Management",
     "investor": "Cliff Asness",
-    "cik": "0001167557"
+    "cik": "0001167557",
+    "tracked_tickers": ["ADBE", "DECK"]
   },
   {
     "name": "D. E. Shaw & Co.",
     "investor": "D. E. Shaw",
-    "cik": "0001009207"
+    "cik": "0001009207",
+    "tracked_tickers": ["DECK"]
   },
   {
     "name": "Greenlight Capital",
     "investor": "David Einhorn",
-    "cik": "0001079114"
+    "cik": "0001079114",
+    "tracked_tickers": ["DECK"]
   },
   {
     "name": "Citadel Advisors",
     "investor": "Ken Griffin",
-    "cik": "0001423053"
+    "cik": "0001423053",
+    "tracked_tickers": ["ADBE", "DECK"]
   },
   {
     "name": "PRIMECAP Management",
     "investor": "PRIMECAP",
-    "cik": "0000763212"
+    "cik": "0000763212",
+    "tracked_tickers": ["ADBE"]
   },
   {
     "name": "Dodge & Cox",
     "investor": "Dodge & Cox",
-    "cik": "0000200217"
+    "cik": "0000200217",
+    "tracked_tickers": ["ADBE"]
   }
 ]
