@@ -1,6 +1,10 @@
 name: SOLPIENT Daily Intelligence
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/auto-intelligence.yml"
   schedule:
     - cron: "20 1 * * 1-6"
   workflow_dispatch:
@@ -27,8 +31,12 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: SEC fundamentals provider status
-        run: echo "Direct SEC cloud ingestion disabled after verified 403/429 responses; market and prediction pipelines continue independently."
+      - name: Refresh fundamentals and filings
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
+        run: node scripts/sync-fmp-data.mjs
 
       - name: Refresh end-of-day market snapshots
         env:
