@@ -1,0 +1,8 @@
+{
+  "mode": "orchestrated_web",
+  "active": true,
+  "cadence_hours": 4,
+  "direct_sec_cloud_access": "blocked",
+  "updated_at": "2026-09-20T06:00:43Z",
+  "message": "SOLPIENT uses orchestrated public-web monitoring because SEC rejects direct requests from GitHub and Vercel cloud IPs."
+}
