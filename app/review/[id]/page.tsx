@@ -4,7 +4,7 @@ import { getAdminSupabase } from "@/lib/admin-supabase";
 import { requireReviewAccess } from "@/lib/review-auth";
 // @ts-expect-error Node ESM research helper
 import { applyReviewPatch, defaultReviewTemplate, validatePromotionReadiness } from "@/lib/review-workbench.mjs";
-import { applyEnrichmentAction, promoteReviewAction, saveReviewAction } from "../actions";
+import { applyComposerAction, applyEnrichmentAction, promoteReviewAction, saveReviewAction } from "../actions";
 import styles from "../review.module.css";
 
 export const dynamic="force-dynamic";
@@ -23,18 +23,19 @@ function metricValue(row:any) {
   return n.toLocaleString("en-US",{maximumFractionDigits:2});
 }
 
-export default async function ReviewDraft({params,searchParams}:{params:Promise<{id:string}>;searchParams:Promise<{saved?:string;error?:string;promotion?:string;enriched?:string}>}) {
+export default async function ReviewDraft({params,searchParams}:{params:Promise<{id:string}>;searchParams:Promise<{saved?:string;error?:string;promotion?:string;enriched?:string;composed?:string}>}) {
   await requireReviewAccess();
   const {id}=await params;
   const messages=await searchParams;
   const supabase=getAdminSupabase();
   if (!supabase) return null;
-  const [draftResult,reviewResult,enrichmentRunResult]=await Promise.all([
+  const [draftResult,reviewResult,enrichmentRunResult,compositionResult]=await Promise.all([
     supabase.from("baseline_drafts").select("*").eq("id",id).single(),
     supabase.from("baseline_reviews").select("*").eq("draft_id",id).maybeSingle(),
     supabase.from("baseline_enrichment_runs").select("*").eq("draft_id",id).order("generated_at",{ascending:false}).limit(1).maybeSingle(),
+    supabase.from("research_compositions").select("*").eq("draft_id",id).order("generated_at",{ascending:false}).limit(1).maybeSingle(),
   ]);
-  const draft=draftResult.data, review=reviewResult.data, enrichmentRun=enrichmentRunResult.data;
+  const draft=draftResult.data, review=reviewResult.data, enrichmentRun=enrichmentRunResult.data, composition=compositionResult.data;
   if (draftResult.error || !draft) throw draftResult.error ?? new Error("Draft not found.");
   const {data:company}=await supabase.from("companies").select("ticker,company_name").eq("id",draft.company_id).single();
 
@@ -68,6 +69,7 @@ export default async function ReviewDraft({params,searchParams}:{params:Promise<
 
       {messages.saved?<div className={styles.successBanner}>Review saved and revalidated.</div>:null}
       {messages.enriched?<div className={styles.successBanner}>Verified primary-source enrichment applied to the private review package.</div>:null}
+      {messages.composed?<div className={styles.successBanner}>Automated Research Composer draft applied to the private review package. Human review is still required.</div>:null}
       {messages.error==="invalid-json"?<div className={styles.errorBanner}>Review JSON is invalid. Nothing was saved.</div>:null}
       {messages.error==="save-review-first"?<div className={styles.errorBanner}>Save the review before attempting promotion.</div>:null}
       {messages.promotion==="blocked"?<div className={styles.errorBanner}>Promotion remains blocked. Resolve the items below and save again.</div>:null}
@@ -80,6 +82,16 @@ export default async function ReviewDraft({params,searchParams}:{params:Promise<
           <div className={styles.gapList}>{gaps.map((gap:any)=><div key={(gap.module ?? "")+gap.metric_key}><strong>{gap.label}</strong><span>{gap.module?.replaceAll("_"," ")} · {gap.reason}</span></div>)}{!gaps.length?<span>No required evidence gaps were recorded by the factory.</span>:null}</div>
         </section>
       </div>
+
+      {composition?<section className={styles.panel}>
+        <div className={styles.panelHeader}><div><span className={styles.kicker}>AUTOMATED RESEARCH COMPOSER · {composition.engine_version}</span><h2>Private Research Standard v2 draft</h2><p>The composer turns normalized evidence, historical trends and peer context into a reviewable draft. It cannot publish directly.</p></div><strong>{composition.validation_result?.completenessPct ?? 0}% composed</strong></div>
+        <div className={styles.gapList}>
+          <div><strong>Business quality</strong><span>{composition.composition_payload?.review_patch?.decision_dashboard?.business_quality ?? "pending"} · moat {composition.composition_payload?.review_patch?.decision_dashboard?.moat ?? "provisional"}</span></div>
+          <div><strong>Valuation</strong><span>{composition.composition_payload?.review_patch?.decision_dashboard?.valuation ?? "insufficient data"} · base fair value {composition.composition_payload?.review_patch?.decision_dashboard?.base_case_fair_value ? "$"+Number(composition.composition_payload.review_patch.decision_dashboard.base_case_fair_value).toFixed(2) : "pending"}</span></div>
+          <div><strong>Guardrail</strong><span>Qualitative claims remain provisional unless supported by baseline evidence. Applying this draft updates only the private review package.</span></div>
+        </div>
+        <form action={applyComposerAction} className={styles.formActions}><input type="hidden" name="draft_id" value={id}/><input type="hidden" name="composition_id" value={composition.id}/><button type="submit" disabled={composition.status==="applied"}>{composition.status==="applied"?"Composer draft applied":"Apply composer draft"}</button><span>Review, edit, and save before publication.</span></form>
+      </section>:null}
 
       {enrichmentRun?<section className={styles.panel}>
         <div className={styles.panelHeader}><div><span className={styles.kicker}>EVIDENCE ENRICHMENT · {enrichmentRun.engine_version}</span><h2>Primary-source enrichment</h2><p>Facts stay separate from analyst judgment. Applying enrichment updates the private review only.</p></div><strong>{highConfidence} high-confidence</strong></div>
