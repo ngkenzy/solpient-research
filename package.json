@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "import:research": "node scripts/import-research.mjs"
+    "import:research": "node scripts/import-research.mjs",
+    "test:changes": "node scripts/test-research-changes.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.4",
