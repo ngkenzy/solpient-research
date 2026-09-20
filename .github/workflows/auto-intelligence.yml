@@ -1,10 +1,6 @@
 name: SOLPIENT Daily Intelligence
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - ".github/workflows/auto-intelligence.yml"
   schedule:
     - cron: "20 1 * * 1-6"
   workflow_dispatch:
