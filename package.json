@@ -15,7 +15,10 @@
     "test:review": "node scripts/test-review-workbench.mjs",
     "promote:baseline": "node scripts/promote-baseline-review.mjs",
     "enrich:baseline": "node scripts/enrich-baseline-draft.mjs",
-    "test:enrichment": "node scripts/test-evidence-enrichment.mjs"
+    "test:enrichment": "node scripts/test-evidence-enrichment.mjs",
+    "test:standard:v2": "node scripts/test-research-standard-v2.mjs",
+    "test:update-planner": "node scripts/test-update-planner.mjs",
+    "plan:updates": "node scripts/plan-research-updates.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.4",

@@ -1,0 +1,4 @@
+-- Research Standard v2 foundation. Production migration name: research_standard_v2_foundation.
+-- Creates private tables for historical metrics, valuation history, peers, capital allocation,
+-- freshness/update plans, investor checklist results, and persisted v2 report sections.
+-- See Supabase migration history for the full applied DDL and constraints.
