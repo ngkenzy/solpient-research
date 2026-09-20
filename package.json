@@ -38,7 +38,9 @@
     "import:capital-intelligence": "node scripts/import-capital-intelligence-batch.mjs",
     "export:capital-coverage": "node scripts/export-pending-capital-coverage.mjs",
     "import:capital-coverage": "node scripts/import-capital-coverage-batch.mjs",
-    "test:capital-coverage": "node scripts/test-capital-coverage-verification.mjs"
+    "test:capital-coverage": "node scripts/test-capital-coverage-verification.mjs",
+    "sync:yahoo-capital": "node scripts/sync-yahoo-capital-intelligence.mjs",
+    "test:yahoo-capital": "node scripts/test-yahoo-capital-intelligence.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.4",
