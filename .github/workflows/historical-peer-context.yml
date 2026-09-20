@@ -1,0 +1,50 @@
+name: SOLPIENT Historical + Peer Context
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "lib/historical-peer-engine.mjs"
+      - "lib/peer-sets.mjs"
+      - "scripts/build-historical-peer-context.mjs"
+      - "scripts/build-missing-baselines.mjs"
+      - "scripts/test-historical-peer-engine.mjs"
+      - ".github/workflows/historical-peer-context.yml"
+      - "supabase/migrations/0016_historical_peer_context_engine.sql"
+
+concurrency:
+  group: solpient-historical-peer-context
+  cancel-in-progress: true
+
+jobs:
+  build-context:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+      - run: npm run test:context
+      - name: Build historical and peer context
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          mkdir -p artifacts/context
+          npm run context:build -- --output artifacts/context/context-summary.json
+      - name: Generate missing private baselines
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          npm run factory:missing -- --output artifacts/context/missing-baselines.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: historical-peer-context
+          path: artifacts/context/*.json
+          if-no-files-found: error
+          retention-days: 30

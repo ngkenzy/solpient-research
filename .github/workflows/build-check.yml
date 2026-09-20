@@ -35,6 +35,7 @@ jobs:
           npm run test:review
           npm run test:enrichment
           npm run test:update-planner
+          npm run test:context
 
       - name: Build Next.js
         env:

@@ -31,7 +31,7 @@ const { data: company, error: companyError } = await supabase
 if (companyError) throw companyError;
 if (!company) throw new Error("Tracked company not found: " + ticker);
 
-const [marketResult, fundamentalResult, filingResult] = await Promise.all([
+const [marketResult, fundamentalResult, filingResult, contextResult] = await Promise.all([
   supabase
     .from("market_snapshots")
     .select("*")
@@ -51,11 +51,19 @@ const [marketResult, fundamentalResult, filingResult] = await Promise.all([
     .eq("company_id", company.id)
     .order("filed_at", { ascending: false })
     .limit(25),
+  supabase
+    .from("research_context_packs")
+    .select("*")
+    .eq("company_id", company.id)
+    .order("as_of_date", { ascending: false })
+    .limit(1)
+    .maybeSingle(),
 ]);
 
 if (marketResult.error) throw marketResult.error;
 if (fundamentalResult.error) throw fundamentalResult.error;
 if (filingResult.error) throw filingResult.error;
+if (contextResult.error) throw contextResult.error;
 
 const result = buildBaselineDraft({
   company,
@@ -63,6 +71,25 @@ const result = buildBaselineDraft({
   fundamentals: fundamentalResult.data ?? [],
   filings: filingResult.data ?? [],
 });
+
+if (contextResult.data) {
+  result.payload.factory.research_context = {
+    context_pack_id: contextResult.data.id,
+    context_version: contextResult.data.context_version,
+    as_of_date: contextResult.data.as_of_date,
+    history_coverage: contextResult.data.history_coverage,
+    trends: contextResult.data.trends,
+    latest_metrics: contextResult.data.latest_metrics,
+    peer_set: contextResult.data.peer_set,
+    peer_comparison: contextResult.data.peer_comparison,
+    capital_allocation: contextResult.data.capital_allocation,
+    limitations: contextResult.data.limitations,
+    summary: contextResult.data.summary,
+  };
+  result.payload.factory.review_queue.unshift(
+    "Review the historical/peer context pack before qualitative scoring or valuation."
+  );
+}
 
 const { data: stored, error: draftError } = await supabase
   .from("baseline_drafts")
@@ -77,7 +104,7 @@ const { data: stored, error: draftError } = await supabase
     standard_valid: result.validation.valid,
     standard_status: result.validation.status,
     validation_result: result.validation,
-    evidence_summary: result.evidenceSummary,
+    evidence_summary: { ...result.evidenceSummary, context_pack_id: contextResult.data?.id ?? null, context_version: contextResult.data?.context_version ?? null },
     draft_payload: result.payload,
     updated_at: new Date().toISOString(),
   }, {

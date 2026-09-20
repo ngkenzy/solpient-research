@@ -18,7 +18,10 @@
     "test:enrichment": "node scripts/test-evidence-enrichment.mjs",
     "test:standard:v2": "node scripts/test-research-standard-v2.mjs",
     "test:update-planner": "node scripts/test-update-planner.mjs",
-    "plan:updates": "node scripts/plan-research-updates.mjs"
+    "plan:updates": "node scripts/plan-research-updates.mjs",
+    "context:build": "node scripts/build-historical-peer-context.mjs",
+    "test:context": "node scripts/test-historical-peer-engine.mjs",
+    "factory:missing": "node scripts/build-missing-baselines.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.4",
