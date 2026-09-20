@@ -56,3 +56,15 @@ set source_url = regexp_replace(source_url, '([?&])apikey=[^&]*', '', 'g')
 where provider='fmp'
   and source_url is not null
   and source_url ilike '%apikey=%';
+
+
+create index if not exists baseline_drafts_published_run_idx
+  on public.baseline_drafts(published_run_id);
+
+drop policy if exists "service role manages baseline drafts" on public.baseline_drafts;
+create policy "service role manages baseline drafts"
+  on public.baseline_drafts
+  for all
+  to service_role
+  using (true)
+  with check (true);

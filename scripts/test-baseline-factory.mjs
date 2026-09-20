@@ -66,7 +66,7 @@ assert.ok(result.evidenceCompletenessPct > 50);
 
 const metrics = new Map(result.payload.metric_observations.map((row) => [row.metric_key + ":" + row.module, row]));
 assert.equal(metrics.get("free_cash_flow:universal").value_numeric, 1050);
-assert.equal(metrics.get("revenue_growth_1y:universal").value_numeric, 20);
+assert.ok(Math.abs(metrics.get("revenue_growth_1y:universal").value_numeric - 20) < 1e-9);
 assert.equal(metrics.get("rd_to_revenue:software_platform").status, "available");
 assert.equal(metrics.get("cloud_or_subscription_growth:software_platform").status, "not_available");
 
