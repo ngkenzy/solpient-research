@@ -26,6 +26,13 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Test research engines
+        run: |
+          npm run test:changes
+          npm run test:standard
+          npm run test:factory
+          npm run test:review
+
       - name: Build Next.js
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
