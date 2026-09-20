@@ -38,6 +38,7 @@ jobs:
           npm run test:context
           npm run test:coverage
           npm run test:composer
+          npm run test:capital-intelligence
 
       - name: Build Next.js
         env:
