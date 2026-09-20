@@ -14,6 +14,23 @@ if(!url||!secret)throw new Error("Missing SUPABASE_URL and server secret.");
 const supabase=createClient(url,secret,{auth:{persistSession:false,autoRefreshToken:false}});
 const providers=JSON.parse(await fs.readFile(new URL("../data/monitor/capital-providers.json",import.meta.url),"utf8"));
 
+async function fetchAllCapitalActivity() {
+  const pageSize=1000;
+  const rows=[];
+  for(let from=0;from<100000;from+=pageSize){
+    const {data,error}=await supabase
+      .from("capital_activity")
+      .select("id,company_id,activity_type,provider,verified_at,created_at")
+      .order("id",{ascending:true})
+      .range(from,from+pageSize-1);
+    if(error)throw error;
+    const page=data??[];
+    rows.push(...page);
+    if(page.length<pageSize)break;
+  }
+  return rows;
+}
+
 const {data:run,error:runError}=await supabase.from("automation_runs").insert({
   pipeline:"capital_intelligence_orchestrator",
   status:"running",
@@ -22,18 +39,17 @@ const {data:run,error:runError}=await supabase.from("automation_runs").insert({
 if(runError)throw runError;
 
 try{
-  const [companiesR,activityR,coverageR,healthR,directRunsR]=await Promise.all([
+  const [companiesR,activity,coverageR,healthR,directRunsR]=await Promise.all([
     supabase.from("companies").select("id,ticker,company_name").order("ticker"),
-    supabase.from("capital_activity").select("company_id,activity_type,provider,verified_at,created_at"),
+    fetchAllCapitalActivity(),
     supabase.from("capital_coverage_checks").select("*"),
     supabase.from("capital_provider_health").select("*"),
     supabase.from("automation_runs").select("status,started_at,completed_at,records_written,message,details")
       .eq("pipeline","capital_intelligence").order("started_at",{ascending:false}).limit(1).maybeSingle(),
   ]);
-  for(const result of [companiesR,activityR,coverageR,healthR,directRunsR])if(result.error)throw result.error;
+  for(const result of [companiesR,coverageR,healthR,directRunsR])if(result.error)throw result.error;
 
   const companies=companiesR.data??[];
-  const activity=activityR.data??[];
   const existing=new Map((healthR.data??[]).map((row)=>[[row.provider,row.feed_type].join("|"),row]));
   const now=new Date();
   const healthRows=[];
