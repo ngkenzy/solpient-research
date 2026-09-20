@@ -119,7 +119,7 @@ export async function POST(request: Request) {
     if (error) throw error;
   }
 
-  const categories = [...new Set(accepted.map((row: any) => row.activity_type))];
+  const categories = [...new Set(accepted.map((row: any) => String(row.activity_type)))] as string[];
   const covered = new Set(accepted.map((row: any) => row.company_id)).size;
   const status = rejected.length ? (accepted.length ? "partial" : "rejected") : "accepted";
 
