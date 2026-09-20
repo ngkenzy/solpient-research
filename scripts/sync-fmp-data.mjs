@@ -93,8 +93,8 @@ async function ensureCompany(config) {
 
 async function syncFundamentals(company) {
   const [incomeRes, cashRes] = await Promise.all([
-    fmp("income-statement", { symbol: company.ticker, period: "quarter", limit: 8 }),
-    fmp("cash-flow-statement", { symbol: company.ticker, period: "quarter", limit: 8 }),
+    fmp("income-statement", { symbol: company.ticker, period: "quarter", limit: 5 }),
+    fmp("cash-flow-statement", { symbol: company.ticker, period: "quarter", limit: 5 }),
   ]);
 
   const incomeRows = Array.isArray(incomeRes.body) ? incomeRes.body : [];
@@ -104,7 +104,7 @@ async function syncFundamentals(company) {
   const cashByDate = new Map(cashRows.map((row) => [row.date, row]));
   let written = 0;
 
-  for (const income of incomeRows.slice(0, 8)) {
+  for (const income of incomeRows.slice(0, 5)) {
     const cash = cashByDate.get(income.date) ?? {};
     const periodEnd = income.date ?? cash.date;
     if (!periodEnd) continue;
