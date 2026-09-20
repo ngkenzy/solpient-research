@@ -5,7 +5,7 @@ import { applyReviewPatch } from "../lib/review-workbench.mjs";
 import { validateResearchStandard } from "../lib/research-standard.mjs";
 
 const url=process.env.SUPABASE_URL;
-const secret=process.env.SUPABASE_SECRET_KEY??process.env.SUPABASE_SERVICE_ROLE_KEY;
+const secret=process.env.SUPABASE_SECRET_KEY||process.env.SUPABASE_SERVICE_ROLE_KEY;
 if(!url||!secret)throw new Error("Missing SUPABASE_URL and server secret.");
 const sb=createClient(url,secret,{auth:{persistSession:false,autoRefreshToken:false}});
 
