@@ -30,7 +30,9 @@
     "sync:yahoo-fundamentals": "node scripts/sync-yahoo-fundamentals-fallback.mjs",
     "test:yahoo-fundamentals": "node scripts/test-yahoo-fundamentals.mjs",
     "compose:research": "node scripts/compose-research-drafts.mjs",
-    "test:composer": "node scripts/test-research-composer.mjs"
+    "test:composer": "node scripts/test-research-composer.mjs",
+    "sync:capital-intelligence": "node scripts/sync-capital-intelligence.mjs",
+    "test:capital-intelligence": "node scripts/test-capital-intelligence-engine.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.4",

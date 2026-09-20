@@ -51,9 +51,12 @@ export async function CompanyIntelligence({ ticker }: { ticker: string }) {
 
   if (error || !data?.length) return null;
 
-  const institutional = data
+  const institutionalAll = data
     .filter((row) => row.activity_type === "institutional")
-    .sort((a, b) => String(b.position_date ?? b.created_at).localeCompare(String(a.position_date ?? a.created_at)));
+    .sort((a, b) => String(b.position_date ?? b.disclosure_date ?? b.created_at).localeCompare(String(a.position_date ?? a.disclosure_date ?? a.created_at)));
+  const institutional = institutionalAll.filter((row, index, array) =>
+    array.findIndex((item) => item.actor_name === row.actor_name && item.actor_detail === row.actor_detail) === index
+  );
   const political = data
     .filter((row) => row.activity_type === "political")
     .sort((a, b) => String(b.disclosure_date ?? b.transaction_date ?? b.created_at).localeCompare(String(a.disclosure_date ?? a.transaction_date ?? a.created_at)));
@@ -86,7 +89,7 @@ export async function CompanyIntelligence({ ticker }: { ticker: string }) {
           <div className="intelligenceCardHeader">
             <div>
               <span>INSTITUTIONAL</span>
-              <h3>Notable disclosed holders</h3>
+              <h3>Notable investors · latest disclosed position</h3>
             </div>
             <strong>{institutional.length}</strong>
           </div>
@@ -120,7 +123,7 @@ export async function CompanyIntelligence({ ticker }: { ticker: string }) {
 
           <div className="intelligenceNote">
             <span>{institutional[0]?.position_date ? "Position date " + date(institutional[0].position_date) : "Position date unavailable"}</span>
-            <p>13F-style ownership records are delayed snapshots, not real-time holdings.</p>
+            <p>13F ownership records are delayed quarterly snapshots. Change badges compare the latest disclosed position with the manager’s prior quarter.</p>
           </div>
         </article>
 

@@ -1,0 +1,45 @@
+name: Capital Intelligence
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "23 12 * * 1-5"
+  push:
+    branches: [main]
+    paths:
+      - "lib/capital-intelligence-engine.mjs"
+      - "scripts/sync-capital-intelligence.mjs"
+      - "scripts/test-capital-intelligence-engine.mjs"
+      - "data/monitor/companies.json"
+      - "data/monitor/managers.json"
+      - ".github/workflows/capital-intelligence.yml"
+
+concurrency:
+  group: capital-intelligence
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+      - name: Test capital intelligence engine
+        run: npm run test:capital-intelligence
+      - name: Refresh SEC capital intelligence
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SEC_USER_AGENT: "SOLPIENT Research ngkenzy@users.noreply.github.com"
+          SEC_CONTACT: "ngkenzy@users.noreply.github.com"
+        run: npm run sync:capital-intelligence
+      - name: Normalize intelligence events
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: node scripts/sync-intelligence-events.mjs
