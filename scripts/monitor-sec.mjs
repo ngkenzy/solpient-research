@@ -26,6 +26,23 @@ state.managers = state.managers ?? {};
 const now = new Date().toISOString();
 let successfulRequests = 0;
 
+async function resolveTickerCiks() {
+  try {
+    const body = await secText("https://www.sec.gov/files/company_tickers.json");
+    const parsed = JSON.parse(body);
+    return new Map(
+      Object.values(parsed).map((row) => [
+        String(row.ticker).toUpperCase(),
+        String(row.cik_str).padStart(10, "0"),
+      ])
+    );
+  } catch (error) {
+    console.warn("Unable to refresh SEC ticker/CIK map:", error.message);
+    return new Map();
+  }
+}
+
+
 async function sleep(ms) {
   await new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -143,17 +160,23 @@ async function fetchFormFilings(cik, form) {
   return parseAtom(xml, form);
 }
 
+const tickerCiks = await resolveTickerCiks();
 const newEvents = [];
 let initializedAny = false;
 
 for (const company of companies) {
   const ticker = company.ticker.toUpperCase();
+  const cik = company.cik || tickerCiks.get(ticker);
+  if (!cik) {
+    console.warn("Skipping " + ticker + ": CIK could not be resolved.");
+    continue;
+  }
   const prior = state.companies[ticker] ?? null;
 
   const corporateForms = [];
   for (const form of company.forms ?? ["10-K", "10-Q", "8-K"]) {
     try {
-      const filings = await fetchFormFilings(company.cik, form);
+      const filings = await fetchFormFilings(cik, form);
       corporateForms.push(...filings);
     } catch (error) {
       console.warn("Corporate filing monitor warning for " + ticker + " " + form + ": " + error.message);
@@ -168,14 +191,14 @@ for (const company of companies) {
 
   let ownershipFilings = [];
   try {
-    ownershipFilings = await fetchFormFilings(company.cik, "4");
+    ownershipFilings = await fetchFormFilings(cik, "4");
   } catch (error) {
     console.warn("Form 4 monitor warning for " + ticker + ": " + error.message);
   }
 
   if (!prior) {
     state.companies[ticker] = {
-      cik: company.cik,
+      cik,
       checked_at: now,
       seen_accessions: corporateUnique.map((filing) => filing.accession),
       ownership_seen_accessions: ownershipFilings.map((filing) => filing.accession),
@@ -244,7 +267,7 @@ for (const company of companies) {
 
   state.companies[ticker] = {
     ...prior,
-    cik: company.cik,
+    cik,
     checked_at: now,
     seen_accessions: Array.from(
       new Set([...(prior.seen_accessions ?? []), ...corporateUnique.map((filing) => filing.accession)])
