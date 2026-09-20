@@ -43,6 +43,7 @@ jobs:
           npm run test:capital-coverage
           npm run test:yahoo-capital
           npm run test:quiver-political
+          npm run test:marketbeat-capital
 
       - name: Build Next.js
         env:

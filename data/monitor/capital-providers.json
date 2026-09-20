@@ -34,15 +34,26 @@
     "description": "Optional structured SEC-derived provider when API credits are configured."
   },
   {
+    "provider": "marketbeat",
+    "mode": "direct_public_html",
+    "feeds": [
+      "insider",
+      "institutional"
+    ],
+    "priority": 82,
+    "stale_after_hours": 48,
+    "description": "MarketBeat public insider-trades and institutional-ownership pages used as the cloud-safe fallback for Form 4/13F-derived activity."
+  },
+  {
     "provider": "yahoo_capital",
-    "mode": "direct",
+    "mode": "disabled_invalid_crumb",
     "feeds": [
       "insider",
       "institutional"
     ],
     "priority": 80,
     "stale_after_hours": 48,
-    "description": "Yahoo Finance quote-summary ownership modules for cloud-safe insider and institutional fallback coverage."
+    "description": "Disabled in scheduled cloud refresh after Yahoo quote-summary returned Invalid Crumb on all tracked tickers; retained for optional future recovery."
   },
   {
     "provider": "quiver",
