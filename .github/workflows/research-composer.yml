@@ -1,0 +1,40 @@
+name: Research Composer
+
+on:
+  workflow_dispatch:
+    inputs:
+      ticker:
+        description: Optional ticker
+        required: false
+        type: string
+  workflow_run:
+    workflows: ["Historical Peer Context"]
+    types: [completed]
+
+jobs:
+  compose:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm install
+      - name: Run composer tests
+        run: npm run test:composer
+      - name: Compose private research drafts
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          TICKER: ${{ inputs.ticker }}
+        run: |
+          if [ -n "$TICKER" ]; then
+            node scripts/compose-research-drafts.mjs --ticker="$TICKER"
+          else
+            npm run compose:research
+          fi

@@ -28,7 +28,9 @@
     "factory:refresh": "node scripts/refresh-generated-baselines.mjs",
     "test:coverage": "node scripts/test-data-coverage-engine.mjs",
     "sync:yahoo-fundamentals": "node scripts/sync-yahoo-fundamentals-fallback.mjs",
-    "test:yahoo-fundamentals": "node scripts/test-yahoo-fundamentals.mjs"
+    "test:yahoo-fundamentals": "node scripts/test-yahoo-fundamentals.mjs",
+    "compose:research": "node scripts/compose-research-drafts.mjs",
+    "test:composer": "node scripts/test-research-composer.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.4",

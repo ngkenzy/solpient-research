@@ -37,6 +37,7 @@ jobs:
           npm run test:update-planner
           npm run test:context
           npm run test:coverage
+          npm run test:composer
 
       - name: Build Next.js
         env:
