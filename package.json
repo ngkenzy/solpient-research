@@ -13,7 +13,9 @@
     "factory:baseline": "node scripts/build-baseline-draft.mjs",
     "test:factory": "node scripts/test-baseline-factory.mjs",
     "test:review": "node scripts/test-review-workbench.mjs",
-    "promote:baseline": "node scripts/promote-baseline-review.mjs"
+    "promote:baseline": "node scripts/promote-baseline-review.mjs",
+    "enrich:baseline": "node scripts/enrich-baseline-draft.mjs",
+    "test:enrichment": "node scripts/test-evidence-enrichment.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.4",

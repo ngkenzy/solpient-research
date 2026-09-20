@@ -1,0 +1,13 @@
+import fs from "node:fs/promises";import path from "node:path";import process from "node:process";import{createClient}from"@supabase/supabase-js";
+import{ENRICHMENT_ENGINE_VERSION,materializeEnrichmentItems,validateEnrichmentPack}from"../lib/evidence-enrichment.mjs";
+const ticker=String(process.argv[2]??process.env.ENRICHMENT_TICKER??"").toUpperCase();if(!ticker)throw new Error("Ticker required.");
+const url=process.env.SUPABASE_URL,secret=process.env.SUPABASE_SECRET_KEY??process.env.SUPABASE_SERVICE_ROLE_KEY;if(!url||!secret)throw new Error("Missing Supabase server credentials.");
+const sb=createClient(url,secret,{auth:{persistSession:false,autoRefreshToken:false}});
+const dir=path.resolve("data/enrichment",ticker),files=(await fs.readdir(dir)).filter(x=>x.endsWith(".json")).sort();if(!files.length)throw new Error("No enrichment pack.");
+const pack=JSON.parse(await fs.readFile(path.join(dir,files.at(-1)),"utf8")),check=validateEnrichmentPack(pack);if(!check.valid)throw new Error(check.errors.join("; "));
+const{data:company,error:ce}=await sb.from("companies").select("id").eq("ticker",ticker).single();if(ce)throw ce;
+const{data:draft,error:de}=await sb.from("baseline_drafts").select("*").eq("company_id",company.id).order("generated_at",{ascending:false}).limit(1).single();if(de)throw de;
+const now=new Date().toISOString();const{data:run,error:re}=await sb.from("baseline_enrichment_runs").upsert({draft_id:draft.id,engine_version:ENRICHMENT_ENGINE_VERSION,run_key:pack.run_key,generated_at:now,source_cutoff_at:pack.source_cutoff_at??now,status:"generated",summary:{source_count:pack.sources.length,review_required:true,auto_publish:false}},{onConflict:"draft_id,run_key"}).select("*").single();if(re)throw re;
+await sb.from("baseline_enrichment_items").delete().eq("run_id",run.id);
+const items=materializeEnrichmentItems(pack,{draftId:draft.id,runId:run.id});const{error:ie}=await sb.from("baseline_enrichment_items").insert(items);if(ie)throw ie;
+console.log(JSON.stringify({ticker,draft_id:draft.id,run_id:run.id,items:items.length,auto_publish:false},null,2));

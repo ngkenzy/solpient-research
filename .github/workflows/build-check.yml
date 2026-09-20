@@ -32,6 +32,7 @@ jobs:
           npm run test:standard
           npm run test:factory
           npm run test:review
+          npm run test:enrichment
 
       - name: Build Next.js
         env:

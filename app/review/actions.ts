@@ -8,6 +8,8 @@ import { clearReviewAccess, requireReviewAccess, unlockReviewAccess } from "@/li
 import { applyReviewPatch, validatePromotionReadiness } from "@/lib/review-workbench.mjs";
 // @ts-expect-error Node ESM research helper
 import { promoteReviewedBaseline } from "@/lib/promote-research.mjs";
+// @ts-expect-error Node ESM research helper
+import { buildEnrichmentReviewPatch, mergeReviewPatches } from "@/lib/evidence-enrichment.mjs";
 
 export async function unlockReviewAction(formData:FormData) {
   const ok=await unlockReviewAccess(String(formData.get("key") ?? ""));
@@ -54,6 +56,57 @@ export async function saveReviewAction(formData:FormData) {
   revalidatePath("/review/"+draftId);
   redirect("/review/"+draftId+"?saved=1");
 }
+export async function applyEnrichmentAction(formData:FormData) {
+  await requireReviewAccess();
+  const supabase=getAdminSupabase();
+  if (!supabase) redirect("/review/login?setup=1");
+  const draftId=String(formData.get("draft_id") ?? "");
+  const runId=String(formData.get("run_id") ?? "");
+  const [draftResult,reviewResult,itemResult]=await Promise.all([
+    supabase.from("baseline_drafts").select("*").eq("id",draftId).single(),
+    supabase.from("baseline_reviews").select("*").eq("draft_id",draftId).maybeSingle(),
+    supabase.from("baseline_enrichment_items").select("*").eq("run_id",runId).eq("draft_id",draftId),
+  ]);
+  const draft=draftResult.data;
+  if (draftResult.error || !draft) redirect("/review?error=draft-not-found");
+  if (itemResult.error) throw itemResult.error;
+
+  const enrichmentPatch=buildEnrichmentReviewPatch(itemResult.data ?? []);
+  const combinedPatch=mergeReviewPatches(reviewResult.data?.review_payload ?? {},enrichmentPatch);
+  const merged=applyReviewPatch(draft.draft_payload,combinedPatch);
+  const readiness=validatePromotionReadiness(merged);
+  const now=new Date().toISOString();
+
+  const {error:reviewError}=await supabase.from("baseline_reviews").upsert({
+    draft_id:draftId,status:readiness.ready?"ready":"editing",review_payload:combinedPatch,
+    validation_result:readiness.standard,promotion_readiness:readiness,
+    review_notes:reviewResult.data?.review_notes ?? "Primary-source enrichment applied.",
+    reviewed_at:now,updated_at:now,
+  },{onConflict:"draft_id"});
+  if (reviewError) throw reviewError;
+
+  const ids=(itemResult.data ?? []).filter((item:any)=>
+    item.status==="proposed" &&
+    ["high","medium"].includes(item.confidence) &&
+    ["reported","derived"].includes(item.basis)
+  ).map((item:any)=>item.id);
+  if (ids.length) {
+    const {error}=await supabase.from("baseline_enrichment_items").update({status:"accepted",applied_at:now}).in("id",ids);
+    if (error) throw error;
+  }
+  const {error:runError}=await supabase.from("baseline_enrichment_runs").update({status:"applied"}).eq("id",runId);
+  if (runError) throw runError;
+  const {error:draftError}=await supabase.from("baseline_drafts").update({
+    standard_valid:readiness.standard.valid,standard_status:readiness.standard.status,
+    validation_result:readiness.standard,updated_at:now,
+  }).eq("id",draftId);
+  if (draftError) throw draftError;
+
+  revalidatePath("/review");
+  revalidatePath("/review/"+draftId);
+  redirect("/review/"+draftId+"?enriched=1");
+}
+
 export async function promoteReviewAction(formData:FormData) {
   await requireReviewAccess();
   const supabase=getAdminSupabase();

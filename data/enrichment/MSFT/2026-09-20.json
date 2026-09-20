@@ -1,0 +1,152 @@
+{
+  "ticker": "MSFT",
+  "version": 1,
+  "run_key": "msft-fy26-primary-2026-09-20",
+  "source_cutoff_at": "2026-09-20T17:35:00Z",
+  "allowed_domains": [
+    "sec.gov",
+    "microsoft.com"
+  ],
+  "sources": [
+    {
+      "key": "k",
+      "title": "Microsoft FY2026 Form 10-K",
+      "url": "https://www.sec.gov/Archives/edgar/data/789019/000119312526323660/msft-20260630.htm",
+      "source_type": "10-K",
+      "source_date": "2026-07-30",
+      "primary": true
+    },
+    {
+      "key": "m",
+      "title": "Microsoft FY2026 Q4 Investor Metrics",
+      "url": "https://www.microsoft.com/en-us/investor/earnings/fy-2026-q4/metrics",
+      "source_type": "Investor metrics",
+      "source_date": "2026-07-29",
+      "primary": true
+    },
+    {
+      "key": "c",
+      "title": "Microsoft FY2026 Q4 Earnings Conference Call",
+      "url": "https://www.microsoft.com/en-us/investor/events/fy-2026/earnings-fy-2026-q4",
+      "source_type": "Earnings call",
+      "source_date": "2026-07-29",
+      "primary": true
+    },
+    {
+      "key": "r",
+      "title": "Microsoft FY2026 Q4 Earnings Release",
+      "url": "https://www.microsoft.com/en-us/investor/earnings/fy-2026-q4/press-release-webcast",
+      "source_type": "Earnings release",
+      "source_date": "2026-07-29",
+      "primary": true
+    }
+  ],
+  "items": [
+    {
+      "item_key": "debt",
+      "item_type": "metric",
+      "module": "universal",
+      "metric_key": "total_debt",
+      "label": "Total debt",
+      "value_numeric": 40294000000,
+      "unit": "USD",
+      "period_end": "2026-06-30",
+      "period_type": "fiscal_year",
+      "basis": "reported",
+      "confidence": "high",
+      "source_key": "k",
+      "fact_text": "Microsoft reported total debt of $40.294 billion at June 30, 2026."
+    },
+    {
+      "item_key": "netdebt",
+      "item_type": "metric",
+      "module": "universal",
+      "metric_key": "net_debt",
+      "label": "Net debt",
+      "value_numeric": -36549000000,
+      "unit": "USD",
+      "period_end": "2026-06-30",
+      "period_type": "fiscal_year",
+      "basis": "derived",
+      "confidence": "medium",
+      "source_key": "k",
+      "fact_text": "Microsoft reported $20.935 billion of cash, $55.908 billion of short-term investments, and $40.294 billion of total debt.",
+      "calculation_method": "Total debt minus cash and cash equivalents minus short-term investments.",
+      "caveat": "Short-term investments are treated as cash-like.",
+      "interpretation": "Approximately $36.5 billion net cash on this definition."
+    },
+    {
+      "item_key": "cloud",
+      "item_type": "metric",
+      "module": "software_platform",
+      "metric_key": "cloud_or_subscription_growth",
+      "label": "Microsoft Cloud revenue growth",
+      "value_numeric": 27,
+      "unit": "percent",
+      "period_end": "2026-06-30",
+      "period_type": "quarter",
+      "basis": "reported",
+      "confidence": "high",
+      "source_key": "m",
+      "fact_text": "Microsoft Cloud revenue grew 27% year over year in Q4 FY2026 to $59.3 billion."
+    },
+    {
+      "item_key": "rpo",
+      "item_type": "metric",
+      "module": "software_platform",
+      "metric_key": "rpo_or_backlog_growth",
+      "label": "Commercial RPO growth",
+      "value_numeric": 84,
+      "unit": "percent",
+      "period_end": "2026-06-30",
+      "period_type": "quarter",
+      "basis": "reported",
+      "confidence": "high",
+      "source_key": "c",
+      "fact_text": "Commercial remaining performance obligation reached $678 billion and grew 84% year over year.",
+      "caveat": "Microsoft said RPO growth was 25% excluding OpenAI.",
+      "interpretation": "Headline backlog growth has material customer-concentration effects."
+    },
+    {
+      "item_key": "cloudmix",
+      "item_type": "metric",
+      "module": "software_platform",
+      "metric_key": "microsoft_cloud_revenue_mix",
+      "label": "Microsoft Cloud revenue / total revenue",
+      "value_numeric": 64.62,
+      "unit": "percent",
+      "period_end": "2026-06-30",
+      "period_type": "fiscal_year",
+      "basis": "derived",
+      "confidence": "medium",
+      "source_key": "r",
+      "fact_text": "FY2026 Microsoft Cloud revenue was $214.4 billion versus total revenue of $331.8 billion.",
+      "calculation_method": "Microsoft Cloud revenue divided by total revenue.",
+      "caveat": "This is not the same as recurring-revenue mix."
+    },
+    {
+      "item_key": "recurring_gap",
+      "item_type": "gap_note",
+      "module": "software_platform",
+      "metric_key": "recurring_revenue_mix",
+      "label": "Recurring revenue mix",
+      "basis": "reported",
+      "confidence": "high",
+      "source_key": "r",
+      "fact_text": "The reviewed primary sources do not disclose one company-wide recurring-revenue percentage.",
+      "caveat": "Do not substitute Microsoft Cloud revenue mix for recurring-revenue mix."
+    },
+    {
+      "item_key": "forward_gap",
+      "item_type": "gap_note",
+      "module": "universal",
+      "metric_key": "forward_pe",
+      "label": "Forward P/E",
+      "basis": "reported",
+      "confidence": "high",
+      "source_key": "c",
+      "fact_text": "The reviewed primary-source set does not provide a full-year forward EPS denominator suitable for forward P/E.",
+      "caveat": "Keep forward P/E unavailable until a clearly sourced consensus or guidance denominator exists."
+    }
+  ]
+}\n
