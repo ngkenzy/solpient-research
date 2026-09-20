@@ -28,6 +28,7 @@ function providerRank(provider?: string | null) {
     sec_direct: 95,
     financial_datasets: 90,
     quiver: 85,
+    marketbeat: 82,
     yahoo_capital: 80,
     fmp: 75,
     alpha_vantage: 65,
