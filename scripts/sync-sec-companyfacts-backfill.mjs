@@ -31,6 +31,11 @@ async function secJson(cik){
           "Accept-Encoding":"gzip, deflate",
         }
       });
+      if(response.status===403){
+        const error=new Error("SEC companyfacts HTTP 403");
+        error.code="SEC_BLOCKED";
+        throw error;
+      }
       if(response.status===429||response.status===503){
         await sleep(attempt*1500);
         continue;
@@ -39,6 +44,7 @@ async function secJson(cik){
       return{endpoint,body:await response.json()};
     }catch(error){
       lastError=error;
+      if(error?.code==="SEC_BLOCKED")throw error;
       if(attempt<3)await sleep(attempt*1000);
     }
   }
@@ -67,6 +73,7 @@ if(companiesError)throw companiesError;
 
 const selected=(companies??[]).filter(c=>c.cik&&(!onlyTicker||c.ticker===onlyTicker));
 const summary=[];
+let consecutiveBlocked=0;
 
 for(const company of selected){
   const attemptId=await attemptStart(company);
@@ -103,6 +110,7 @@ for(const company of selected){
       "SEC companyfacts stored "+written+" normalized quarters.",
       {endpoint,fiscal_years:years.length,latest_period:rows[0]?.period_end??null,latest_field_coverage:primaryFields}
     );
+    consecutiveBlocked=0;
     summary.push({ticker:company.ticker,status:written>0?"success":"partial",rows:written,fiscal_years:years.length,latest_period:rows[0]?.period_end??null});
     console.log("SEC companyfacts",company.ticker,"rows="+written,"years="+years.length);
   }catch(error){
@@ -110,6 +118,15 @@ for(const company of selected){
     await attemptFinish(attemptId,"failed",0,message,{ticker:company.ticker});
     summary.push({ticker:company.ticker,status:"failed",rows:0,error:message});
     console.warn("SEC companyfacts failed",company.ticker,message);
+    if(error?.code==="SEC_BLOCKED"){
+      consecutiveBlocked+=1;
+      if(consecutiveBlocked>=3){
+        console.warn("SEC circuit breaker opened after three consecutive 403 responses; provider fallbacks will handle the remaining companies.");
+        break;
+      }
+    }else{
+      consecutiveBlocked=0;
+    }
   }
   await sleep(250);
 }
@@ -121,6 +138,7 @@ const artifact={
   success:summary.filter(x=>x.status==="success").length,
   partial:summary.filter(x=>x.status==="partial").length,
   failed:summary.filter(x=>x.status==="failed").length,
+  circuit_breaker_open:consecutiveBlocked>=3,
   rows_written:summary.reduce((a,x)=>a+(x.rows??0),0),
   summary
 };
