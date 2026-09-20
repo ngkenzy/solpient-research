@@ -276,3 +276,8 @@ const intelligenceByTicker: Record<string, CompanyIntelligence> = {
 export function getCompanyIntelligence(ticker: string) {
   return intelligenceByTicker[ticker.toUpperCase()] ?? null;
 }
+
+
+export function getAllCompanyIntelligence() {
+  return Object.values(intelligenceByTicker);
+}
