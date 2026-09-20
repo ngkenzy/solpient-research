@@ -4,6 +4,7 @@ import path from "node:path";
 import process from "node:process";
 import { createClient } from "@supabase/supabase-js";
 import { buildResearchChanges } from "../lib/research-changes.mjs";
+import { validateResearchStandard } from "../lib/research-standard-v1.mjs";
 
 const filePath = process.argv[2];
 
@@ -29,6 +30,14 @@ for (const field of ["ticker", "company_name", "research"]) {
   if (!payload[field]) {
     throw new Error(`Missing required field: ${field}`);
   }
+}
+
+const standardValidation = validateResearchStandard(payload);
+if (standardValidation.applies && !standardValidation.valid) {
+  throw new Error(
+    "Research Standard v1 validation failed: " +
+      standardValidation.notes.join(" ")
+  );
 }
 
 const supabase = createClient(supabaseUrl, serviceRoleKey, {
@@ -115,6 +124,12 @@ const { data: run, error: runError } = await supabase
     summary: payload.research.summary ?? null,
     full_report: payload.research.full_report ?? null,
     ingestion_key: ingestionKey,
+    standard_version: payload.research.standard_version ?? null,
+    standard_status: standardValidation.status,
+    data_cutoff_at: payload.research.data_cutoff_at ?? null,
+    benchmark_ticker: payload.research.benchmark_ticker ?? "SPY",
+    completeness_pct: standardValidation.completenessPct,
+    validation_notes: standardValidation.notes,
   })
   .select("id,version")
   .single();
@@ -140,6 +155,10 @@ try {
   await insertOne("financial_metrics", payload.financial_metrics);
   await insertOne("scores", payload.scores);
   await insertOne("valuations", payload.valuations);
+  await insertOne("business_assessments", payload.business_assessment);
+  await insertMany("metric_observations", payload.metric_observations);
+  await insertMany("risk_register", payload.risk_register);
+  await insertMany("expected_return_scenarios", payload.expected_return_scenarios);
   await insertMany("thesis_variables", payload.thesis_variables);
   await insertMany("sources", payload.sources);
 
@@ -221,6 +240,11 @@ try {
   console.log(
     `Imported ${company.ticker} research version ${run.version} with ${changes.length} material changes from ${ingestionKey}`
   );
+  if (standardValidation.applies) {
+    console.log(
+      `Research Standard v1: ${standardValidation.status}, ${standardValidation.completenessPct}% complete, ${standardValidation.metricCoveragePct}% required metric coverage`
+    );
+  }
 } catch (error) {
   await supabase.from("research_runs").delete().eq("id", run.id);
   throw error;
