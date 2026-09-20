@@ -198,7 +198,12 @@ try{
 
   const deduped=[...new Map(rows.map((row)=>[[row.provider,row.source_key].join("|"),row])).values()];
   const written=await upsertRows(deduped);
-  await finishRun(runId,"success",written,"Capital intelligence refreshed from SEC disclosures.",{
+  const blockedEverywhere=requestCount===0 && deduped.length===0 && failures.length>0;
+  const status=blockedEverywhere?"failed":failures.length&&written>0?"partial":"success";
+  const message=blockedEverywhere
+    ?"Capital intelligence could not reach SEC from this runner; no rows were written."
+    :"Capital intelligence refreshed from SEC disclosures.";
+  await finishRun(runId,status,written,message,{
     engine_version:CAPITAL_INTELLIGENCE_VERSION,
     sec_requests:requestCount,
     generated_rows:deduped.length,
@@ -208,7 +213,8 @@ try{
     companies:companies.length,
     failures:failures.slice(0,100),
   });
-  console.log(JSON.stringify({written,generated:deduped.length,requests:requestCount,failures},null,2));
+  console.log(JSON.stringify({status,written,generated:deduped.length,requests:requestCount,failures},null,2));
+  if(blockedEverywhere)process.exitCode=1;
 }catch(error){
   await finishRun(runId,"failed",0,error.message,{engine_version:CAPITAL_INTELLIGENCE_VERSION,failures:[...failures,error.message]});
   throw error;
