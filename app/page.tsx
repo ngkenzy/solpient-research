@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 const pillars = [
   ["Discover", "Surface companies worthy of deeper fundamental research."],
   ["Research", "Store structured financial analysis, valuation, risks, catalysts, and sources."],
@@ -15,6 +17,10 @@ export default function Home() {
           A point-in-time fundamental research system that remembers what we believed,
           what changed, and what happened afterward.
         </p>
+        <div className="actions">
+          <Link className="primaryButton" href="/research">Browse research</Link>
+          <span className="secondaryText">Built for long-term fundamental investors.</span>
+        </div>
       </section>
 
       <section className="grid">
@@ -29,9 +35,9 @@ export default function Home() {
       <section className="status">
         <div>
           <span className="statusLabel">BUILD STATUS</span>
-          <strong>Foundation initialized</strong>
+          <strong>Research database connected</strong>
         </div>
-        <p>Next milestone: ADBE Research Version 1 → database → company page.</p>
+        <p>Current milestone: publish the first versioned company research record.</p>
       </section>
     </main>
   );
