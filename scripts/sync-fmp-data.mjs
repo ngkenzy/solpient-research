@@ -62,6 +62,13 @@ async function fmp(path, params = {}) {
   let body;
   try { body = JSON.parse(text); } catch { body = text; }
   if (!response.ok) {
+    if (
+      response.status === 402 &&
+      Number(params.limit) > 5 &&
+      String(text).includes("values for 'limit' must be between 0 and 5")
+    ) {
+      return fmp(path, { ...params, limit: 5 });
+    }
     throw new Error("FMP HTTP " + response.status + ": " + String(text).slice(0, 250));
   }
   if (body && typeof body === "object" && !Array.isArray(body) && body["Error Message"]) {
