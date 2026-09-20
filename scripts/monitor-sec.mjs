@@ -329,7 +329,7 @@ for (const manager of managers) {
 
   state.managers[key] = {
     name: manager.name,
-    checked_at: now,
+    checked_at: unseen.length > 0 ? now : prior.checked_at,
     seen_accessions: Array.from(
       new Set([...(prior.seen_accessions ?? []), ...filings.map((filing) => filing.accession)])
     ).slice(0, 100),
@@ -347,7 +347,10 @@ const merged = [...newEvents, ...existingEvents]
 state.initialized_at = state.initialized_at ?? (initializedAny ? now : null);
 
 eventFile = {
-  generated_at: now,
+  generated_at:
+    newEvents.length > 0 || initializedAny
+      ? now
+      : eventFile.generated_at ?? state.initialized_at ?? null,
   events: merged,
 };
 
