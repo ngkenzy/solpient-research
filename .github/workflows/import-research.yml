@@ -33,7 +33,7 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
           if [ -d "data/research" ]; then
-            find data/research -type f -name '*.json' -print0 | sort -z | while IFS= read -r -d '' file; do
+            find data/research -type f -name '*.json' ! -name '*.template.json' -print0 | sort -z | while IFS= read -r -d '' file; do
               node scripts/import-research.mjs "$file"
             done
           fi
