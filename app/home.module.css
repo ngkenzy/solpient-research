@@ -21,20 +21,34 @@
 
 .wordmark {
   display: inline-flex;
-  align-items: baseline;
+  align-items: center;
   gap: 10px;
   width: max-content;
 }
 
-.wordmark strong {
+.wordmark :global(.solpientBrandMark) {
+  width: 36px;
+  height: 36px;
+}
+
+.wordmark :global(.solpientBrandCopy) {
+  display: grid;
+  gap: 2px;
+  line-height: 1;
+}
+
+.wordmark :global(.solpientBrandCopy) strong {
   color: var(--accent);
   letter-spacing: .12em;
   font-size: 18px;
 }
 
-.wordmark span {
+.wordmark :global(.solpientBrandCopy) > span {
+  margin-top: 4px;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 9px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
 }
 
 .nav {
