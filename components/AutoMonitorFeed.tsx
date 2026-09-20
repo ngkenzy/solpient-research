@@ -1,4 +1,5 @@
 import feed from "@/data/monitor/sec-events.json";
+import provider from "@/data/monitor/provider-status.json";
 
 type MonitorEvent = {
   id: string;
@@ -44,14 +45,18 @@ export function AutoMonitorFeed() {
           <span className="panelKicker">SOLPIENT AUTO-MONITOR</span>
           <h2>Live filing queue</h2>
           <p>
-            SEC filings are checked automatically. Material filings enter a review queue instead of
-            silently overwriting published research.
+            Public disclosure sources are checked automatically every four hours. Material filings
+            enter a review queue instead of silently overwriting published research.
           </p>
         </div>
-        <div className="monitorStatus">
+        <div className="monitorStatus" title={provider.message}>
           <i />
-          <span>{generatedAt ? "Monitor active" : "Baseline initializing"}</span>
-          <small>{generatedAt ? "Last check " + formatDate(generatedAt) : "ADBE + DECK"}</small>
+          <span>{provider.active ? "Monitor active" : "Monitor paused"}</span>
+          <small>
+            {provider.active
+              ? "Every " + provider.cadence_hours + " hours · ADBE + DECK"
+              : "Provider unavailable"}
+          </small>
         </div>
       </div>
 
@@ -59,8 +64,8 @@ export function AutoMonitorFeed() {
         <div className="monitorEmpty">
           <strong>No new filings since the monitor baseline.</strong>
           <p>
-            SOLPIENT is watching ADBE and DECK for 10-K, 10-Q, earnings-related 8-K, insider Form 4,
-            and notable-manager 13F filings.
+            SOLPIENT is watching ADBE and DECK for 10-K, 10-Q, 8-K, insider Form 4,
+            notable-manager 13F filings, and political transaction disclosures.
           </p>
         </div>
       ) : (
