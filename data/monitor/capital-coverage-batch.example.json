@@ -1,0 +1,26 @@
+{
+  "provider": "web_verified",
+  "verified_at": "2026-09-20T20:00:00Z",
+  "source_run_id": "coverage-backfill-example",
+  "coverage": [
+    {
+      "ticker": "AOS",
+      "activity_type": "political",
+      "status": "verified_none",
+      "window_start": "2026-01-01",
+      "window_end": "2026-09-20",
+      "source_url": "https://example.com/source",
+      "source_key": "aos-political-2026-09-20",
+      "notes": "Source checked for qualifying transactions in the stated window."
+    },
+    {
+      "ticker": "AOS",
+      "activity_type": "institutional",
+      "status": "partial",
+      "window_end": "2026-09-20",
+      "source_url": "https://example.com/source",
+      "source_key": "aos-institutional-2026-09-20",
+      "notes": "One provider checked; second-source verification still pending."
+    }
+  ]
+}
