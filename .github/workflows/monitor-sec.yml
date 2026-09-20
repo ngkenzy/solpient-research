@@ -9,6 +9,7 @@ on:
     paths:
       - "scripts/monitor-sec.mjs"
       - "data/monitor/companies.json"
+      - "data/monitor/managers.json"
       - ".github/workflows/monitor-sec.yml"
 
 concurrency:
