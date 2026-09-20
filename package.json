@@ -26,7 +26,9 @@
     "sync:market-history": "node scripts/sync-market-history.mjs",
     "coverage:build": "node scripts/build-data-coverage.mjs",
     "factory:refresh": "node scripts/refresh-generated-baselines.mjs",
-    "test:coverage": "node scripts/test-data-coverage-engine.mjs"
+    "test:coverage": "node scripts/test-data-coverage-engine.mjs",
+    "sync:yahoo-fundamentals": "node scripts/sync-yahoo-fundamentals-fallback.mjs",
+    "test:yahoo-fundamentals": "node scripts/test-yahoo-fundamentals.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.4",
@@ -40,4 +42,4 @@
     "@types/react-dom": "^19.0.0",
     "typescript": "^5.9.0"
   }
-}
+}\n

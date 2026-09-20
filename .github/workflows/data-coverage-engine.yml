@@ -5,11 +5,11 @@ on:
     branches: [main]
     paths:
       - "lib/sec-companyfacts.mjs"
-      - "lib/data-coverage-engine.mjs"
+      - "lib/data-coverage-engine.mjs"\n      - "lib/yahoo-fundamentals.mjs"
       - "lib/baseline-factory.mjs"
       - "lib/historical-peer-engine.mjs"
       - "scripts/sync-sec-companyfacts-backfill.mjs"
-      - "scripts/sync-market-history.mjs"
+      - "scripts/sync-market-history.mjs"\n      - "scripts/sync-yahoo-fundamentals-fallback.mjs"\n      - "scripts/test-yahoo-fundamentals.mjs"
       - "scripts/build-data-coverage.mjs"
       - "scripts/refresh-generated-baselines.mjs"
       - "scripts/test-data-coverage-engine.mjs"
@@ -55,6 +55,15 @@ jobs:
         run: |
           mkdir -p artifacts/coverage
           npm run sync:sec-backfill -- --output artifacts/coverage/sec-backfill.json
+
+      - name: Yahoo fundamentals fallback
+        continue-on-error: true
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          YAHOO_DATA_USER_AGENT: "SOLPIENT Research/1.0"
+          COVERAGE_TICKER: ${{ github.event.inputs.ticker }}
+        run: npm run sync:yahoo-fundamentals -- --output artifacts/coverage/yahoo-fundamentals.json
 
       - name: Deep FMP fallback
         continue-on-error: true
