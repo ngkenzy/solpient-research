@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getSupabase } from "@/lib/supabase";
+import { SolpientBrand } from "@/components/SolpientBrand";
 
 export const dynamic = "force-dynamic";
 
@@ -158,10 +159,7 @@ export default async function ResearchIndex() {
   return (
     <>
       <header className="siteHeader">
-        <Link className="brand" href="/">
-          <strong>SOLPIENT</strong>
-          <span>Research</span>
-        </Link>
+        <SolpientBrand />
         <nav>
           <Link href="/research">Rankings</Link>
           <Link href="/watchlist">Watchlist</Link>
