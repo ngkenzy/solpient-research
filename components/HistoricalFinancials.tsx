@@ -7,6 +7,10 @@ function compact(value: number) {
   }).format(value * 1_000_000);
 }
 
+function billions(value: number) {
+  return `$${(value / 1000).toFixed(value >= 10000 ? 1 : 2)}B`;
+}
+
 function linePath(
   points: HistoricalFinancialPoint[],
   accessor: (point: HistoricalFinancialPoint) => number,
@@ -46,9 +50,14 @@ function lineDots(
   }));
 }
 
-function ChartAxis({ points }: { points: HistoricalFinancialPoint[] }) {
+function ticks(min: number, max: number, count = 5) {
+  const range = max - min || 1;
+  return Array.from({ length: count }, (_, index) => max - (range * index) / (count - 1));
+}
+
+function ChartAxis({ points, offset = false }: { points: HistoricalFinancialPoint[]; offset?: boolean }) {
   return (
-    <div className="chartAxis">
+    <div className={`chartAxis ${offset ? "chartAxisOffset" : ""}`}>
       {points.map((point) => (
         <span key={point.fiscalYear}>{point.fiscalYear}</span>
       ))}
@@ -56,63 +65,113 @@ function ChartAxis({ points }: { points: HistoricalFinancialPoint[] }) {
   );
 }
 
+function YAxis({
+  values,
+  formatter,
+}: {
+  values: number[];
+  formatter: (value: number) => string;
+}) {
+  return (
+    <div className="chartYAxis" aria-hidden="true">
+      {values.map((value, index) => (
+        <span key={index}>{formatter(value)}</span>
+      ))}
+    </div>
+  );
+}
+
 function BarChart({ points }: { points: HistoricalFinancialPoint[] }) {
-  const max = Math.max(...points.flatMap((p) => [p.revenue, p.freeCashFlow]));
+  const maxRaw = Math.max(...points.flatMap((p) => [p.revenue, p.freeCashFlow]));
+  const max = Math.ceil(maxRaw / 1000) * 1000;
+  const yTicks = ticks(0, max);
 
   return (
     <>
-      <div className="barChart" aria-label="Revenue and free cash flow history">
-        {points.map((point) => (
-          <div className="barGroup" key={point.fiscalYear}>
-            <div className="barPair">
-              <i
-                className="bar revenueBar"
-                style={{ height: `${(point.revenue / max) * 100}%` }}
-                title={`Revenue ${compact(point.revenue)}`}
-              />
-              <i
-                className="bar fcfBar"
-                style={{ height: `${(point.freeCashFlow / max) * 100}%` }}
-                title={`FCF ${compact(point.freeCashFlow)}`}
-              />
+      <div className="chartWithYAxis">
+        <YAxis values={yTicks} formatter={billions} />
+        <div className="barChart" aria-label="Revenue and free cash flow history">
+          {points.map((point) => (
+            <div className="barGroup" key={point.fiscalYear}>
+              <div className="barPair">
+                <div className="barColumn">
+                  <span className="barTopLabel">{billions(point.revenue)}</span>
+                  <i
+                    className="bar revenueBar"
+                    style={{ height: `${(point.revenue / max) * 100}%` }}
+                    title={`Revenue ${billions(point.revenue)}`}
+                  />
+                </div>
+                <div className="barColumn">
+                  <span className="barTopLabel">{billions(point.freeCashFlow)}</span>
+                  <i
+                    className="bar fcfBar"
+                    style={{ height: `${(point.freeCashFlow / max) * 100}%` }}
+                    title={`FCF ${billions(point.freeCashFlow)}`}
+                  />
+                </div>
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
-      <ChartAxis points={points} />
+      <ChartAxis points={points} offset />
       <div className="chartLegend">
         <span><i className="legendSwatch revenueLegend" />Revenue</span>
         <span><i className="legendSwatch fcfLegend" />Free cash flow</span>
+      </div>
+      <div className="chartValueTable">
+        {points.map((point) => (
+          <div key={point.fiscalYear}>
+            <strong>{point.fiscalYear}</strong>
+            <span>Rev {billions(point.revenue)}</span>
+            <span>FCF {billions(point.freeCashFlow)}</span>
+          </div>
+        ))}
       </div>
     </>
   );
 }
 
 function MultiLineMargins({ points }: { points: HistoricalFinancialPoint[] }) {
-  const min = 25;
-  const max = 95;
+  const min = 20;
+  const max = 100;
+  const yTicks = ticks(min, max);
   const grossDots = lineDots(points, (p) => p.grossMargin, min, max);
   const opDots = lineDots(points, (p) => p.operatingMargin, min, max);
   const fcfDots = lineDots(points, (p) => p.fcfMargin, min, max);
 
   return (
     <>
-      <div className="svgChart">
-        <svg viewBox="0 0 100 100" role="img" aria-label="Historical margins">
-          <path className="chartGridLine" d="M 5 25 L 95 25 M 5 55 L 95 55 M 5 85 L 95 85" />
-          <path className="chartLine grossLine" d={linePath(points, (p) => p.grossMargin, min, max)} />
-          <path className="chartLine operatingLine" d={linePath(points, (p) => p.operatingMargin, min, max)} />
-          <path className="chartLine fcfLine" d={linePath(points, (p) => p.fcfMargin, min, max)} />
-          {grossDots.map((dot) => <circle key={`g-${dot.year}`} className="grossDot" cx={dot.x} cy={dot.y} r="1.4" />)}
-          {opDots.map((dot) => <circle key={`o-${dot.year}`} className="operatingDot" cx={dot.x} cy={dot.y} r="1.4" />)}
-          {fcfDots.map((dot) => <circle key={`f-${dot.year}`} className="fcfDot" cx={dot.x} cy={dot.y} r="1.4" />)}
-        </svg>
+      <div className="chartWithYAxis">
+        <YAxis values={yTicks} formatter={(v) => `${v.toFixed(0)}%`} />
+        <div className="svgChart">
+          <svg viewBox="0 0 100 100" role="img" aria-label="Historical margins">
+            <path className="chartGridLine" d="M 5 16 L 95 16 M 5 34 L 95 34 M 5 52 L 95 52 M 5 70 L 95 70 M 5 88 L 95 88" />
+            <path className="chartLine grossLine" d={linePath(points, (p) => p.grossMargin, min, max)} />
+            <path className="chartLine operatingLine" d={linePath(points, (p) => p.operatingMargin, min, max)} />
+            <path className="chartLine fcfLine" d={linePath(points, (p) => p.fcfMargin, min, max)} />
+            {grossDots.map((dot) => <circle key={`g-${dot.year}`} className="grossDot" cx={dot.x} cy={dot.y} r="1.4" />)}
+            {opDots.map((dot) => <circle key={`o-${dot.year}`} className="operatingDot" cx={dot.x} cy={dot.y} r="1.4" />)}
+            {fcfDots.map((dot) => <circle key={`f-${dot.year}`} className="fcfDot" cx={dot.x} cy={dot.y} r="1.4" />)}
+          </svg>
+        </div>
       </div>
-      <ChartAxis points={points} />
+      <ChartAxis points={points} offset />
       <div className="chartLegend">
         <span><i className="legendSwatch grossLegend" />Gross margin</span>
         <span><i className="legendSwatch operatingLegend" />Operating margin</span>
         <span><i className="legendSwatch fcfMarginLegend" />FCF margin</span>
+      </div>
+      <div className="chartValueTable marginValueTable">
+        {points.map((point) => (
+          <div key={point.fiscalYear}>
+            <strong>{point.fiscalYear}</strong>
+            <span>Gross {point.grossMargin.toFixed(1)}%</span>
+            <span>Op {point.operatingMargin.toFixed(1)}%</span>
+            <span>FCF {point.fcfMargin.toFixed(1)}%</span>
+          </div>
+        ))}
       </div>
     </>
   );
@@ -122,36 +181,49 @@ function SingleLineChart({
   points,
   accessor,
   formatter,
+  axisFormatter,
   className,
   ariaLabel,
 }: {
   points: HistoricalFinancialPoint[];
   accessor: (point: HistoricalFinancialPoint) => number;
   formatter: (value: number) => string;
+  axisFormatter?: (value: number) => string;
   className: string;
   ariaLabel: string;
 }) {
   const values = points.map(accessor);
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  const pad = Math.max((max - min) * 0.18, 1);
-  const dots = lineDots(points, accessor, min - pad, max + pad);
+  const rawMin = Math.min(...values);
+  const rawMax = Math.max(...values);
+  const pad = Math.max((rawMax - rawMin) * 0.18, rawMax === rawMin ? Math.max(rawMax * 0.1, 1) : 0.25);
+  const min = Math.max(0, rawMin - pad);
+  const max = rawMax + pad;
+  const dots = lineDots(points, accessor, min, max);
+  const yTicks = ticks(min, max);
 
   return (
     <>
-      <div className="svgChart compactSvgChart">
-        <svg viewBox="0 0 100 100" role="img" aria-label={ariaLabel}>
-          <path className="chartGridLine" d="M 5 25 L 95 25 M 5 55 L 95 55 M 5 85 L 95 85" />
-          <path className={`chartLine ${className}`} d={linePath(points, accessor, min - pad, max + pad)} />
-          {dots.map((dot) => (
-            <g key={dot.year}>
-              <circle className={`${className}Dot`} cx={dot.x} cy={dot.y} r="1.6" />
-              <title>{`${dot.year}: ${formatter(dot.value)}`}</title>
-            </g>
-          ))}
-        </svg>
+      <div className="chartWithYAxis compactChartWithYAxis">
+        <YAxis values={yTicks} formatter={axisFormatter ?? formatter} />
+        <div className="svgChart compactSvgChart">
+          <svg viewBox="0 0 100 100" role="img" aria-label={ariaLabel}>
+            <path className="chartGridLine" d="M 5 16 L 95 16 M 5 34 L 95 34 M 5 52 L 95 52 M 5 70 L 95 70 M 5 88 L 95 88" />
+            <path className={`chartLine ${className}`} d={linePath(points, accessor, min, max)} />
+            {dots.map((dot) => (
+              <g key={dot.year}>
+                <circle className={`${className}Dot`} cx={dot.x} cy={dot.y} r="1.6" />
+                <title>{`${dot.year}: ${formatter(dot.value)}`}</title>
+              </g>
+            ))}
+          </svg>
+        </div>
       </div>
-      <ChartAxis points={points} />
+      <ChartAxis points={points} offset />
+      <div className="chartPointValues">
+        {points.map((point) => (
+          <span key={point.fiscalYear}>{formatter(accessor(point))}</span>
+        ))}
+      </div>
     </>
   );
 }
@@ -216,6 +288,7 @@ export function HistoricalFinancials({ ticker }: { ticker: string }) {
             points={points}
             accessor={(p) => p.dilutedEps}
             formatter={(v) => `$${v.toFixed(2)}`}
+            axisFormatter={(v) => `$${v.toFixed(1)}`}
             className="epsLine"
             ariaLabel="Diluted EPS history"
           />
@@ -234,6 +307,7 @@ export function HistoricalFinancials({ ticker }: { ticker: string }) {
               points={points}
               accessor={(p) => p.roic ?? 0}
               formatter={(v) => `${v.toFixed(1)}%`}
+              axisFormatter={(v) => `${v.toFixed(0)}%`}
               className="roicLine"
               ariaLabel="Return on invested capital history"
             />
@@ -250,7 +324,8 @@ export function HistoricalFinancials({ ticker }: { ticker: string }) {
             <SingleLineChart
               points={points}
               accessor={(p) => p.freeCashFlow}
-              formatter={(v) => compact(v)}
+              formatter={(v) => billions(v)}
+              axisFormatter={(v) => billions(v)}
               className="roicLine"
               ariaLabel="Free cash flow history"
             />
@@ -269,6 +344,7 @@ export function HistoricalFinancials({ ticker }: { ticker: string }) {
             points={points}
             accessor={(p) => p.dilutedShares}
             formatter={(v) => `${v.toFixed(1)}M`}
+            axisFormatter={(v) => `${v.toFixed(0)}M`}
             className="sharesLine"
             ariaLabel="Diluted share count history"
           />
