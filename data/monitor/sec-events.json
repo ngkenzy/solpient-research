@@ -1,4 +1,24 @@
 {
-  "generated_at": "2026-09-20T05:57:54.931Z",
-  "events": []
+  "generated_at": "2026-09-20T14:05:45Z",
+  "events": [
+    {
+      "ticker": "ADBE",
+      "company": "Adobe Inc.",
+      "event_type": "SEC Form 4 insider sale",
+      "insider": "Shantanu Narayen",
+      "role": "Chair and CEO; Director",
+      "transaction_dates": ["2026-09-16", "2026-09-17"],
+      "filing_date": "2026-09-18",
+      "accession_number": "0001224154-26-000003",
+      "shares_sold": 125000,
+      "approx_value_usd": 31344876,
+      "ownership": "Indirect by The Narayen Family Trust",
+      "rule_10b5_1": false,
+      "stated_purpose": "Primarily tax and estate planning purposes",
+      "source_url": "https://www.sec.gov/Archives/edgar/data/796343/000122415426000003/0001224154-26-000003-index.html",
+      "materiality": "review",
+      "research_review_needed": true,
+      "note": "Discretionary open-market sale; transaction dates are distinct from the Sep. 18 filing date. Does not itself change operating fundamentals or valuation assumptions."
+    }
+  ]
 }
