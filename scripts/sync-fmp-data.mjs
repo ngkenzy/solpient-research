@@ -156,7 +156,7 @@ async function syncFilings(company) {
     from,
     to,
     page: 0,
-    limit: 100,
+    limit: 5,
   });
 
   const rows = Array.isArray(res.body) ? res.body : [];
@@ -213,25 +213,32 @@ let written = 0;
 const failures = [];
 
 for (const config of companies) {
+  const company = await ensureCompany(config);
+  let companyWritten = 0;
+
   try {
-    const company = await ensureCompany(config);
     const fundamentals = await syncFundamentals(company);
-    const filings = await syncFilings(company);
-    written += fundamentals + filings;
-    console.log(
-      "FMP sync",
-      company.ticker,
-      "fundamentals=" + fundamentals,
-      "filings=" + filings
-    );
+    written += fundamentals;
+    companyWritten += fundamentals;
+    console.log("FMP fundamentals", company.ticker, fundamentals);
   } catch (error) {
-    failures.push({
-      ticker: config.ticker,
-      error: error instanceof Error ? error.message : String(error),
-    });
-    console.warn("FMP sync failed", config.ticker, failures.at(-1).error);
+    const message = error instanceof Error ? error.message : String(error);
+    failures.push({ ticker: config.ticker, stage: "fundamentals", error: message });
+    console.warn("FMP fundamentals failed", config.ticker, message);
   }
 
+  try {
+    const filings = await syncFilings(company);
+    written += filings;
+    companyWritten += filings;
+    console.log("FMP filings", company.ticker, filings);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    failures.push({ ticker: config.ticker, stage: "filings", error: message });
+    console.warn("FMP filings failed", config.ticker, message);
+  }
+
+  console.log("FMP sync complete", company.ticker, "records=" + companyWritten);
   await new Promise((resolve) => setTimeout(resolve, 150));
 }
 
