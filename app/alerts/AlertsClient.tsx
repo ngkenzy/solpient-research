@@ -86,7 +86,7 @@ export function AlertsClient() {
                 <div className="alertRuleGrid">
                   {([
                     ["smartMoney", "Smart money"],
-                    ["congress", "Congress"],
+                    ["congress", "Political trades"],
                     ["insiders", "Insiders"],
                     ["research", "Research changes"],
                   ] as Array<[keyof AlertPrefs, string]>).map(([key, label]) => (
