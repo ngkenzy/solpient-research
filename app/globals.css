@@ -2,31 +2,183 @@
   color-scheme: dark;
   --bg: #0a0b0d;
   --panel: #111317;
+  --panel-2: #151820;
   --line: #242833;
   --text: #f4f5f7;
   --muted: #9da3ae;
   --accent: #d7b56d;
+  --accent-soft: rgba(215, 181, 109, 0.12);
 }
 
 * { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
 html, body { margin: 0; min-height: 100%; background: var(--bg); color: var(--text); }
 body { font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
-main { width: min(1120px, calc(100% - 40px)); margin: 0 auto; padding: 88px 0; }
+a { color: inherit; text-decoration: none; }
+main { width: min(1120px, calc(100% - 40px)); margin: 0 auto; padding: 64px 0 88px; }
+
 .hero { max-width: 820px; padding: 56px 0 72px; }
+.compactHero { padding-bottom: 42px; }
 .eyebrow { color: var(--accent); font-size: 12px; font-weight: 700; letter-spacing: .18em; }
 h1 { margin: 18px 0; font-size: clamp(48px, 7vw, 88px); line-height: .98; letter-spacing: -.045em; }
+h2 { letter-spacing: -.02em; }
 .lede { max-width: 720px; color: var(--muted); font-size: clamp(18px, 2vw, 24px); line-height: 1.55; }
+.actions { display: flex; gap: 18px; align-items: center; margin-top: 28px; flex-wrap: wrap; }
+.primaryButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 46px;
+  padding: 0 18px;
+  border-radius: 12px;
+  background: var(--text);
+  color: var(--bg);
+  font-weight: 700;
+}
+.secondaryText { color: var(--muted); font-size: 14px; }
+.backLink { color: var(--muted); font-size: 14px; }
+.backLink:hover { color: var(--text); }
+
 .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
-.card, .status { border: 1px solid var(--line); background: var(--panel); border-radius: 18px; }
+.card, .status, .sectionBlock, .emptyState, .metricCard, .companyRow {
+  border: 1px solid var(--line);
+  background: var(--panel);
+  border-radius: 18px;
+}
 .card { min-height: 190px; padding: 28px; }
 .card h2 { margin: 0 0 12px; font-size: 21px; }
 .card p, .status p { margin: 0; color: var(--muted); line-height: 1.6; }
 .status { margin-top: 16px; padding: 24px 28px; display: flex; justify-content: space-between; gap: 28px; align-items: center; }
 .status div { display: grid; gap: 5px; }
 .statusLabel { color: var(--accent); font-size: 11px; letter-spacing: .14em; font-weight: 700; }
+
+.companyList { display: grid; gap: 10px; }
+.companyRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 20px 22px;
+  transition: border-color .18s ease, transform .18s ease;
+}
+.companyRow:hover { border-color: #3a404d; transform: translateY(-1px); }
+.companyRow > div:first-child { display: flex; align-items: baseline; gap: 14px; }
+.companyRow strong { font-size: 18px; }
+.companyRow span { color: var(--muted); }
+.companyMeta { display: flex; gap: 22px; font-size: 13px; }
+
+.companyHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 32px;
+  align-items: flex-end;
+  padding: 56px 0 36px;
+}
+.companyHeader h1 { font-size: clamp(46px, 6vw, 74px); margin-bottom: 14px; }
+.companyHeader p { color: var(--muted); margin: 0; max-width: 760px; line-height: 1.6; }
+.versionBadge {
+  min-width: 160px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--panel);
+  padding: 18px;
+  display: grid;
+  gap: 4px;
+}
+.versionBadge span { color: var(--muted); font-size: 10px; letter-spacing: .12em; }
+.versionBadge strong { font-size: 28px; }
+.versionBadge small { color: var(--muted); }
+
+.scoreGrid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.metricCard { padding: 18px; display: grid; gap: 10px; min-height: 108px; }
+.metricCard span { color: var(--muted); font-size: 12px; }
+.metricCard strong { font-size: 26px; }
+
+.sectionBlock { padding: 28px; margin-top: 16px; }
+.sectionHeading { display: flex; align-items: baseline; gap: 12px; margin-bottom: 24px; }
+.sectionHeading span { color: var(--accent); font-size: 11px; font-weight: 700; }
+.sectionHeading h2 { margin: 0; font-size: 24px; }
+
+.dataGrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.dataGrid > div {
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 16px;
+  display: grid;
+  gap: 7px;
+}
+.dataGrid span { color: var(--muted); font-size: 12px; }
+.dataGrid strong { font-size: 18px; }
+
+.thesisList, .historyList, .sourceList { display: grid; gap: 9px; }
+.thesisRow, .historyRow, .sourceRow {
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 16px 18px;
+}
+.thesisRow, .sourceRow { display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+.thesisRow p { margin: 5px 0 0; color: var(--muted); line-height: 1.45; }
+.statusPill {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 7px 10px;
+  text-transform: capitalize;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.statusPill.strengthened { background: rgba(65, 166, 98, .13); }
+.statusPill.weakened { background: rgba(201, 81, 81, .13); }
+.statusPill.unchanged { background: rgba(141, 147, 158, .10); }
+
+.researchSummary {
+  font-size: 19px;
+  line-height: 1.7;
+  max-width: 880px;
+}
+.fullReport {
+  white-space: pre-wrap;
+  color: #d7dae0;
+  line-height: 1.75;
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid var(--line);
+}
+.historyRow {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 18px;
+  align-items: center;
+}
+.historyRow span { color: var(--muted); }
+.sourceRow div { display: grid; gap: 4px; }
+.sourceRow span { color: var(--muted); font-size: 12px; }
+.sourceRow a { color: var(--accent); font-size: 13px; }
+.emptyState { padding: 28px; }
+.emptyState p, .muted { color: var(--muted); line-height: 1.6; }
+
+@media (max-width: 980px) {
+  .scoreGrid { grid-template-columns: repeat(3, 1fr); }
+  .dataGrid { grid-template-columns: repeat(2, 1fr); }
+}
+
 @media (max-width: 720px) {
   main { width: min(100% - 28px, 1120px); padding-top: 32px; }
   .hero { padding: 40px 0 52px; }
   .grid { grid-template-columns: 1fr; }
   .status { align-items: flex-start; flex-direction: column; }
+  .companyRow, .companyHeader, .thesisRow, .sourceRow { align-items: flex-start; flex-direction: column; }
+  .companyRow > div:first-child { flex-direction: column; gap: 4px; }
+  .companyMeta { width: 100%; justify-content: space-between; }
+  .companyHeader { padding-top: 42px; }
+  .versionBadge { width: 100%; }
+  .scoreGrid { grid-template-columns: repeat(2, 1fr); }
+  .dataGrid { grid-template-columns: 1fr; }
+  .historyRow { grid-template-columns: 1fr; gap: 4px; }
 }
