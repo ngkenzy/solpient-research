@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getSupabase } from "@/lib/supabase";
+import { getSupabase } from "@/lib/supabase";\nimport { HistoricalFinancials } from "@/components/HistoricalFinancials";
 
 export const dynamic = "force-dynamic";
 
@@ -29,6 +29,7 @@ function formatNumber(value: number | null | undefined, suffix = "") {
 }
 
 function asNumber(value: unknown) {
+  if (value === null || value === undefined || value === "") return null;
   const n = Number(value);
   return Number.isFinite(n) ? n : null;
 }
@@ -437,13 +438,6 @@ export default async function CompanyResearch({
               <MetricTile label="Total debt" value={formatCompactMoney(metrics?.total_debt)} />
             </div>
 
-            <div className="dataIntegrityNote">
-              <strong>Historical charts are coming next.</strong>
-              <span>
-                SOLPIENT will chart revenue, free cash flow and margins only after multi-period
-                financial statements are stored in the database—no fabricated trend lines.
-              </span>
-            </div>
           </article>
 
           <article className="dashboardPanel thesisSignalsPanel">
@@ -483,6 +477,8 @@ export default async function CompanyResearch({
             </div>
           </article>
         </section>
+
+        <HistoricalFinancials ticker={company.ticker} />
 
         <section className="dashboardGrid lowerDashboard">
           <article className="dashboardPanel changeSection">
