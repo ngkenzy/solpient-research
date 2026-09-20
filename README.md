@@ -30,3 +30,24 @@ Payments, analytics, email automation, and native mobile will be added only afte
 5. Start with `npm run dev`.
 
 Never commit `.env.local` or service-role keys.
+
+
+## Automated intelligence
+
+SOLPIENT now includes an append-only intelligence pipeline:
+
+- SEC 10-K, 10-Q, 8-K and Form 4 monitoring every six hours
+- notable-manager 13F monitoring
+- daily SEC XBRL fundamental snapshots
+- daily end-of-day market snapshots for the tracked research universe plus SPY
+- immutable prediction snapshots published with research versions
+- automatic realized-outcome and prediction-error scoring when supported forecasts mature
+- current valuation gaps use the latest stored market price while preserving the original research-date price
+
+Database migrations `0004_intelligence_predictions.sql` and
+`0005_automated_intelligence.sql` must be applied to the production Supabase
+database before the new storage-backed automation jobs can write records.
+
+Consensus-estimate and political-disclosure automation are intentionally provider
+adapters rather than web scrapers. They should only be enabled when a stable,
+licensed/reliable data source is configured.
