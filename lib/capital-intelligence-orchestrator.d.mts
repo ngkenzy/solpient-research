@@ -74,3 +74,5 @@ export function summarizeCapitalCoverageMatrix(
   fully_reviewed: boolean;
   fully_verified: boolean;
 }>;
+
+export function shouldReplaceCoverage(existing: any, next: any): boolean;
