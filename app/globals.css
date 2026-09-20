@@ -4217,3 +4217,138 @@ h2 { letter-spacing: -.02em; }
     flex-wrap: wrap;
   }
 }
+
+
+/* Historical chart axes and point values */
+.chartWithYAxis {
+  display: grid;
+  grid-template-columns: 54px minmax(0,1fr);
+  gap: 8px;
+  align-items: stretch;
+}
+
+.compactChartWithYAxis {
+  grid-template-columns: 48px minmax(0,1fr);
+}
+
+.chartYAxis {
+  height: 190px;
+  padding: 3px 0 2px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-end;
+}
+
+.compactChartWithYAxis .chartYAxis {
+  height: 150px;
+}
+
+.chartYAxis span {
+  color: #7f8794;
+  font-size: 8px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.chartAxisOffset {
+  margin-left: 62px;
+}
+
+.compactChartWithYAxis + .chartAxisOffset {
+  margin-left: 56px;
+}
+
+.barColumn {
+  position: relative;
+  height: 100%;
+  width: 44%;
+  display: flex;
+  align-items: end;
+  justify-content: center;
+}
+
+.barColumn .bar {
+  width: 100%;
+}
+
+.barTopLabel {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  color: #c6ccd5;
+  font-size: 7px;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.chartValueTable {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+}
+
+.chartValueTable > div {
+  padding: 7px 8px;
+  border: 1px solid rgba(255,255,255,.045);
+  border-radius: 9px;
+  background: #111419;
+  display: grid;
+  gap: 3px;
+}
+
+.chartValueTable strong {
+  color: #c8cdd5;
+  font-size: 8px;
+}
+
+.chartValueTable span {
+  color: var(--muted);
+  font-size: 8px;
+  line-height: 1.35;
+}
+
+.marginValueTable > div {
+  min-height: 74px;
+}
+
+.chartPointValues {
+  margin-left: 56px;
+  margin-top: 6px;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 4px;
+}
+
+.chartPointValues span {
+  color: #9aa3ae;
+  font-size: 8px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+@media (max-width: 720px) {
+  .chartWithYAxis {
+    grid-template-columns: 48px minmax(0,1fr);
+  }
+
+  .chartAxisOffset {
+    margin-left: 56px;
+  }
+
+  .chartValueTable {
+    overflow-x: auto;
+    grid-template-columns: repeat(5, minmax(90px,1fr));
+  }
+
+  .chartPointValues {
+    margin-left: 52px;
+    overflow-x: auto;
+    grid-template-columns: repeat(5, minmax(64px,1fr));
+  }
+
+  .barTopLabel {
+    font-size: 6px;
+  }
+}
