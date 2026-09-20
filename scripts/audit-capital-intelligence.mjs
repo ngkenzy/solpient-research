@@ -132,11 +132,11 @@ try{
   const fullyReviewed=coverage.filter((row)=>row.fully_reviewed).length;
   const fullyVerified=coverage.filter((row)=>row.fully_verified).length;
   const anyReviewed=coverage.filter((row)=>row.categories_reviewed>0).length;
-  const pendingCells=coverage.reduce((sum,row)=>sum+(3-row.categories_reviewed),0);
+  const unresolvedCells=coverage.reduce((sum,row)=>sum+(3-row.categories_complete),0);
   const incomplete=coverage.filter((row)=>!row.fully_verified).map((row)=>row.ticker);
 
   const status=fullyVerified===companies.length?"success":anyReviewed>0?"partial":"failed";
-  const message="Capital intelligence verification: "+fullyVerified+"/"+companies.length+" companies have all three categories verified; "+pendingCells+" of "+(companies.length*3)+" cells remain unresolved.";
+  const message="Capital intelligence verification: "+fullyVerified+"/"+companies.length+" companies have all three categories verified; "+unresolvedCells+" of "+(companies.length*3)+" cells remain unresolved.";
 
   const {error:finishError}=await supabase.from("automation_runs").update({
     status,
@@ -149,7 +149,7 @@ try{
       companies_fully_reviewed:fullyReviewed,
       companies_fully_verified:fullyVerified,
       total_coverage_cells:companies.length*3,
-      pending_or_unresolved_cells:pendingCells,
+      unresolved_coverage_cells:unresolvedCells,
       incomplete_companies:incomplete,
       coverage,
       providers:healthRows.map((row)=>({provider:row.provider,feed_type:row.feed_type,status:row.status})),
@@ -158,7 +158,7 @@ try{
   }).eq("id",run.id);
   if(finishError)throw finishError;
 
-  console.log(JSON.stringify({status,message,incomplete,pendingCells,coverage},null,2));
+  console.log(JSON.stringify({status,message,incomplete,unresolvedCells,coverage},null,2));
 }catch(error){
   await supabase.from("automation_runs").update({
     status:"failed",
