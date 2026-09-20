@@ -50,7 +50,7 @@ export async function ResearchStandardV1({
   const supabase = getSupabase();
   if (!supabase) return null;
 
-  const [runResult, businessResult, metricResult, riskResult, returnResult] = await Promise.all([
+  const [runResult, businessResult, metricResult, riskResult, returnResult, thesisResult] = await Promise.all([
     supabase
       .from("research_runs")
       .select("standard_version,standard_status,data_cutoff_at,benchmark_ticker,completeness_pct,validation_notes")
@@ -75,8 +75,12 @@ export async function ResearchStandardV1({
       .from("expected_return_scenarios")
       .select("*")
       .eq("research_run_id", researchRunId)
-      .order("horizon_years")
-      .order("scenario"),
+      .order("horizon_years"),
+    supabase
+      .from("thesis_variables")
+      .select("id,variable_name,expectation,observed_value,status,metric_key,threshold_value,threshold_unit,review_frequency,breaker_condition")
+      .eq("research_run_id", researchRunId)
+      .order("created_at"),
   ]);
 
   const run = runResult.data;
@@ -86,7 +90,13 @@ export async function ResearchStandardV1({
   const metrics = metricResult.data ?? [];
   const risks = riskResult.data ?? [];
   const returns = returnResult.data ?? [];
-  const fiveYear = returns.filter((row: any) => row.horizon_years === 5);
+  const thesis = thesisResult.data ?? [];
+  const scenarioOrder: Record<string, number> = { bear: 0, base: 1, bull: 2 };
+  const fiveYear = returns
+    .filter((row: any) => row.horizon_years === 5)
+    .sort((a: any, b: any) => (scenarioOrder[a.scenario] ?? 99) - (scenarioOrder[b.scenario] ?? 99));
+  const severityOrder: Record<string, number> = { high: 0, medium: 1, low: 2 };
+  risks.sort((a: any, b: any) => (severityOrder[a.severity] ?? 99) - (severityOrder[b.severity] ?? 99));
   const metricByKey = new Map(metrics.map((row: any) => [row.metric_key, row]));
   const featuredMetrics = [
     "fcf_yield",
@@ -193,6 +203,38 @@ export async function ResearchStandardV1({
           ))}
         </div>
         {fiveYear[0]?.methodology ? <p className="standardMethod">{fiveYear[0].methodology}</p> : null}
+      </div>
+
+      <div className="standardPanel">
+        <div className="standardPanelHeader">
+          <div>
+            <span className="panelKicker">THESIS CONDITIONS</span>
+            <h3>What must remain true</h3>
+          </div>
+          <small>{thesis.length} monitored conditions</small>
+        </div>
+        <div className="standardRiskList">
+          {thesis.map((item: any) => (
+            <article className="standardRisk" key={item.id}>
+              <div className="standardRiskTop">
+                <div>
+                  <span>{item.review_frequency ?? "periodic"} review</span>
+                  <strong>{item.variable_name}</strong>
+                </div>
+                <div className="standardRiskLevels">
+                  <span className={item.status === "strengthened" ? "standardRiskLow" : item.status === "weakened" ? "standardRiskHigh" : "standardRiskMedium"}>
+                    {item.status ?? "unknown"}
+                  </span>
+                </div>
+              </div>
+              <p>{item.observed_value ?? item.expectation ?? "Evidence pending."}</p>
+              <div className="standardBreaker">
+                <span>Thesis breaker</span>
+                <strong>{item.breaker_condition ?? "Breaker condition not yet defined."}</strong>
+              </div>
+            </article>
+          ))}
+        </div>
       </div>
 
       <div className="standardPanel">
