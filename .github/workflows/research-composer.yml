@@ -8,8 +8,15 @@ on:
         required: false
         type: string
   workflow_run:
-    workflows: ["Historical Peer Context"]
+    workflows: ["SOLPIENT Historical + Peer Context"]
     types: [completed]
+  push:
+    branches: [main]
+    paths:
+      - "lib/research-composer.mjs"
+      - "lib/review-workbench.mjs"
+      - "scripts/compose-research-drafts.mjs"
+      - ".github/workflows/research-composer.yml"
 
 jobs:
   compose:
