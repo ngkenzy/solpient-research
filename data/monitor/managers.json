@@ -2,37 +2,51 @@
   {
     "name": "AQR Capital Management",
     "investor": "Cliff Asness",
-    "cik": "0001167557",
-    "tracked_tickers": ["ADBE", "DECK"]
+    "cik": "0001167557"
   },
   {
     "name": "D. E. Shaw & Co.",
     "investor": "D. E. Shaw",
-    "cik": "0001009207",
-    "tracked_tickers": ["DECK"]
+    "cik": "0001009207"
   },
   {
     "name": "Greenlight Capital",
     "investor": "David Einhorn",
-    "cik": "0001079114",
-    "tracked_tickers": ["DECK"]
+    "cik": "0001079114"
   },
   {
     "name": "Citadel Advisors",
     "investor": "Ken Griffin",
-    "cik": "0001423053",
-    "tracked_tickers": ["ADBE", "DECK"]
+    "cik": "0001423053"
   },
   {
     "name": "PRIMECAP Management",
     "investor": "PRIMECAP",
-    "cik": "0000763212",
-    "tracked_tickers": ["ADBE"]
+    "cik": "0000763212"
   },
   {
     "name": "Dodge & Cox",
     "investor": "Dodge & Cox",
-    "cik": "0000200217",
-    "tracked_tickers": ["ADBE"]
+    "cik": "0000200217"
+  },
+  {
+    "name": "Berkshire Hathaway Inc.",
+    "investor": "Warren Buffett / Berkshire Hathaway",
+    "cik": "0001067983"
+  },
+  {
+    "name": "Pershing Square Capital Management, L.P.",
+    "investor": "Bill Ackman",
+    "cik": "0001336528"
+  },
+  {
+    "name": "Soros Fund Management LLC",
+    "investor": "George Soros / Soros Fund Management",
+    "cik": "0001029160"
+  },
+  {
+    "name": "Bridgewater Associates, LP",
+    "investor": "Ray Dalio / Bridgewater",
+    "cik": "0001350694"
   }
 ]
