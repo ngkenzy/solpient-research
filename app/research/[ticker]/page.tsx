@@ -4,6 +4,7 @@ import { getSupabase } from "@/lib/supabase";
 import { HistoricalFinancials } from "@/components/HistoricalFinancials";
 import { CompanyIntelligence } from "@/components/CompanyIntelligence";
 import { ResearchControls } from "@/components/ResearchControls";
+import { PredictionHistory } from "@/components/PredictionHistory";
 
 export const dynamic = "force-dynamic";
 
@@ -501,6 +502,8 @@ export default async function CompanyResearch({
         <HistoricalFinancials ticker={company.ticker} />
 
         <CompanyIntelligence ticker={company.ticker} />
+
+        <PredictionHistory companyId={company.id} ticker={company.ticker} />
 
         <section className="dashboardGrid lowerDashboard">
           <article className="dashboardPanel changeSection">
