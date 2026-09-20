@@ -42,3 +42,12 @@ jobs:
               node scripts/import-research.mjs "$file"
             done
           fi
+
+
+      - name: Refresh evidence and rankings
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          node scripts/sync-intelligence-events.mjs
+          node scripts/refresh-rankings.mjs
