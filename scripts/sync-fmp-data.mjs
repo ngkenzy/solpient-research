@@ -94,20 +94,31 @@ async function ensureCompany(config) {
 }
 
 async function syncFundamentals(company) {
-  const [incomeRes, cashRes] = await Promise.all([
-    fmp("income-statement", { symbol: company.ticker, period: "quarter", limit: 5 }),
-    fmp("cash-flow-statement", { symbol: company.ticker, period: "quarter", limit: 5 }),
+  const [incomeSet, cashSet, balanceSet] = await Promise.allSettled([
+    fmp("income-statement", { symbol: company.ticker, period: "quarter", limit: 24 }),
+    fmp("cash-flow-statement", { symbol: company.ticker, period: "quarter", limit: 24 }),
+    fmp("balance-sheet-statement", { symbol: company.ticker, period: "quarter", limit: 24 }),
   ]);
 
+  if (incomeSet.status === "rejected" && cashSet.status === "rejected") {
+    throw new Error("FMP income/cash endpoints unavailable: " + String(incomeSet.reason ?? cashSet.reason));
+  }
+
+  const incomeRes = incomeSet.status === "fulfilled" ? incomeSet.value : { body: [], url: null };
+  const cashRes = cashSet.status === "fulfilled" ? cashSet.value : { body: [], url: null };
+  const balanceRes = balanceSet.status === "fulfilled" ? balanceSet.value : { body: [], url: null };
   const incomeRows = Array.isArray(incomeRes.body) ? incomeRes.body : [];
   const cashRows = Array.isArray(cashRes.body) ? cashRes.body : [];
+  const balanceRows = Array.isArray(balanceRes.body) ? balanceRes.body : [];
   if (!incomeRows.length && !cashRows.length) return 0;
 
   const cashByDate = new Map(cashRows.map((row) => [row.date, row]));
+  const balanceByDate = new Map(balanceRows.map((row) => [row.date, row]));
   let written = 0;
 
-  for (const income of incomeRows.slice(0, 5)) {
+  for (const income of incomeRows.slice(0, 24)) {
     const cash = cashByDate.get(income.date) ?? {};
+    const balance = balanceByDate.get(income.date) ?? {};
     const periodEnd = income.date ?? cash.date;
     if (!periodEnd) continue;
 
@@ -139,6 +150,18 @@ async function syncFundamentals(company) {
         provider: "fmp",
         income,
         cash_flow: cash,
+        balance_sheet: {
+          ...balance,
+          cashAndCashEquivalents: n(balance.cashAndCashEquivalents ?? balance.cashAndShortTermInvestments),
+          currentAssets: n(balance.totalCurrentAssets),
+          currentLiabilities: n(balance.totalCurrentLiabilities),
+          inventory: n(balance.inventory),
+          stockholdersEquity: n(balance.totalStockholdersEquity ?? balance.totalEquity),
+          retainedEarnings: n(balance.retainedEarnings),
+          totalAssets: n(balance.totalAssets),
+          totalLiabilities: n(balance.totalLiabilities),
+          totalDebt: n(balance.totalDebt),
+        },
       },
     };
 

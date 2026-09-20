@@ -27,7 +27,16 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Backfill primary-source SEC fundamentals
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SEC_USER_AGENT: "SOLPIENT Research ngkenzy@users.noreply.github.com"
+          SEC_CONTACT: "ngkenzy@users.noreply.github.com"
+        run: node scripts/sync-sec-companyfacts-backfill.mjs
+
       - name: Refresh fundamentals and filings
+        continue-on-error: true
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
@@ -35,6 +44,7 @@ jobs:
         run: node scripts/sync-fmp-data.mjs
 
       - name: Refresh Alpha Vantage fallback fundamentals
+        continue-on-error: true
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
@@ -47,6 +57,32 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           MARKET_DATA_USER_AGENT: "SOLPIENT Research/1.0"
         run: node scripts/sync-market-data.mjs
+
+      - name: Refresh historical market coverage
+        continue-on-error: true
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          MARKET_DATA_USER_AGENT: "SOLPIENT Research/1.0"
+        run: node scripts/sync-market-history.mjs
+
+      - name: Rebuild historical and peer context
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: node scripts/build-historical-peer-context.mjs
+
+      - name: Refresh data coverage reports
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: node scripts/build-data-coverage.mjs
+
+      - name: Refresh unreviewed baseline drafts
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: node scripts/refresh-generated-baselines.mjs
 
       - name: Normalize intelligence events
         env:

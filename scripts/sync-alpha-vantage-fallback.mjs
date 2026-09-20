@@ -14,7 +14,7 @@ const supabase = createClient(supabaseUrl, serviceRoleKey, {
 });
 
 const DAILY_REQUEST_BUDGET = 24;
-const REQUESTS_PER_COMPANY = 2;
+const REQUESTS_PER_COMPANY = 3;
 const MAX_COMPANIES = Math.floor(DAILY_REQUEST_BUDGET / REQUESTS_PER_COMPANY);
 const FMP_FRESH_MS = 3 * 24 * 60 * 60 * 1000;
 
@@ -100,8 +100,8 @@ async function candidates() {
       supabase.from("companies").select("id,ticker").order("ticker"),
       supabase
         .from("fundamental_snapshots")
-        .select("company_id,provider,observed_at")
-        .in("provider", ["fmp", "alpha_vantage"])
+        .select("company_id,provider,observed_at,period_end")
+        .in("provider", ["sec_companyfacts", "fmp", "alpha_vantage"])
         .order("observed_at", { ascending: false }),
     ]);
 
@@ -110,12 +110,17 @@ async function candidates() {
 
   const latestFmp = new Map();
   const latestAlpha = new Map();
+  const counts = new Map();
 
   for (const row of snapshots ?? []) {
     const observed = new Date(row.observed_at).getTime();
-    const map = row.provider === "fmp" ? latestFmp : latestAlpha;
-    if (!map.has(row.company_id) || observed > map.get(row.company_id)) {
-      map.set(row.company_id, observed);
+    const key = row.company_id + "|" + row.provider;
+    counts.set(key, (counts.get(key) ?? 0) + 1);
+    if (row.provider === "fmp" && (!latestFmp.has(row.company_id) || observed > latestFmp.get(row.company_id))) {
+      latestFmp.set(row.company_id, observed);
+    }
+    if (row.provider === "alpha_vantage" && (!latestAlpha.has(row.company_id) || observed > latestAlpha.get(row.company_id))) {
+      latestAlpha.set(row.company_id, observed);
     }
   }
 
@@ -123,8 +128,12 @@ async function candidates() {
 
   return (companies ?? [])
     .filter((company) => {
+      const secCount = counts.get(company.id + "|sec_companyfacts") ?? 0;
+      const fmpCount = counts.get(company.id + "|fmp") ?? 0;
       const fmpObserved = latestFmp.get(company.id);
-      return !fmpObserved || now - fmpObserved > FMP_FRESH_MS;
+      const primaryCoverageEnough = secCount >= 20;
+      const fmpCoverageEnough = fmpCount >= 20 && fmpObserved && now - fmpObserved <= FMP_FRESH_MS;
+      return !primaryCoverageEnough && !fmpCoverageEnough;
     })
     .sort((a, b) => {
       const aAlpha = latestAlpha.get(a.id) ?? 0;
@@ -135,9 +144,10 @@ async function candidates() {
 }
 
 async function syncCompany(company) {
-  const [incomeBody, cashBody] = await Promise.all([
+  const [incomeBody, cashBody, balanceBody] = await Promise.all([
     alpha("INCOME_STATEMENT", company.ticker),
     alpha("CASH_FLOW", company.ticker),
+    alpha("BALANCE_SHEET", company.ticker),
   ]);
 
   const incomeRows = Array.isArray(incomeBody?.quarterlyReports)
@@ -145,6 +155,9 @@ async function syncCompany(company) {
     : [];
   const cashRows = Array.isArray(cashBody?.quarterlyReports)
     ? cashBody.quarterlyReports
+    : [];
+  const balanceRows = Array.isArray(balanceBody?.quarterlyReports)
+    ? balanceBody.quarterlyReports
     : [];
 
   if (!incomeRows.length && !cashRows.length) {
@@ -154,14 +167,18 @@ async function syncCompany(company) {
   const cashByPeriod = new Map(
     cashRows.map((row) => [row.fiscalDateEnding, row])
   );
+  const balanceByPeriod = new Map(
+    balanceRows.map((row) => [row.fiscalDateEnding, row])
+  );
 
   let written = 0;
 
-  for (const income of incomeRows.slice(0, 5)) {
+  for (const income of incomeRows.slice(0, 24)) {
     const periodEnd = income.fiscalDateEnding;
     if (!periodEnd) continue;
 
     const cash = cashByPeriod.get(periodEnd) ?? {};
+    const balance = balanceByPeriod.get(periodEnd) ?? {};
     const ocf = n(cash.operatingCashflow);
     const capex = n(cash.capitalExpenditures);
 
@@ -187,7 +204,32 @@ async function syncCompany(company) {
       raw_payload: {
         provider: "alpha_vantage",
         income_statement: income,
-        cash_flow: cash,
+        income: {
+          grossProfit: n(income.grossProfit),
+          operatingIncome: n(income.operatingIncome),
+          interestExpense: n(income.interestExpense),
+          researchAndDevelopmentExpenses: n(income.researchAndDevelopment),
+        },
+        cash_flow: {
+          ...cash,
+          stockBasedCompensation: n(cash.stockBasedCompensation),
+          cashAtEndOfPeriod: n(cash.cashAndCashEquivalentsAtCarryingValue ?? balance.cashAndCashEquivalentsAtCarryingValue),
+          commonDividendsPaid: n(cash.dividendPayoutCommonStock),
+          commonStockRepurchased: n(cash.paymentsForRepurchaseOfCommonStock),
+          acquisitionsNet: n(cash.paymentsToAcquireBusinessesNetOfCashAcquired),
+        },
+        balance_sheet: {
+          ...balance,
+          cashAndCashEquivalents: n(balance.cashAndCashEquivalentsAtCarryingValue ?? balance.cashAndShortTermInvestments),
+          currentAssets: n(balance.totalCurrentAssets),
+          currentLiabilities: n(balance.totalCurrentLiabilities),
+          inventory: n(balance.inventory),
+          stockholdersEquity: n(balance.totalShareholderEquity),
+          retainedEarnings: n(balance.retainedEarnings),
+          totalAssets: n(balance.totalAssets),
+          totalLiabilities: n(balance.totalLiabilities),
+          totalDebt: n(balance.shortLongTermDebtTotal ?? balance.longTermDebt),
+        },
       },
     };
 

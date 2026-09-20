@@ -1,0 +1,112 @@
+name: SOLPIENT Data Coverage Engine
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "lib/sec-companyfacts.mjs"
+      - "lib/data-coverage-engine.mjs"
+      - "lib/baseline-factory.mjs"
+      - "lib/historical-peer-engine.mjs"
+      - "scripts/sync-sec-companyfacts-backfill.mjs"
+      - "scripts/sync-market-history.mjs"
+      - "scripts/build-data-coverage.mjs"
+      - "scripts/refresh-generated-baselines.mjs"
+      - "scripts/test-data-coverage-engine.mjs"
+      - ".github/workflows/data-coverage-engine.yml"
+      - "supabase/migrations/0017_data_coverage_engine.sql"
+  workflow_dispatch:
+    inputs:
+      ticker:
+        description: "Optional single tracked ticker for SEC backfill"
+        required: false
+        type: string
+  schedule:
+    - cron: "10 3 * * 2-6"
+
+concurrency:
+  group: solpient-data-coverage
+  cancel-in-progress: true
+
+jobs:
+  coverage:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - run: npm install
+
+      - name: Test data coverage engine
+        run: npm run test:coverage
+
+      - name: Backfill primary-source SEC fundamentals
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SEC_USER_AGENT: "SOLPIENT Research ngkenzy@users.noreply.github.com"
+          SEC_CONTACT: "ngkenzy@users.noreply.github.com"
+          COVERAGE_TICKER: ${{ github.event.inputs.ticker }}
+        run: |
+          mkdir -p artifacts/coverage
+          npm run sync:sec-backfill -- --output artifacts/coverage/sec-backfill.json
+
+      - name: Deep FMP fallback
+        continue-on-error: true
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
+        run: node scripts/sync-fmp-data.mjs
+
+      - name: Alpha Vantage fallback
+        continue-on-error: true
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          ALPHA_VANTAGE_API_KEY: ${{ secrets.ALPHA_VANTAGE_API_KEY }}
+        run: node scripts/sync-alpha-vantage-fallback.mjs
+
+      - name: Backfill market history
+        continue-on-error: true
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          MARKET_DATA_USER_AGENT: "SOLPIENT Research/1.0"
+        run: npm run sync:market-history -- --output artifacts/coverage/market-history.json
+
+      - name: Rebuild historical and peer context
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: npm run context:build -- --output artifacts/coverage/context.json
+
+      - name: Compute company coverage
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: npm run coverage:build -- --output artifacts/coverage/coverage.json
+
+      - name: Refresh unreviewed private baselines
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: npm run factory:refresh -- --output artifacts/coverage/refreshed-baselines.json
+
+      - name: Re-plan research updates
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: npm run plan:updates -- --output artifacts/coverage/update-plan.json
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: data-coverage
+          path: artifacts/coverage/*.json
+          if-no-files-found: error
+          retention-days: 30

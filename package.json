@@ -21,7 +21,12 @@
     "plan:updates": "node scripts/plan-research-updates.mjs",
     "context:build": "node scripts/build-historical-peer-context.mjs",
     "test:context": "node scripts/test-historical-peer-engine.mjs",
-    "factory:missing": "node scripts/build-missing-baselines.mjs"
+    "factory:missing": "node scripts/build-missing-baselines.mjs",
+    "sync:sec-backfill": "node scripts/sync-sec-companyfacts-backfill.mjs",
+    "sync:market-history": "node scripts/sync-market-history.mjs",
+    "coverage:build": "node scripts/build-data-coverage.mjs",
+    "factory:refresh": "node scripts/refresh-generated-baselines.mjs",
+    "test:coverage": "node scripts/test-data-coverage-engine.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.4",

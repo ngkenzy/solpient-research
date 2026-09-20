@@ -10,42 +10,50 @@ const secret=process.env.SUPABASE_SECRET_KEY??process.env.SUPABASE_SERVICE_ROLE_
 if(!url||!secret)throw new Error("Missing SUPABASE_URL and server secret.");
 const sb=createClient(url,secret,{auth:{persistSession:false,autoRefreshToken:false}});
 
-const asOfDate=(process.env.CONTEXT_AS_OF_DATE??new Date().toISOString().slice(0,10));
+const asOfDate=process.env.CONTEXT_AS_OF_DATE??new Date().toISOString().slice(0,10);
 const outputFlag=process.argv.indexOf("--output");
 const outputPath=outputFlag>=0?process.argv[outputFlag+1]:null;
 
-const [companiesR,fundR,marketR]=await Promise.all([
-  sb.from("companies").select("id,ticker,company_name,cik,exchange,sector,industry,description").order("ticker"),
-  sb.from("fundamental_snapshots").select("*").order("period_end",{ascending:false}).limit(1000),
-  sb.from("market_snapshots").select("*").order("trading_date",{ascending:false}).limit(1000),
-]);
-for(const r of [companiesR,fundR,marketR])if(r.error)throw r.error;
-const companies=companiesR.data??[],fundamentals=fundR.data??[],markets=marketR.data??[];
-const tracked=new Set(companies.map(c=>c.ticker));
+const {data:companies,error:companiesError}=await sb
+  .from("companies")
+  .select("id,ticker,company_name,cik,exchange,sector,industry,description")
+  .order("ticker");
+if(companiesError)throw companiesError;
+
+const tracked=new Set((companies??[]).map(c=>c.ticker));
 const results=new Map();
 
-function byCompany(rows,id){return rows.filter(r=>r.company_id===id);}
 async function upsertRows(table,rows,onConflict){
   if(!rows.length)return;
-  const {error}=await sb.from(table).upsert(rows,{onConflict});
-  if(error)throw new Error(table+": "+error.message);
+  for(let i=0;i<rows.length;i+=400){
+    const {error}=await sb.from(table).upsert(rows.slice(i,i+400),{onConflict});
+    if(error)throw new Error(table+": "+error.message);
+  }
 }
 
-for(const company of companies){
+for(const company of companies??[]){
+  const [fundR,marketR]=await Promise.all([
+    sb.from("fundamental_snapshots").select("*").eq("company_id",company.id).order("period_end",{ascending:false}).limit(160),
+    sb.from("market_snapshots").select("*").eq("company_id",company.id).order("trading_date",{ascending:false}).limit(3200),
+  ]);
+  if(fundR.error)throw fundR.error;
+  if(marketR.error)throw marketR.error;
+
   const result=buildCompanyHistory({
     company,
-    fundamentals:byCompany(fundamentals,company.id),
-    markets:byCompany(markets,company.id),
+    fundamentals:fundR.data??[],
+    markets:marketR.data??[],
   });
   results.set(company.ticker,result);
+
   await upsertRows("company_metric_history",result.history,"company_id,module,metric_key,period_end,period_type");
   await upsertRows("capital_allocation_history",result.capital,"company_id,period_end");
   await upsertRows("valuation_history",result.valuations,"company_id,trading_date,provider");
 
   const peerRows=peerSetForTicker(company.ticker).map(peer=>({
-    company_id:company.id,peer_ticker:peer.ticker,peer_name:null,
-    peer_module:null,relationship_type:peer.relationship_type??"reference",
-    rationale:peer.rationale??null,is_active:true,updated_at:new Date().toISOString()
+    company_id:company.id,peer_ticker:peer.ticker,peer_name:null,peer_module:null,
+    relationship_type:peer.relationship_type??"reference",rationale:peer.rationale??null,
+    is_active:true,updated_at:new Date().toISOString()
   }));
   await upsertRows("company_peers",peerRows,"company_id,peer_ticker");
 }
@@ -53,7 +61,7 @@ for(const company of companies){
 const latestByTicker=new Map([...results.entries()].map(([ticker,result])=>[ticker,latestMetricMap(result)]));
 const summary=[];
 
-for(const company of companies){
+for(const company of companies??[]){
   const result=results.get(company.ticker);
   const peerContext=buildPeerContext({company,trackedCompanies:tracked,latestByTicker,asOfDate});
   await upsertRows("peer_metric_snapshots",peerContext.snapshotRows,"company_id,peer_ticker,metric_key,as_of_date");
@@ -64,12 +72,11 @@ for(const company of companies){
   },{onConflict:"company_id,context_version,as_of_date"}).select("id").single();
   if(error)throw error;
 
-  await sb.from("research_freshness").upsert({
-    company_id:company.id,
-    peers_updated_at:new Date().toISOString(),
-    historical_valuation_updated_at:new Date().toISOString(),
-    updated_at:new Date().toISOString()
+  const {error:freshnessError}=await sb.from("research_freshness").upsert({
+    company_id:company.id,peers_updated_at:new Date().toISOString(),
+    historical_valuation_updated_at:new Date().toISOString(),updated_at:new Date().toISOString()
   },{onConflict:"company_id"});
+  if(freshnessError)throw freshnessError;
 
   summary.push({
     ticker:company.ticker,context_pack_id:stored.id,context_version:CONTEXT_ENGINE_VERSION,
@@ -82,9 +89,7 @@ for(const company of companies){
 
 const artifact={as_of_date:asOfDate,context_version:CONTEXT_ENGINE_VERSION,companies:summary.length,summary};
 if(outputPath){
-  const absolute=path.resolve(outputPath);
-  await fs.mkdir(path.dirname(absolute),{recursive:true});
+  const absolute=path.resolve(outputPath);await fs.mkdir(path.dirname(absolute),{recursive:true});
   await fs.writeFile(absolute,JSON.stringify(artifact,null,2)+"\n","utf8");
-  console.log("Wrote context artifact:",absolute);
 }
 console.log(JSON.stringify(artifact,null,2));
