@@ -307,7 +307,7 @@ export default async function Home() {
   };
 
   const filings = uniqueFilings(filingsResult.data ?? [], companyById);
-  const today = new Date("2026-09-20T12:00:00Z");
+  const today = new Date();
   const recentCutoff = new Date(today.getTime() - 14 * 24 * 60 * 60 * 1000);
   const recentFilings = filings.filter(
     (filing) => new Date(filing.filed_at + "T00:00:00Z") >= recentCutoff,
