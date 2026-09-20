@@ -9,7 +9,9 @@
     "import:research": "node scripts/import-research.mjs",
     "test:changes": "node scripts/test-research-changes.mjs",
     "test:standard": "node scripts/test-research-standard.mjs",
-    "validate:research": "node scripts/validate-research-standard.mjs"
+    "validate:research": "node scripts/validate-research-standard.mjs",
+    "factory:baseline": "node scripts/build-baseline-draft.mjs",
+    "test:factory": "node scripts/test-baseline-factory.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.4",

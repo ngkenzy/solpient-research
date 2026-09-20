@@ -67,7 +67,9 @@ async function fmp(path, params = {}) {
   if (body && typeof body === "object" && !Array.isArray(body) && body["Error Message"]) {
     throw new Error("FMP error: " + body["Error Message"]);
   }
-  return { url: url.toString(), body };
+  const sourceUrl = new URL(url);
+  sourceUrl.searchParams.delete("apikey");
+  return { url: sourceUrl.toString(), body };
 }
 
 function n(value) {

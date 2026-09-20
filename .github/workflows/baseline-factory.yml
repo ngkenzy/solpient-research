@@ -1,0 +1,62 @@
+name: SOLPIENT Baseline Factory
+
+on:
+  workflow_dispatch:
+    inputs:
+      ticker:
+        description: "Tracked ticker to generate as a draft"
+        required: true
+        default: "MSFT"
+        type: string
+  push:
+    branches: [main]
+    paths:
+      - "lib/baseline-factory.mjs"
+      - "lib/industry-modules.mjs"
+      - "lib/research-standard-v1.mjs"
+      - "scripts/build-baseline-draft.mjs"
+      - "scripts/test-baseline-factory.mjs"
+      - ".github/workflows/baseline-factory.yml"
+      - "supabase/migrations/0011_baseline_factory.sql"
+
+concurrency:
+  group: solpient-baseline-factory
+  cancel-in-progress: true
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      BASELINE_TICKER: ${{ github.event.inputs.ticker || 'MSFT' }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Test Baseline Factory
+        run: npm run test:factory
+
+      - name: Generate private review draft
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          mkdir -p artifacts/baseline-drafts
+          node scripts/build-baseline-draft.mjs "$BASELINE_TICKER" --output "artifacts/baseline-drafts/$BASELINE_TICKER.json"
+
+      - name: Upload review artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: baseline-draft-${{ env.BASELINE_TICKER }}
+          path: artifacts/baseline-drafts/${{ env.BASELINE_TICKER }}.json
+          if-no-files-found: error
+          retention-days: 30
