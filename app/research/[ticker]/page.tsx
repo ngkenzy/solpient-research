@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getSupabase } from "@/lib/supabase";\nimport { HistoricalFinancials } from "@/components/HistoricalFinancials";
+import { getSupabase } from "@/lib/supabase";
+import { HistoricalFinancials } from "@/components/HistoricalFinancials";
 
 export const dynamic = "force-dynamic";
 
