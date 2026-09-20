@@ -1,0 +1,46 @@
+import { getAdminSupabase } from "@/lib/admin-supabase";
+import { summarizeCapitalCoverage } from "@/lib/capital-intelligence-orchestrator.mjs";
+
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
+export async function GET() {
+  const supabase = getAdminSupabase();
+  if (!supabase) {
+    return Response.json({ error: "Server database connection is not configured." }, { status: 503 });
+  }
+
+  const [companiesR, activityR, healthR, runR] = await Promise.all([
+    supabase.from("companies").select("id,ticker,company_name").order("ticker"),
+    supabase.from("capital_activity").select("company_id,activity_type,provider,verified_at,created_at"),
+    supabase.from("capital_provider_health").select("*").order("updated_at", { ascending: false }),
+    supabase.from("automation_runs")
+      .select("status,started_at,completed_at,records_written,message,details")
+      .eq("pipeline", "capital_intelligence_orchestrator")
+      .order("started_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+  ]);
+
+  for (const result of [companiesR, activityR, healthR, runR]) {
+    if (result.error) {
+      return Response.json({ error: result.error.message }, { status: 500 });
+    }
+  }
+
+  const coverage = summarizeCapitalCoverage(activityR.data ?? [], companiesR.data ?? []);
+  const anyCoverage = coverage.filter((row: any) => row.categories_covered > 0).length;
+  const fullCoverage = coverage.filter((row: any) => row.categories_covered === 3).length;
+
+  return Response.json({
+    generated_at: new Date().toISOString(),
+    companies_total: coverage.length,
+    companies_with_any_coverage: anyCoverage,
+    companies_with_full_coverage: fullCoverage,
+    providers: healthR.data ?? [],
+    coverage,
+    latest_orchestrator_run: runR.data ?? null,
+  }, {
+    headers: { "Cache-Control": "no-store" },
+  });
+}

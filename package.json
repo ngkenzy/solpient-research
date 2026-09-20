@@ -32,7 +32,10 @@
     "compose:research": "node scripts/compose-research-drafts.mjs",
     "test:composer": "node scripts/test-research-composer.mjs",
     "sync:capital-intelligence": "node scripts/sync-capital-intelligence.mjs",
-    "test:capital-intelligence": "node scripts/test-capital-intelligence-engine.mjs"
+    "test:capital-intelligence": "node scripts/test-capital-intelligence-engine.mjs",
+    "test:capital-orchestrator": "node scripts/test-capital-intelligence-orchestrator.mjs",
+    "audit:capital-intelligence": "node scripts/audit-capital-intelligence.mjs",
+    "import:capital-intelligence": "node scripts/import-capital-intelligence-batch.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.4",

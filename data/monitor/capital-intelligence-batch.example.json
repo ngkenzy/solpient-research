@@ -1,0 +1,21 @@
+{
+  "provider": "web_verified",
+  "verified_at": "2026-09-20T20:00:00Z",
+  "source_run_id": "example-run",
+  "records": [
+    {
+      "ticker": "MSFT",
+      "activity_type": "institutional",
+      "actor_name": "Example Investor",
+      "actor_detail": "Example Capital",
+      "action": "Increased",
+      "shares": 1000000,
+      "value": 500000000,
+      "change_pct": 12.5,
+      "position_date": "2026-06-30",
+      "disclosure_date": "2026-08-14",
+      "source_url": "https://example.com/verified-filing",
+      "source_key": "example-capital-msft-2026q2"
+    }
+  ]
+}

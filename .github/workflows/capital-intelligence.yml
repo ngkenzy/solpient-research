@@ -1,4 +1,4 @@
-name: Capital Intelligence
+name: Capital Intelligence Orchestrator
 
 on:
   workflow_dispatch:
@@ -8,14 +8,19 @@ on:
     branches: [main]
     paths:
       - "lib/capital-intelligence-engine.mjs"
+      - "lib/capital-intelligence-orchestrator.mjs"
       - "scripts/sync-capital-intelligence.mjs"
+      - "scripts/audit-capital-intelligence.mjs"
+      - "scripts/import-capital-intelligence-batch.mjs"
       - "scripts/test-capital-intelligence-engine.mjs"
+      - "scripts/test-capital-intelligence-orchestrator.mjs"
       - "data/monitor/companies.json"
       - "data/monitor/managers.json"
+      - "data/monitor/capital-providers.json"
       - ".github/workflows/capital-intelligence.yml"
 
 concurrency:
-  group: capital-intelligence
+  group: capital-intelligence-orchestrator
   cancel-in-progress: false
 
 jobs:
@@ -29,15 +34,24 @@ jobs:
         with:
           node-version: 22
       - run: npm install
-      - name: Test capital intelligence engine
-        run: npm run test:capital-intelligence
-      - name: Refresh SEC capital intelligence
+      - name: Test capital intelligence
+        run: |
+          npm run test:capital-intelligence
+          npm run test:capital-orchestrator
+      - name: Try direct SEC adapter
+        id: direct_sec
+        continue-on-error: true
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           SEC_USER_AGENT: "SOLPIENT Research ngkenzy@users.noreply.github.com"
           SEC_CONTACT: "ngkenzy@users.noreply.github.com"
         run: npm run sync:capital-intelligence
+      - name: Audit provider health and coverage
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: npm run audit:capital-intelligence
       - name: Normalize intelligence events
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}

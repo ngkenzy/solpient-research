@@ -20,6 +20,32 @@ function asNumber(value: unknown) {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+function providerRank(provider?: string | null) {
+  return ({
+    web_verified: 100,
+    sec_form4: 95,
+    sec_13f: 95,
+    sec_direct: 95,
+    financial_datasets: 90,
+    quiver: 85,
+    fmp: 75,
+    alpha_vantage: 65,
+    legacy_seed: 30,
+    manual: 20,
+  } as Record<string, number>)[provider ?? ""] ?? 0;
+}
+
+function activityIdentity(row: any) {
+  return [
+    row.activity_type,
+    String(row.actor_name ?? "").toLowerCase(),
+    String(row.action ?? "").toLowerCase(),
+    row.transaction_date ?? row.position_date ?? row.disclosure_date ?? "",
+    row.shares ?? "",
+    row.amount_range ?? "",
+  ].join("|");
+}
+
 function date(value?: string | null) {
   if (!value) return "Date unavailable";
   return new Date(value + (value.includes("T") ? "" : "T00:00:00Z")).toLocaleDateString("en-US", {
@@ -44,31 +70,56 @@ export async function CompanyIntelligence({ ticker }: { ticker: string }) {
 
   const { data, error } = await supabase
     .from("capital_activity")
-    .select("id,activity_type,actor_name,actor_detail,action,shares,price,value,change_pct,amount_range,transaction_date,disclosure_date,position_date,source_url,created_at")
+    .select("id,activity_type,actor_name,actor_detail,action,shares,price,value,change_pct,amount_range,transaction_date,disclosure_date,position_date,source_url,provider,verified_at,created_at")
     .eq("company_id", company.id)
     .order("created_at", { ascending: false })
     .limit(100);
 
-  if (error || !data?.length) return null;
+  if (error) return null;
+  const rows = data ?? [];
 
-  const institutionalAll = data
+  const { data: providerHealth } = await supabase
+    .from("capital_provider_health")
+    .select("provider,feed_type,status,last_success_at,last_verified_at,last_error,metadata")
+    .eq("feed_type", "all")
+    .order("updated_at", { ascending: false });
+
+  const dedupedRows = [...rows]
+    .sort((a, b) =>
+      providerRank(b.provider) - providerRank(a.provider) ||
+      String(b.verified_at ?? b.created_at).localeCompare(String(a.verified_at ?? a.created_at))
+    )
+    .filter((row, index, array) =>
+      array.findIndex((item) => activityIdentity(item) === activityIdentity(row)) === index
+    );
+
+  const institutionalAll = dedupedRows
     .filter((row) => row.activity_type === "institutional")
     .sort((a, b) => String(b.position_date ?? b.disclosure_date ?? b.created_at).localeCompare(String(a.position_date ?? a.disclosure_date ?? a.created_at)));
   const institutional = institutionalAll.filter((row, index, array) =>
     array.findIndex((item) => item.actor_name === row.actor_name && item.actor_detail === row.actor_detail) === index
   );
-  const political = data
+  const political = dedupedRows
     .filter((row) => row.activity_type === "political")
     .sort((a, b) => String(b.disclosure_date ?? b.transaction_date ?? b.created_at).localeCompare(String(a.disclosure_date ?? a.transaction_date ?? a.created_at)));
-  const insiders = data
+  const insiders = dedupedRows
     .filter((row) => row.activity_type === "insider")
     .sort((a, b) => String(b.disclosure_date ?? b.transaction_date ?? b.created_at).localeCompare(String(a.disclosure_date ?? a.transaction_date ?? a.created_at)));
 
-  const latest = data
+  const latest = dedupedRows
     .map((row) => row.disclosure_date ?? row.transaction_date ?? row.position_date ?? row.created_at)
     .filter(Boolean)
     .sort()
     .at(-1);
+  const latestVerified = dedupedRows
+    .map((row) => row.verified_at ?? row.created_at)
+    .filter(Boolean)
+    .sort()
+    .at(-1);
+  const providers = [...new Set(dedupedRows.map((row) => row.provider).filter(Boolean))];
+  const providerStatus = (providerHealth ?? [])
+    .filter((row) => ["healthy", "degraded", "blocked", "stale"].includes(row.status))
+    .slice(0, 4);
 
   return (
     <section className="intelligenceSection" id="intelligence">
@@ -81,8 +132,21 @@ export async function CompanyIntelligence({ ticker }: { ticker: string }) {
             and disclosure dates are kept separate when the source provides them.
           </p>
         </div>
-        <small>Latest ledger date {date(latest)}</small>
+        <small>
+          {latestVerified ? "Last verified " + date(latestVerified) : "No verified activity loaded"}
+          {providers.length ? " · " + providers.join(", ") : ""}
+        </small>
       </div>
+
+      {providerStatus.length ? (
+        <div className="intelligenceNote">
+          <span>Provider health</span>
+          <p>
+            {providerStatus.map((row) => row.provider + ": " + row.status).join(" · ")}
+            {latest ? " · latest ledger date " + date(latest) : ""}
+          </p>
+        </div>
+      ) : null}
 
       <div className="intelligenceGrid">
         <article className="intelligenceCard">

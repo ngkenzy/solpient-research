@@ -1,5 +1,6 @@
 import process from "node:process";
 import { createClient } from "@supabase/supabase-js";
+import { materialityForCapitalActivity } from "../lib/capital-intelligence-orchestrator.mjs";
 
 const supabaseUrl = process.env.SUPABASE_URL;
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -77,7 +78,7 @@ function activityRow(row) {
     disclosed_at: row.disclosure_date ? row.disclosure_date + "T00:00:00Z" : null,
     title: row.actor_name + " · " + row.action,
     summary,
-    materiality: "info",
+    materiality: materialityForCapitalActivity(row),
     review_status: "open",
     source_url: row.source_url,
     metadata: {
