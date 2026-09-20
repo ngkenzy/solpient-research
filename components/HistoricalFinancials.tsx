@@ -221,22 +221,41 @@ export function HistoricalFinancials({ ticker }: { ticker: string }) {
           />
         </article>
 
-        <article className="historicalChartCard">
-          <div className="chartCardHeader">
-            <div>
-              <span>Capital returns</span>
-              <h3>ROIC</h3>
+        {points.every((p) => p.roic != null) ? (
+          <article className="historicalChartCard">
+            <div className="chartCardHeader">
+              <div>
+                <span>Capital returns</span>
+                <h3>ROIC</h3>
+              </div>
+              <strong>{last.roic == null ? "—" : `${last.roic.toFixed(1)}%`}</strong>
             </div>
-            <strong>{last.roic.toFixed(1)}%</strong>
-          </div>
-          <SingleLineChart
-            points={points}
-            accessor={(p) => p.roic}
-            formatter={(v) => `${v.toFixed(1)}%`}
-            className="roicLine"
-            ariaLabel="Return on invested capital history"
-          />
-        </article>
+            <SingleLineChart
+              points={points}
+              accessor={(p) => p.roic ?? 0}
+              formatter={(v) => `${v.toFixed(1)}%`}
+              className="roicLine"
+              ariaLabel="Return on invested capital history"
+            />
+          </article>
+        ) : (
+          <article className="historicalChartCard">
+            <div className="chartCardHeader">
+              <div>
+                <span>Cash economics</span>
+                <h3>Free cash flow</h3>
+              </div>
+              <strong>{compact(last.freeCashFlow)}</strong>
+            </div>
+            <SingleLineChart
+              points={points}
+              accessor={(p) => p.freeCashFlow}
+              formatter={(v) => compact(v)}
+              className="roicLine"
+              ariaLabel="Free cash flow history"
+            />
+          </article>
+        )}
 
         <article className="historicalChartCard">
           <div className="chartCardHeader">
