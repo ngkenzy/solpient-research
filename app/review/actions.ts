@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { getAdminSupabase } from "@/lib/admin-supabase";
 import { clearReviewAccess, requireReviewAccess, unlockReviewAccess } from "@/lib/review-auth";
 // @ts-expect-error Node ESM research helper
-import { applyReviewPatch, validatePromotionReadiness } from "@/lib/review-workbench.mjs";
+import { applyReviewPatch, mergeReviewPatches, validatePromotionReadiness } from "@/lib/review-workbench.mjs";
 // @ts-expect-error Node ESM research helper
 import { promoteReviewedBaseline } from "@/lib/promote-research.mjs";
 // @ts-expect-error Node ESM research helper
@@ -105,6 +105,43 @@ export async function applyEnrichmentAction(formData:FormData) {
   revalidatePath("/review");
   revalidatePath("/review/"+draftId);
   redirect("/review/"+draftId+"?enriched=1");
+}
+
+export async function applyComposerAction(formData:FormData) {
+  await requireReviewAccess();
+  const supabase=getAdminSupabase();
+  if (!supabase) redirect("/review/login?setup=1");
+  const draftId=String(formData.get("draft_id") ?? "");
+  const compositionId=String(formData.get("composition_id") ?? "");
+  const [draftResult,reviewResult,compositionResult]=await Promise.all([
+    supabase.from("baseline_drafts").select("*").eq("id",draftId).single(),
+    supabase.from("baseline_reviews").select("*").eq("draft_id",draftId).maybeSingle(),
+    supabase.from("research_compositions").select("*").eq("id",compositionId).eq("draft_id",draftId).single(),
+  ]);
+  const draft=draftResult.data, composition=compositionResult.data;
+  if (draftResult.error || !draft) redirect("/review?error=draft-not-found");
+  if (compositionResult.error || !composition) redirect("/review/"+draftId+"?error=composer-not-found");
+
+  const composerPatch=composition.composition_payload?.review_patch ?? {};
+  const combinedPatch=mergeReviewPatches(reviewResult.data?.review_payload ?? {},composerPatch);
+  const merged=applyReviewPatch(draft.draft_payload,combinedPatch);
+  const readiness=validatePromotionReadiness(merged);
+  const now=new Date().toISOString();
+
+  const {error:reviewError}=await supabase.from("baseline_reviews").upsert({
+    draft_id:draftId,status:readiness.ready?"ready":"editing",review_payload:combinedPatch,
+    validation_result:readiness.standard,promotion_readiness:readiness,
+    review_notes:reviewResult.data?.review_notes ?? "Automated Research Composer v1 applied; human review still required.",
+    reviewed_at:now,updated_at:now,
+  },{onConflict:"draft_id"});
+  if (reviewError) throw reviewError;
+
+  const {error:compositionError}=await supabase.from("research_compositions").update({status:"applied",applied_at:now,updated_at:now}).eq("id",compositionId);
+  if (compositionError) throw compositionError;
+
+  revalidatePath("/review");
+  revalidatePath("/review/"+draftId);
+  redirect("/review/"+draftId+"?composed=1");
 }
 
 export async function promoteReviewAction(formData:FormData) {
