@@ -5,6 +5,7 @@ import { HistoricalFinancials } from "@/components/HistoricalFinancials";
 import { CompanyIntelligence } from "@/components/CompanyIntelligence";
 import { ResearchControls } from "@/components/ResearchControls";
 import { PredictionHistory } from "@/components/PredictionHistory";
+import { SolpientBrand } from "@/components/SolpientBrand";
 
 export const dynamic = "force-dynamic";
 
@@ -283,10 +284,7 @@ export default async function CompanyResearch({
   return (
     <>
       <header className="siteHeader">
-        <Link className="brand" href="/">
-          <strong>SOLPIENT</strong>
-          <span>Research</span>
-        </Link>
+        <SolpientBrand />
         <nav>
           <Link href="/research">Rankings</Link>
           <Link href="/watchlist">Watchlist</Link>
