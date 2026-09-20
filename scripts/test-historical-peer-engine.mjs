@@ -55,3 +55,8 @@ assert.equal(pack.context_version,"context-v1");
 assert.equal(pack.summary.full_fiscal_years,2);
 assert.equal(latestMetricMap(result).revenue>0,true);
 console.log("Historical + peer context engine tests passed.");
+
+const withAnnual=[...fundamentals,{...fundamentals[0],period_end:"2025-06-28",fiscal_year:2025,fiscal_period:"FY",form:"10-K",provider:"yahoo_fundamentals"}];
+const annualSafe=buildCompanyHistory({company,fundamentals:withAnnual,markets});
+assert.equal(new Set(annualSafe.capital.map(r=>r.period_end)).size,annualSafe.capital.length,"annual duplicate safety");
+console.log("Annual/quarter de-duplication test passed.");
