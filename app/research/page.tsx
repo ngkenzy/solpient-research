@@ -146,7 +146,8 @@ export default async function ResearchIndex() {
         </Link>
         <nav>
           <Link href="/research">Rankings</Link>
-          <Link href="/#solpient20">SOLPIENT 20</Link>
+          <Link href="/watchlist">Watchlist</Link>
+          <Link href="/alerts">Alerts</Link>
           <span>Evidence-led investing</span>
         </nav>
       </header>
