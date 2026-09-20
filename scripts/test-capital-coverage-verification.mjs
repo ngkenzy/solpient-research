@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import {
   normalizeCoverageCheck,
   summarizeCapitalCoverageMatrix,
+  shouldReplaceCoverage,
 } from "../lib/capital-intelligence-orchestrator.mjs";
 
 const companies=[
@@ -62,5 +63,18 @@ assert.equal(aos.fully_reviewed,false);
 assert.equal(aos.fully_verified,false);
 assert.equal(aos.categories_reviewed,2);
 assert.equal(aos.categories_complete,0);
+
+assert.equal(shouldReplaceCoverage(
+  {status:"activity_found",provider:"web_verified",verified_at:"2026-09-20T20:00:00Z"},
+  {status:"partial",provider:"yahoo_capital",verified_at:"2026-09-20T21:00:00Z"},
+),false);
+assert.equal(shouldReplaceCoverage(
+  {status:"pending",provider:"orchestrator",verified_at:null},
+  {status:"activity_found",provider:"yahoo_capital",verified_at:"2026-09-20T21:00:00Z"},
+),true);
+assert.equal(shouldReplaceCoverage(
+  {status:"verified_none",provider:"yahoo_capital",verified_at:"2026-09-20T20:00:00Z"},
+  {status:"activity_found",provider:"web_verified",verified_at:"2026-09-20T20:30:00Z"},
+),true);
 
 console.log("Capital coverage verification tests passed.");
