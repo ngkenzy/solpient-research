@@ -1,15 +1,13 @@
 import Link from "next/link";
 import { AlertsClient } from "./AlertsClient";
 import { AutoMonitorFeed } from "@/components/AutoMonitorFeed";
+import { SolpientBrand } from "@/components/SolpientBrand";
 
 export default function AlertsPage() {
   return (
     <>
       <header className="siteHeader">
-        <Link className="brand" href="/">
-          <strong>SOLPIENT</strong>
-          <span>Research</span>
-        </Link>
+        <SolpientBrand />
         <nav>
           <Link href="/research">Rankings</Link>
           <Link href="/watchlist">Watchlist</Link>
