@@ -31,7 +31,7 @@ export function CompanyIntelligence({ ticker }: { ticker: string }) {
       <div className="intelligenceHeading">
         <div>
           <span className="panelKicker">OWNERSHIP & DISCLOSURES</span>
-          <h2>Smart money, Congress & insiders</h2>
+          <h2>Smart money, political disclosures & insiders</h2>
           <p>
             Reported activity is evidence, not a recommendation. Disclosure dates and transaction
             dates are kept separate.
@@ -94,7 +94,7 @@ export function CompanyIntelligence({ ticker }: { ticker: string }) {
         <article className="intelligenceCard">
           <div className="intelligenceCardHeader">
             <div>
-              <span>CONGRESSIONAL TRADING</span>
+              <span>POLITICAL DISCLOSURES</span>
               <h3>Recently disclosed trades</h3>
             </div>
             <strong>{data.congress.length}</strong>
