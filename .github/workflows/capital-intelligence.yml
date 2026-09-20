@@ -9,6 +9,9 @@ on:
     paths:
       - "lib/capital-intelligence-engine.mjs"
       - "lib/capital-intelligence-orchestrator.mjs"
+      - "scripts/test-capital-coverage-verification.mjs"
+      - "scripts/export-pending-capital-coverage.mjs"
+      - "scripts/import-capital-coverage-batch.mjs"
       - "scripts/sync-capital-intelligence.mjs"
       - "scripts/audit-capital-intelligence.mjs"
       - "scripts/import-capital-intelligence-batch.mjs"
@@ -38,6 +41,7 @@ jobs:
         run: |
           npm run test:capital-intelligence
           npm run test:capital-orchestrator
+          npm run test:capital-coverage
       - name: Try direct SEC adapter
         id: direct_sec
         continue-on-error: true
