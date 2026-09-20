@@ -49,6 +49,29 @@ try{
       let rowsWritten=prior?.rows_written??0;
       let companiesCovered=prior?.companies_covered??0;
 
+      const providerRows=activity.filter((row)=>
+        row.provider===config.provider &&
+        (feedType==="all" || row.activity_type===feedType)
+      );
+      if(providerRows.length){
+        const latestVerified=providerRows
+          .map((row)=>row.verified_at??row.created_at)
+          .filter(Boolean)
+          .sort()
+          .at(-1)??null;
+        rowsWritten=providerRows.length;
+        companiesCovered=new Set(providerRows.map((row)=>row.company_id)).size;
+        if(!lastSuccessAt)lastSuccessAt=latestVerified;
+        if(!lastVerifiedAt)lastVerifiedAt=latestVerified;
+        if(!prior){
+          status=feedFreshness({
+            lastSuccessAt:latestVerified,
+            now,
+            staleAfterHours:Number(config.stale_after_hours??36),
+          });
+        }
+      }
+
       if(config.provider==="sec_direct"){
         const direct=directRunsR.data;
         if(direct){
