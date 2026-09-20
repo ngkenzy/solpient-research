@@ -1,0 +1,44 @@
+name: SOLPIENT Derived Intelligence
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "scripts/sync-intelligence-events.mjs"
+      - "scripts/refresh-rankings.mjs"
+      - "supabase/migrations/0008_intelligence_loop.sql"
+      - ".github/workflows/derived-intelligence.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: solpient-derived-intelligence
+  cancel-in-progress: true
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Normalize evidence ledger
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: node scripts/sync-intelligence-events.mjs
+
+      - name: Refresh explainable rankings
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: node scripts/refresh-rankings.mjs
