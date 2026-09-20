@@ -116,6 +116,7 @@ async function syncFundamentals(company) {
 
     const row = {
       company_id: company.id,
+      provider: "fmp",
       observed_at: new Date().toISOString(),
       period_end: periodEnd,
       fiscal_year: Number.isFinite(Number(income.calendarYear ?? income.fiscalYear))
@@ -141,7 +142,7 @@ async function syncFundamentals(company) {
 
     const { error } = await supabase
       .from("fundamental_snapshots")
-      .upsert(row, { onConflict: "company_id,period_end,form" });
+      .upsert(row, { onConflict: "company_id,period_end,form,provider" });
     if (error) throw error;
     written += 1;
   }
