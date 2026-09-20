@@ -11,7 +11,7 @@ export type HistoricalFinancialPoint = {
   grossMargin: number;
   operatingMargin: number;
   fcfMargin: number;
-  roic: number;
+  roic: number | null;
 };
 
 export type HistoricalFinancialSeries = {
@@ -128,8 +128,109 @@ const adbe: HistoricalFinancialSeries = {
   ],
 };
 
+const deck: HistoricalFinancialSeries = {
+  ticker: "DECK",
+  units: "USD millions",
+  methodology: {
+    freeCashFlow: "Operating cash flow minus purchases of property and equipment, consistent with Deckers' stated free-cash-flow definition.",
+    roic: "ROIC is not charted for DECK until normalized invested-capital history is stored; excess cash and no outstanding borrowings make simplistic capital-return calculations misleading.",
+  },
+  points: [
+    {
+      fiscalYear: 2022,
+      revenue: 3150.339,
+      grossProfit: 1607.551,
+      operatingIncome: 564.707,
+      operatingCashFlow: 172.353,
+      capex: 51.017,
+      freeCashFlow: 121.336,
+      dilutedEps: 2.71,
+      dilutedShares: 166.734,
+      grossMargin: 51.03,
+      operatingMargin: 17.93,
+      fcfMargin: 3.85,
+      roic: null,
+    },
+    {
+      fiscalYear: 2023,
+      revenue: 3627.286,
+      grossProfit: 1825.370,
+      operatingIncome: 652.751,
+      operatingCashFlow: 537.422,
+      capex: 81.025,
+      freeCashFlow: 456.397,
+      dilutedEps: 3.23,
+      dilutedShares: 160.116,
+      grossMargin: 50.32,
+      operatingMargin: 18.00,
+      fcfMargin: 12.58,
+      roic: null,
+    },
+    {
+      fiscalYear: 2024,
+      revenue: 4287.763,
+      grossProfit: 2385.488,
+      operatingIncome: 927.514,
+      operatingCashFlow: 1033.184,
+      capex: 89.365,
+      freeCashFlow: 943.819,
+      dilutedEps: 4.86,
+      dilutedShares: 156.285,
+      grossMargin: 55.63,
+      operatingMargin: 21.63,
+      fcfMargin: 22.01,
+      roic: null,
+    },
+    {
+      fiscalYear: 2025,
+      revenue: 4985.612,
+      grossProfit: 2885.663,
+      operatingIncome: 1179.092,
+      operatingCashFlow: 1044.523,
+      capex: 86.171,
+      freeCashFlow: 958.352,
+      dilutedEps: 6.33,
+      dilutedShares: 152.670,
+      grossMargin: 57.88,
+      operatingMargin: 23.65,
+      fcfMargin: 19.22,
+      roic: null,
+    },
+    {
+      fiscalYear: 2026,
+      revenue: 5472.296,
+      grossProfit: 3157.726,
+      operatingIncome: 1262.903,
+      operatingCashFlow: 1181.955,
+      capex: 84.623,
+      freeCashFlow: 1097.332,
+      dilutedEps: 7.02,
+      dilutedShares: 145.805,
+      grossMargin: 57.70,
+      operatingMargin: 23.08,
+      fcfMargin: 20.05,
+      roic: null,
+    },
+  ],
+  sources: [
+    {
+      label: "Deckers FY2026 Form 10-K",
+      url: "https://www.sec.gov/Archives/edgar/data/910521/000162828026037664/deck-20260331.htm",
+    },
+    {
+      label: "Deckers FY2024 Form 10-K",
+      url: "https://www.sec.gov/Archives/edgar/data/910521/000091052124000017/deck-20240331.htm",
+    },
+    {
+      label: "Deckers FY2022 Form 10-K",
+      url: "https://www.sec.gov/Archives/edgar/data/910521/000091052122000017/deck-20220331.htm",
+    },
+  ],
+};
+
 const historicalFinancials: Record<string, HistoricalFinancialSeries> = {
   ADBE: adbe,
+  DECK: deck,
 };
 
 export function getHistoricalFinancials(ticker: string) {
