@@ -210,6 +210,14 @@ export default async function CompanyResearch({
       .order("created_at"),
   ]);
 
+  const { data: latestMarket } = await supabase
+    .from("market_snapshots")
+    .select("price,trading_date,provider")
+    .eq("symbol", company.ticker)
+    .order("trading_date", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
   const scores = scoresResult.data;
   const valuation = valuationResult.data;
   const metrics = metricsResult.data;
@@ -219,7 +227,9 @@ export default async function CompanyResearch({
   const changes = changesResult.data ?? [];
   const isLatest = history[0]?.version === run.version;
 
-  const price = asNumber(run.price_at_research);
+  const researchPrice = asNumber(run.price_at_research);
+  const currentPrice = asNumber(latestMarket?.price) ?? researchPrice;
+  const price = currentPrice;
   const bearValue = asNumber(valuation?.bear_value);
   const baseValue = asNumber(valuation?.base_value);
   const bullValue = asNumber(valuation?.bull_value);
@@ -332,9 +342,13 @@ export default async function CompanyResearch({
 
         <section className="headlineGrid">
           <article className="headlineMetric">
-            <span>Price at research</span>
-            <strong>{formatMoney(price)}</strong>
-            <small>{new Date(run.researched_at).toLocaleDateString("en-US")}</small>
+            <span>Latest market price</span>
+            <strong>{formatMoney(currentPrice)}</strong>
+            <small>
+              {latestMarket?.trading_date
+                ? `As of ${new Date(latestMarket.trading_date + "T00:00:00Z").toLocaleDateString("en-US", { timeZone: "UTC" })} · research price ${formatMoney(researchPrice)}`
+                : `Research price · ${new Date(run.researched_at).toLocaleDateString("en-US")}`}
+            </small>
           </article>
 
           <article className="headlineMetric">
