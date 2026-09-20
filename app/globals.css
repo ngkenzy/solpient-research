@@ -2883,3 +2883,636 @@ h2 { letter-spacing: -.02em; }
     align-items: center;
   }
 }
+
+
+/* Personal research, alerts and ownership intelligence */
+.researchTopbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.researchControls {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.researchControlButton {
+  min-height: 36px;
+  padding: 0 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #111419;
+  color: #d7dce3;
+  font: inherit;
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.researchControlButton:hover,
+.researchControlButton.active {
+  border-color: rgba(215,181,109,.36);
+  background: rgba(215,181,109,.065);
+  color: #ead39a;
+}
+
+.researchControlButton span {
+  font-size: 13px;
+}
+
+.alertPopover {
+  position: absolute;
+  z-index: 90;
+  top: 44px;
+  right: 0;
+  width: min(430px, calc(100vw - 32px));
+  padding: 17px;
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 16px;
+  background: #111419;
+  box-shadow: 0 28px 70px rgba(0,0,0,.48);
+}
+
+.alertPopoverHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 13px;
+  border-bottom: 1px solid var(--line);
+}
+
+.alertPopoverHeader > div {
+  display: grid;
+  gap: 3px;
+}
+
+.alertPopoverHeader strong {
+  font-size: 13px;
+}
+
+.alertPopoverHeader span {
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.alertPopoverHeader button {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.alertToggleList {
+  display: grid;
+  gap: 5px;
+  margin-top: 10px;
+}
+
+.alertToggleRow {
+  width: 100%;
+  padding: 10px 8px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: inherit;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.alertToggleRow:hover {
+  background: rgba(255,255,255,.025);
+}
+
+.alertToggleRow > div {
+  display: grid;
+  gap: 3px;
+}
+
+.alertToggleRow strong {
+  font-size: 10px;
+}
+
+.alertToggleRow span {
+  color: var(--muted);
+  font-size: 9px;
+  line-height: 1.4;
+}
+
+.alertToggleRow i,
+.alertRuleGrid i {
+  position: relative;
+  width: 34px;
+  height: 18px;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: #2b3038;
+  transition: background .18s ease;
+}
+
+.alertToggleRow i b,
+.alertRuleGrid i b {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #858d99;
+  transition: transform .18s ease, background .18s ease;
+}
+
+.alertToggleRow i.toggleOn,
+.alertRuleGrid i.toggleOn {
+  background: rgba(73,183,115,.24);
+}
+
+.alertToggleRow i.toggleOn b,
+.alertRuleGrid i.toggleOn b {
+  transform: translateX(16px);
+  background: #66d995;
+}
+
+.notificationState {
+  margin-top: 10px;
+  padding: 11px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: #151920;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.notificationState > div {
+  display: grid;
+  gap: 3px;
+}
+
+.notificationState strong {
+  font-size: 9px;
+}
+
+.notificationState span {
+  color: var(--muted);
+  font-size: 8px;
+}
+
+.notificationState button {
+  padding: 6px 9px;
+  border: 1px solid rgba(215,181,109,.25);
+  border-radius: 8px;
+  background: rgba(215,181,109,.07);
+  color: var(--accent);
+  font-size: 8px;
+  cursor: pointer;
+}
+
+.alertDeliveryNote {
+  margin: 10px 0 0;
+  color: #707885;
+  font-size: 8px;
+  line-height: 1.5;
+}
+
+.intelligenceSection {
+  margin-top: 12px;
+  padding: 26px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background:
+    radial-gradient(circle at 90% 0%, rgba(79,104,161,.08), transparent 26%),
+    linear-gradient(180deg, #111419, #0e1014);
+}
+
+.intelligenceHeading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 18px;
+}
+
+.intelligenceHeading h2 {
+  margin: 6px 0 0;
+  font-size: 22px;
+}
+
+.intelligenceHeading p {
+  max-width: 720px;
+  margin: 7px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.intelligenceHeading > small {
+  color: var(--muted);
+  font-size: 9px;
+  white-space: nowrap;
+}
+
+.intelligenceGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.intelligenceCard {
+  min-width: 0;
+  padding: 17px;
+  border: 1px solid rgba(255,255,255,.055);
+  border-radius: 16px;
+  background: #14181e;
+}
+
+.intelligenceCardHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.intelligenceCardHeader > div {
+  display: grid;
+  gap: 4px;
+}
+
+.intelligenceCardHeader span {
+  color: var(--accent);
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: .1em;
+}
+
+.intelligenceCardHeader h3 {
+  margin: 0;
+  font-size: 14px;
+}
+
+.intelligenceCardHeader > strong {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  color: #bfc6d0;
+  background: #111419;
+  font-size: 10px;
+}
+
+.intelligenceList {
+  display: grid;
+  gap: 6px;
+}
+
+.intelligenceRow {
+  min-width: 0;
+  padding: 10px;
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, .9fr) auto;
+  gap: 8px;
+  align-items: center;
+  border: 1px solid rgba(255,255,255,.045);
+  border-radius: 10px;
+  background: #111419;
+  transition: border-color .18s ease, transform .18s ease;
+}
+
+.intelligenceRow:hover {
+  border-color: #3a414c;
+  transform: translateY(-1px);
+}
+
+.intelligencePrimary,
+.intelligenceNumeric {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.intelligencePrimary strong,
+.intelligenceNumeric strong {
+  overflow: hidden;
+  font-size: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.intelligencePrimary span,
+.intelligenceNumeric span {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 8px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.activityBadge {
+  width: fit-content;
+  padding: 4px 6px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-size: 8px;
+  white-space: nowrap;
+}
+
+.activityBadge.positive {
+  color: #76dca0;
+  border-color: rgba(76,190,119,.22);
+  background: rgba(65,166,98,.09);
+}
+
+.activityBadge.negative {
+  color: #ec8989;
+  border-color: rgba(209,89,89,.22);
+  background: rgba(201,81,81,.09);
+}
+
+.activityBadge.neutral {
+  color: #b8c0ca;
+}
+
+.congressRow {
+  grid-template-columns: minmax(0, 1fr) minmax(0, .95fr) auto;
+}
+
+.filingDate {
+  grid-column: 2 / span 2;
+  color: #727a86;
+  font-size: 7px;
+  text-align: right;
+}
+
+.intelligenceNote {
+  margin-top: 11px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255,255,255,.055);
+}
+
+.intelligenceNote span {
+  color: #a7aeb8;
+  font-size: 8px;
+}
+
+.intelligenceNote p {
+  margin: 4px 0 0;
+  color: #737b87;
+  font-size: 8px;
+  line-height: 1.5;
+}
+
+.utilityShell {
+  width: min(1040px, calc(100% - 40px));
+  margin: 0 auto;
+  padding: 62px 0 82px;
+}
+
+.utilityShell h1 {
+  margin: 10px 0 12px;
+  font-size: clamp(48px, 7vw, 78px);
+}
+
+.utilityLede {
+  max-width: 720px;
+  margin: 0 0 30px;
+  color: var(--muted);
+  font-size: 16px;
+  line-height: 1.65;
+}
+
+.watchlistGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.watchlistCard {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: #111419;
+}
+
+.watchlistCard > a {
+  min-height: 190px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+}
+
+.watchlistCard > a > span {
+  margin-top: 22px;
+  color: var(--accent);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .1em;
+}
+
+.watchlistCard > a > strong {
+  margin-top: 4px;
+  font-size: 16px;
+}
+
+.watchlistCard > a > small {
+  margin-top: auto;
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.watchlistCard > button {
+  width: 100%;
+  padding: 10px;
+  border: 0;
+  border-top: 1px solid var(--line);
+  background: #0f1216;
+  color: #8d95a0;
+  font-size: 9px;
+  cursor: pointer;
+}
+
+.watchlistEmpty .landingSecondary {
+  margin-top: 14px;
+}
+
+.alertStatusCard {
+  margin-bottom: 12px;
+  padding: 20px;
+  border: 1px solid rgba(215,181,109,.22);
+  border-radius: 16px;
+  background:
+    radial-gradient(circle at 90% 10%, rgba(215,181,109,.08), transparent 30%),
+    #111419;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.alertStatusCard > div {
+  display: grid;
+  gap: 5px;
+}
+
+.alertStatusCard span {
+  color: var(--accent);
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: .1em;
+}
+
+.alertStatusCard strong {
+  font-size: 14px;
+}
+
+.alertStatusCard p {
+  max-width: 700px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.55;
+}
+
+.alertStatusCard button {
+  min-height: 38px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: #151920;
+  color: #d7dce3;
+  font-size: 9px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.alertStatusCard button:disabled {
+  color: #72da9a;
+  cursor: default;
+}
+
+.alertCompanyList {
+  display: grid;
+  gap: 9px;
+}
+
+.alertCompanyCard {
+  padding: 17px;
+  border: 1px solid var(--line);
+  border-radius: 15px;
+  background: #111419;
+  display: grid;
+  grid-template-columns: minmax(190px, .7fr) 1.3fr;
+  gap: 18px;
+  align-items: center;
+}
+
+.alertCompanyHeader {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+
+.alertCompanyHeader > div:last-child {
+  display: grid;
+  gap: 3px;
+}
+
+.alertCompanyHeader span {
+  color: var(--accent);
+  font-size: 8px;
+  font-weight: 800;
+}
+
+.alertCompanyHeader strong {
+  font-size: 12px;
+}
+
+.alertRuleGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+
+.alertRuleGrid button {
+  padding: 10px;
+  border: 1px solid rgba(255,255,255,.05);
+  border-radius: 10px;
+  background: #151920;
+  color: #cfd4dc;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 9px;
+  font-size: 8px;
+  cursor: pointer;
+}
+
+@media (max-width: 980px) {
+  .intelligenceGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .watchlistGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .alertCompanyCard {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .researchTopbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .researchControls {
+    width: 100%;
+  }
+
+  .researchControlButton {
+    flex: 1;
+  }
+
+  .alertPopover {
+    left: 0;
+    right: auto;
+  }
+
+  .intelligenceSection {
+    padding: 18px;
+  }
+
+  .intelligenceHeading,
+  .alertStatusCard {
+    flex-direction: column;
+  }
+
+  .watchlistGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .alertRuleGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .utilityShell {
+    width: min(100% - 24px, 1040px);
+    padding-top: 42px;
+  }
+}
