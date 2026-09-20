@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { AlertsClient } from "./AlertsClient";
+import { AutoMonitorFeed } from "@/components/AutoMonitorFeed";
 
 export default function AlertsPage() {
   return (
@@ -23,6 +24,7 @@ export default function AlertsPage() {
           Choose the evidence that matters to you: research changes, institutional holdings,
           political transaction disclosures, and insider activity.
         </p>
+        <AutoMonitorFeed />
         <AlertsClient />
       </main>
     </>
