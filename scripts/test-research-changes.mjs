@@ -1,3 +1,4 @@
+// SOLPIENT deterministic change-engine regression tests.
 import assert from "node:assert/strict";
 import { buildResearchChanges } from "../lib/research-changes.mjs";
 
