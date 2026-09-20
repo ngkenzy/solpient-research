@@ -51,7 +51,7 @@ export default async function ReviewDraft({params,searchParams}:{params:Promise<
   const metrics=Array.isArray(merged.metric_observations)?merged.metric_observations:[];
   const sources=Array.isArray(merged.sources)?merged.sources:[];
   const factoryGaps=Array.isArray(draft.draft_payload?.factory?.evidence_gaps)?draft.draft_payload.factory.evidence_gaps:[];
-  const metricMap=new Map(metrics.map((row:any)=>[(row.module ?? "universal")+":"+row.metric_key,row]));
+  const metricMap=new Map<string,any>(metrics.map((row:any)=>[(row.module ?? "universal")+":"+row.metric_key,row]));
   const gaps=factoryGaps.filter((gap:any)=>metricMap.get((gap.module ?? "universal")+":"+gap.metric_key)?.status!=="available");
   const proposedEnrichment=enrichmentItems.filter((item:any)=>item.status==="proposed");
   const highConfidence=enrichmentItems.filter((item:any)=>item.confidence==="high").length;
