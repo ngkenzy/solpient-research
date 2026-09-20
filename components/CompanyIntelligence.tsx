@@ -21,17 +21,6 @@ function asNumber(value: unknown) {
 }
 
 function providerRank(provider?: string | null) {
-  function coverageMessage(type: "insider" | "institutional" | "political") {
-    const check = coverageByType.get(type);
-    if (!check || check.status === "pending") return "Coverage pending verification.";
-    if (check.status === "verified_none") {
-      return "Verified through " + (check.provider ?? "source") + ": no qualifying recent activity found.";
-    }
-    if (check.status === "partial") return "Coverage is partial; additional source verification is still needed.";
-    if (check.status === "unavailable") return "Current source coverage is unavailable.";
-    return "Coverage verified through " + (check.provider ?? "source") + ".";
-  }
-
   return ({
     web_verified: 100,
     sec_form4: 95,
@@ -98,6 +87,17 @@ export async function CompanyIntelligence({ ticker }: { ticker: string }) {
   const coverageByType = new Map(
     (coverageChecks ?? []).map((row) => [row.activity_type, row]),
   );
+
+  function coverageMessage(type: "insider" | "institutional" | "political") {
+    const check = coverageByType.get(type);
+    if (!check || check.status === "pending") return "Coverage pending verification.";
+    if (check.status === "verified_none") {
+      return "Verified through " + (check.provider ?? "source") + ": no qualifying recent activity found.";
+    }
+    if (check.status === "partial") return "Coverage is partial; additional source verification is still needed.";
+    if (check.status === "unavailable") return "Current source coverage is unavailable.";
+    return "Coverage verified through " + (check.provider ?? "source") + ".";
+  }
 
   const { data: providerHealth } = await supabase
     .from("capital_provider_health")
