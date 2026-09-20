@@ -149,6 +149,8 @@ export default async function ResearchIndex() {
       return (asNumber(b.scores.valuation_score) ?? -1) - (asNumber(a.scores.valuation_score) ?? -1);
     });
 
+  const pendingCompanies = (companies ?? []).filter((company) => !latestRunByCompany.has(company.id));
+
   const latestResearchDate = ranked.reduce<Date | null>((latest, item: any) => {
     const date = new Date(item.run.researched_at);
     return !latest || date > latest ? date : latest;
@@ -183,8 +185,12 @@ export default async function ResearchIndex() {
 
           <div className="rankingHeroStats">
             <div>
-              <span>Ranked companies</span>
-              <strong>{ranked.length}</strong>
+              <span>Research coverage</span>
+              <strong>{ranked.length}/{companies?.length ?? 0}</strong>
+            </div>
+            <div>
+              <span>Pending research</span>
+              <strong>{pendingCompanies.length}</strong>
             </div>
             <div>
               <span>Below fair value</span>
@@ -297,6 +303,30 @@ export default async function ResearchIndex() {
             <p>Published research will appear here automatically and be ranked by latest score.</p>
           </section>
         )}
+
+        {pendingCompanies.length > 0 ? (
+          <section className="coverageQueue">
+            <div className="coverageQueueHeader">
+              <div>
+                <span className="panelKicker">RESEARCH COVERAGE</span>
+                <h2>Queued for full research</h2>
+              </div>
+              <strong>{pendingCompanies.length} pending</strong>
+            </div>
+            <div className="coverageQueueGrid">
+              {pendingCompanies.map((company) => (
+                <div className="coverageQueueRow" key={company.id}>
+                  <div className="rankMonogram">{company.ticker.slice(0, 2)}</div>
+                  <div>
+                    <strong>{company.ticker}</strong>
+                    <span>{company.company_name}</span>
+                  </div>
+                  <small>Monitoring active · research not yet published</small>
+                </div>
+              ))}
+            </div>
+          </section>
+        ) : null}
 
         <section className="rankingFootnote">
           <strong>Research shortlist, not a buy list.</strong>
