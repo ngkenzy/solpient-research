@@ -223,6 +223,17 @@ export default async function CompanyResearch({
   const upside = price != null && baseValue != null && price !== 0
     ? ((baseValue / price) - 1) * 100
     : null;
+  const valuationGap = price != null && baseValue != null && baseValue !== 0
+    ? ((baseValue - price) / baseValue) * 100
+    : null;
+  const valuationGapLabel =
+    valuationGap == null
+      ? "—"
+      : Math.abs(valuationGap) < 1
+        ? "Near fair value"
+        : valuationGap > 0
+          ? `${valuationGap.toFixed(1)}% undervalued`
+          : `${Math.abs(valuationGap).toFixed(1)}% overvalued`;
 
   const rangeMin = Math.min(
     ...(bearValue != null ? [bearValue] : []),
@@ -326,11 +337,13 @@ export default async function CompanyResearch({
           </article>
 
           <article className="headlineMetric">
-            <span>Upside to base</span>
-            <strong className={upside != null && upside >= 0 ? "positiveText" : "negativeText"}>
-              {upside == null ? "—" : `${upside >= 0 ? "+" : ""}${upside.toFixed(1)}%`}
+            <span>Valuation gap</span>
+            <strong className={valuationGap != null && valuationGap >= 0 ? "positiveText valuationGapText" : "negativeText valuationGapText"}>
+              {valuationGapLabel}
             </strong>
-            <small>Not a price forecast</small>
+            <small>
+              {upside == null ? "Compared with base fair value" : `${upside >= 0 ? "+" : ""}${upside.toFixed(1)}% upside/downside to base`}
+            </small>
           </article>
 
           <article className="headlineMetric ringMetric">
