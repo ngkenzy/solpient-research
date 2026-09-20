@@ -96,6 +96,20 @@ export default async function ResearchIndex() {
   const scoreMap = new Map((scoresResult.data ?? []).map((item: any) => [item.research_run_id, item]));
   const valuationMap = new Map((valuationsResult.data ?? []).map((item: any) => [item.research_run_id, item]));
 
+  const symbols = (companies ?? []).map((company) => company.ticker);
+  const marketResult = symbols.length
+    ? await supabase
+        .from("market_snapshots")
+        .select("symbol,price,trading_date")
+        .in("symbol", symbols)
+        .order("trading_date", { ascending: false })
+    : { data: [] as any[] };
+
+  const latestMarketBySymbol = new Map<string, any>();
+  for (const row of marketResult.data ?? []) {
+    if (!latestMarketBySymbol.has(row.symbol)) latestMarketBySymbol.set(row.symbol, row);
+  }
+
   const ranked = (companies ?? [])
     .map((company) => {
       const run = latestRunByCompany.get(company.id);
@@ -103,16 +117,20 @@ export default async function ResearchIndex() {
 
       const scores: any = scoreMap.get(run.id) ?? {};
       const valuation: any = valuationMap.get(run.id) ?? {};
-      const price = asNumber(run.price_at_research);
+      const researchPrice = asNumber(run.price_at_research);
+      const market = latestMarketBySymbol.get(company.ticker);
+      const currentPrice = asNumber(market?.price) ?? researchPrice;
       const fairValue = asNumber(valuation.base_value);
-      const gap = valuationGap(price, fairValue);
+      const gap = valuationGap(currentPrice, fairValue);
 
       return {
         company,
         run,
         scores,
         valuation,
-        price,
+        price: currentPrice,
+        researchPrice,
+        marketDate: market?.trading_date ?? null,
         fairValue,
         gap,
       };
@@ -208,7 +226,7 @@ export default async function ResearchIndex() {
               <span>Growth</span>
               <span>Valuation</span>
               <span>Thesis</span>
-              <span>Price</span>
+              <span>Latest price</span>
               <span>Base value</span>
               <span>Value gap</span>
             </div>
@@ -259,7 +277,7 @@ export default async function ResearchIndex() {
 
                   <div className="rankMoney">
                     <strong>{formatMoney(item.price)}</strong>
-                    <span>at research</span>
+                    <span>{item.marketDate ? `as of ${new Date(item.marketDate + "T00:00:00Z").toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" })}` : "at research"}</span>
                   </div>
 
                   <div className="rankMoney">
