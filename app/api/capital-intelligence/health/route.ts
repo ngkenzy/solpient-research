@@ -4,15 +4,32 @@ import { summarizeCapitalCoverageMatrix } from "@/lib/capital-intelligence-orche
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
+async function fetchAllCapitalActivity(supabase: any) {
+  const pageSize = 1000;
+  const rows: any[] = [];
+  for (let from = 0; from < 100000; from += pageSize) {
+    const { data, error } = await supabase
+      .from("capital_activity")
+      .select("id,company_id,activity_type,provider,verified_at,created_at")
+      .order("id", { ascending: true })
+      .range(from, from + pageSize - 1);
+    if (error) throw error;
+    const page = data ?? [];
+    rows.push(...page);
+    if (page.length < pageSize) break;
+  }
+  return rows;
+}
+
 export async function GET() {
   const supabase = getAdminSupabase();
   if (!supabase) {
     return Response.json({ error: "Server database connection is not configured." }, { status: 503 });
   }
 
-  const [companiesR, activityR, coverageR, healthR, runR] = await Promise.all([
+  const [companiesR, activity, coverageR, healthR, runR] = await Promise.all([
     supabase.from("companies").select("id,ticker,company_name").order("ticker"),
-    supabase.from("capital_activity").select("company_id,activity_type,provider,verified_at,created_at"),
+    fetchAllCapitalActivity(supabase),
     supabase.from("capital_coverage_checks").select("*"),
     supabase.from("capital_provider_health").select("*").order("updated_at", { ascending: false }),
     supabase.from("automation_runs")
@@ -23,7 +40,7 @@ export async function GET() {
       .maybeSingle(),
   ]);
 
-  for (const result of [companiesR, activityR, coverageR, healthR, runR]) {
+  for (const result of [companiesR, coverageR, healthR, runR]) {
     if (result.error) {
       return Response.json({ error: result.error.message }, { status: 500 });
     }
@@ -31,7 +48,7 @@ export async function GET() {
 
   const coverage = summarizeCapitalCoverageMatrix(
     coverageR.data ?? [],
-    activityR.data ?? [],
+    activity,
     companiesR.data ?? [],
   );
   const anyReviewed = coverage.filter((row: any) => row.categories_reviewed > 0).length;
