@@ -1,20 +1,7 @@
-name: SOLPIENT SEC Auto-Monitor
+name: SEC Direct Monitor (manual fallback)
 
 on:
-  schedule:
-    - cron: "17 */4 * * *"
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths:
-      - "scripts/monitor-sec.mjs"
-      - "data/monitor/companies.json"
-      - "data/monitor/managers.json"
-      - ".github/workflows/monitor-sec.yml"
-
-concurrency:
-  group: solpient-sec-monitor
-  cancel-in-progress: false
 
 jobs:
   monitor:
@@ -33,15 +20,16 @@ jobs:
         with:
           node-version: 22
 
-      - name: Check SEC for new filings
+      - name: Check SEC directly
         env:
           SEC_USER_AGENT: "SOLPIENT Research ngkenzy@users.noreply.github.com"
+          SEC_CONTACT: "ngkenzy@users.noreply.github.com"
         run: node scripts/monitor-sec.mjs
 
-      - name: Commit monitor state and new events
+      - name: Commit verified monitor state and events
         run: |
           if git diff --quiet -- data/monitor/sec-state.json data/monitor/sec-events.json; then
-            echo "No monitor state changes."
+            echo "No verified monitor changes."
             exit 0
           fi
 
