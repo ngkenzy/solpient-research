@@ -40,6 +40,9 @@ jobs:
           npm run test:composer
           npm run test:capital-intelligence
           npm run test:capital-orchestrator
+          npm run test:capital-coverage
+          npm run test:yahoo-capital
+          npm run test:quiver-political
 
       - name: Build Next.js
         env:

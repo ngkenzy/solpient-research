@@ -43,3 +43,36 @@ export function feedFreshness(options?: {
   now?: Date;
   staleAfterHours?: number;
 }): "inactive" | "stale" | "healthy";
+
+export type CapitalCoverageStatus = "pending" | "activity_found" | "verified_none" | "partial" | "unavailable";
+
+export function normalizeCoverageCheck(
+  input: any,
+  options?: { provider?: string; verifiedAt?: string; companyByTicker?: Map<string, any> },
+): { valid: boolean; errors: string[]; ticker: string | null; row: any };
+
+export function summarizeCapitalCoverageMatrix(
+  checks?: any[],
+  rows?: any[],
+  companies?: any[],
+): Array<{
+  ticker: string;
+  company_id: string;
+  categories: Record<string, {
+    status: CapitalCoverageStatus;
+    activity_count: number;
+    provider: string | null;
+    verified_at: string | null;
+    window_start: string | null;
+    window_end: string | null;
+    source_url: string | null;
+    notes: string | null;
+  }>;
+  categories_reviewed: number;
+  categories_complete: number;
+  categories_with_activity: number;
+  fully_reviewed: boolean;
+  fully_verified: boolean;
+}>;
+
+export function shouldReplaceCoverage(existing: any, next: any): boolean;

@@ -35,7 +35,14 @@
     "test:capital-intelligence": "node scripts/test-capital-intelligence-engine.mjs",
     "test:capital-orchestrator": "node scripts/test-capital-intelligence-orchestrator.mjs",
     "audit:capital-intelligence": "node scripts/audit-capital-intelligence.mjs",
-    "import:capital-intelligence": "node scripts/import-capital-intelligence-batch.mjs"
+    "import:capital-intelligence": "node scripts/import-capital-intelligence-batch.mjs",
+    "export:capital-coverage": "node scripts/export-pending-capital-coverage.mjs",
+    "import:capital-coverage": "node scripts/import-capital-coverage-batch.mjs",
+    "test:capital-coverage": "node scripts/test-capital-coverage-verification.mjs",
+    "sync:yahoo-capital": "node scripts/sync-yahoo-capital-intelligence.mjs",
+    "test:yahoo-capital": "node scripts/test-yahoo-capital-intelligence.mjs",
+    "sync:quiver-political": "node scripts/sync-quiver-political-intelligence.mjs",
+    "test:quiver-political": "node scripts/test-quiver-political-intelligence.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.4",

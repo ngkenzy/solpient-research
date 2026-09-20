@@ -28,6 +28,7 @@ function providerRank(provider?: string | null) {
     sec_direct: 95,
     financial_datasets: 90,
     quiver: 85,
+    yahoo_capital: 80,
     fmp: 75,
     alpha_vantage: 65,
     legacy_seed: 30,
@@ -78,6 +79,26 @@ export async function CompanyIntelligence({ ticker }: { ticker: string }) {
   if (error) return null;
   const rows = data ?? [];
 
+  const { data: coverageChecks } = await supabase
+    .from("capital_coverage_checks")
+    .select("activity_type,status,provider,window_start,window_end,verified_at,record_count,source_url,notes")
+    .eq("company_id", company.id);
+
+  const coverageByType = new Map(
+    (coverageChecks ?? []).map((row) => [row.activity_type, row]),
+  );
+
+  function coverageMessage(type: "insider" | "institutional" | "political") {
+    const check = coverageByType.get(type);
+    if (!check || check.status === "pending") return "Coverage pending verification.";
+    if (check.status === "verified_none") {
+      return "Verified through " + (check.provider ?? "source") + ": no qualifying recent activity found.";
+    }
+    if (check.status === "partial") return "Coverage is partial; additional source verification is still needed.";
+    if (check.status === "unavailable") return "Current source coverage is unavailable.";
+    return "Coverage verified through " + (check.provider ?? "source") + ".";
+  }
+
   const { data: providerHealth } = await supabase
     .from("capital_provider_health")
     .select("provider,feed_type,status,last_success_at,last_verified_at,last_error,metadata")
@@ -111,11 +132,10 @@ export async function CompanyIntelligence({ ticker }: { ticker: string }) {
     .filter(Boolean)
     .sort()
     .at(-1);
-  const latestVerified = dedupedRows
-    .map((row) => row.verified_at ?? row.created_at)
-    .filter(Boolean)
-    .sort()
-    .at(-1);
+  const latestVerified = [
+    ...dedupedRows.map((row) => row.verified_at ?? row.created_at),
+    ...(coverageChecks ?? []).map((row) => row.verified_at),
+  ].filter(Boolean).sort().at(-1);
   const providers = [...new Set(dedupedRows.map((row) => row.provider).filter(Boolean))];
   const providerStatus = (providerHealth ?? [])
     .filter((row) => ["healthy", "degraded", "blocked", "stale"].includes(row.status))
@@ -182,7 +202,7 @@ export async function CompanyIntelligence({ ticker }: { ticker: string }) {
                   </div>
                 </a>
               );
-            }) : <div className="intelligenceNote"><p>No institutional activity loaded yet.</p></div>}
+            }) : <div className="intelligenceNote"><p>{coverageMessage("institutional")}</p></div>}
           </div>
 
           <div className="intelligenceNote">
@@ -222,7 +242,7 @@ export async function CompanyIntelligence({ ticker }: { ticker: string }) {
                 </div>
                 <small className="filingDate">Filed {date(trade.disclosure_date)}</small>
               </a>
-            )) : <div className="intelligenceNote"><p>No political transaction disclosures loaded yet.</p></div>}
+            )) : <div className="intelligenceNote"><p>{coverageMessage("political")}</p></div>}
           </div>
 
           <div className="intelligenceNote">
@@ -264,7 +284,7 @@ export async function CompanyIntelligence({ ticker }: { ticker: string }) {
                   </div>
                 </a>
               );
-            }) : <div className="intelligenceNote"><p>No insider activity loaded yet.</p></div>}
+            }) : <div className="intelligenceNote"><p>{coverageMessage("insider")}</p></div>}
           </div>
 
           <div className="intelligenceNote">

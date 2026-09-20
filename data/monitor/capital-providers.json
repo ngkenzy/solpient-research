@@ -2,7 +2,11 @@
   {
     "provider": "web_verified",
     "mode": "orchestrated",
-    "feeds": ["insider", "institutional", "political"],
+    "feeds": [
+      "insider",
+      "institutional",
+      "political"
+    ],
     "priority": 100,
     "stale_after_hours": 36,
     "description": "Externally verified public-web evidence delivered through the authenticated ingest endpoint."
@@ -10,7 +14,10 @@
   {
     "provider": "sec_direct",
     "mode": "direct",
-    "feeds": ["insider", "institutional"],
+    "feeds": [
+      "insider",
+      "institutional"
+    ],
     "priority": 95,
     "stale_after_hours": 36,
     "description": "Official SEC Form 4 and 13F data when the runner can reach SEC endpoints."
@@ -18,23 +25,42 @@
   {
     "provider": "financial_datasets",
     "mode": "api_optional",
-    "feeds": ["insider", "institutional"],
+    "feeds": [
+      "insider",
+      "institutional"
+    ],
     "priority": 90,
     "stale_after_hours": 36,
     "description": "Optional structured SEC-derived provider when API credits are configured."
   },
   {
+    "provider": "yahoo_capital",
+    "mode": "direct",
+    "feeds": [
+      "insider",
+      "institutional"
+    ],
+    "priority": 80,
+    "stale_after_hours": 48,
+    "description": "Yahoo Finance quote-summary ownership modules for cloud-safe insider and institutional fallback coverage."
+  },
+  {
     "provider": "quiver",
-    "mode": "api_optional",
-    "feeds": ["political"],
+    "mode": "direct_public_html",
+    "feeds": [
+      "political"
+    ],
     "priority": 85,
     "stale_after_hours": 36,
-    "description": "Optional political-disclosure provider; inactive until credentials/provider access are configured."
+    "description": "Quiver public Congress Trading ticker pages parsed for Purchase/Sale disclosures with separate traded and filed dates."
   },
   {
     "provider": "fmp",
     "mode": "api_optional",
-    "feeds": ["insider", "institutional"],
+    "feeds": [
+      "insider",
+      "institutional"
+    ],
     "priority": 75,
     "stale_after_hours": 48,
     "description": "Fallback provider only when plan limits permit the required endpoints."
