@@ -41,6 +41,7 @@ jobs:
           npm run test:capital-intelligence
           npm run test:capital-orchestrator
           npm run test:capital-coverage
+          npm run test:yahoo-capital
 
       - name: Build Next.js
         env:
