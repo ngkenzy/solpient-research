@@ -1,3 +1,6 @@
+"use client";
+
+import { useMemo, useState } from "react";
 import { getHistoricalFinancials, type HistoricalFinancialPoint } from "@/lib/historical-financials";
 
 function compact(value: number) {
@@ -55,11 +58,34 @@ function ticks(min: number, max: number, count = 5) {
   return Array.from({ length: count }, (_, index) => max - (range * index) / (count - 1));
 }
 
-function ChartAxis({ points, offset = false }: { points: HistoricalFinancialPoint[]; offset?: boolean }) {
+function selectedX(points: HistoricalFinancialPoint[], selectedYear: number) {
+  const index = Math.max(0, points.findIndex((point) => point.fiscalYear === selectedYear));
+  return 8 + (index / Math.max(points.length - 1, 1)) * 84;
+}
+
+function ChartAxis({
+  points,
+  selectedYear,
+  onSelect,
+  offset = false,
+}: {
+  points: HistoricalFinancialPoint[];
+  selectedYear: number;
+  onSelect: (year: number) => void;
+  offset?: boolean;
+}) {
   return (
     <div className={`chartAxis ${offset ? "chartAxisOffset" : ""}`}>
       {points.map((point) => (
-        <span key={point.fiscalYear}>{point.fiscalYear}</span>
+        <button
+          type="button"
+          className={point.fiscalYear === selectedYear ? "chartYear active" : "chartYear"}
+          key={point.fiscalYear}
+          onClick={() => onSelect(point.fiscalYear)}
+          aria-pressed={point.fiscalYear === selectedYear}
+        >
+          {point.fiscalYear}
+        </button>
       ))}
     </div>
   );
@@ -81,7 +107,15 @@ function YAxis({
   );
 }
 
-function BarChart({ points }: { points: HistoricalFinancialPoint[] }) {
+function BarChart({
+  points,
+  selectedYear,
+  onSelect,
+}: {
+  points: HistoricalFinancialPoint[];
+  selectedYear: number;
+  onSelect: (year: number) => void;
+}) {
   const maxRaw = Math.max(...points.flatMap((p) => [p.revenue, p.freeCashFlow]));
   const max = Math.ceil(maxRaw / 1000) * 1000;
   const yTicks = ticks(0, max);
@@ -91,55 +125,57 @@ function BarChart({ points }: { points: HistoricalFinancialPoint[] }) {
       <div className="chartWithYAxis">
         <YAxis values={yTicks} formatter={billions} />
         <div className="barChart" aria-label="Revenue and free cash flow history">
-          {points.map((point) => (
-            <div className="barGroup" key={point.fiscalYear}>
-              <div className="barPair">
-                <div className="barColumn">
-                  <span className="barTopLabel">{billions(point.revenue)}</span>
-                  <i
-                    className="bar revenueBar"
-                    style={{ height: `${(point.revenue / max) * 100}%` }}
-                    title={`Revenue ${billions(point.revenue)}`}
-                  />
+          {points.map((point) => {
+            const active = point.fiscalYear === selectedYear;
+            return (
+              <button
+                type="button"
+                className={active ? "barGroup active" : "barGroup"}
+                key={point.fiscalYear}
+                onClick={() => onSelect(point.fiscalYear)}
+                onMouseEnter={() => onSelect(point.fiscalYear)}
+                aria-label={`${point.fiscalYear}: revenue ${billions(point.revenue)}, free cash flow ${billions(point.freeCashFlow)}`}
+              >
+                <div className="barPair">
+                  <div className="barColumn">
+                    <span className="barTopLabel">{billions(point.revenue)}</span>
+                    <i className="bar revenueBar" style={{ height: `${(point.revenue / max) * 100}%` }} />
+                  </div>
+                  <div className="barColumn">
+                    <span className="barTopLabel">{billions(point.freeCashFlow)}</span>
+                    <i className="bar fcfBar" style={{ height: `${(point.freeCashFlow / max) * 100}%` }} />
+                  </div>
                 </div>
-                <div className="barColumn">
-                  <span className="barTopLabel">{billions(point.freeCashFlow)}</span>
-                  <i
-                    className="bar fcfBar"
-                    style={{ height: `${(point.freeCashFlow / max) * 100}%` }}
-                    title={`FCF ${billions(point.freeCashFlow)}`}
-                  />
-                </div>
-              </div>
-            </div>
-          ))}
+              </button>
+            );
+          })}
         </div>
       </div>
-      <ChartAxis points={points} offset />
+      <ChartAxis points={points} selectedYear={selectedYear} onSelect={onSelect} offset />
       <div className="chartLegend">
         <span><i className="legendSwatch revenueLegend" />Revenue</span>
         <span><i className="legendSwatch fcfLegend" />Free cash flow</span>
-      </div>
-      <div className="chartValueTable">
-        {points.map((point) => (
-          <div key={point.fiscalYear}>
-            <strong>{point.fiscalYear}</strong>
-            <span>Rev {billions(point.revenue)}</span>
-            <span>FCF {billions(point.freeCashFlow)}</span>
-          </div>
-        ))}
       </div>
     </>
   );
 }
 
-function MultiLineMargins({ points }: { points: HistoricalFinancialPoint[] }) {
-  const min = 20;
+function MultiLineMargins({
+  points,
+  selectedYear,
+  onSelect,
+}: {
+  points: HistoricalFinancialPoint[];
+  selectedYear: number;
+  onSelect: (year: number) => void;
+}) {
+  const min = 0;
   const max = 100;
   const yTicks = ticks(min, max);
   const grossDots = lineDots(points, (p) => p.grossMargin, min, max);
   const opDots = lineDots(points, (p) => p.operatingMargin, min, max);
   const fcfDots = lineDots(points, (p) => p.fcfMargin, min, max);
+  const x = selectedX(points, selectedYear);
 
   return (
     <>
@@ -148,30 +184,38 @@ function MultiLineMargins({ points }: { points: HistoricalFinancialPoint[] }) {
         <div className="svgChart">
           <svg viewBox="0 0 100 100" role="img" aria-label="Historical margins">
             <path className="chartGridLine" d="M 5 16 L 95 16 M 5 34 L 95 34 M 5 52 L 95 52 M 5 70 L 95 70 M 5 88 L 95 88" />
+            <line className="chartCrosshair" x1={x} x2={x} y1="12" y2="92" />
             <path className="chartLine grossLine" d={linePath(points, (p) => p.grossMargin, min, max)} />
             <path className="chartLine operatingLine" d={linePath(points, (p) => p.operatingMargin, min, max)} />
             <path className="chartLine fcfLine" d={linePath(points, (p) => p.fcfMargin, min, max)} />
-            {grossDots.map((dot) => <circle key={`g-${dot.year}`} className="grossDot" cx={dot.x} cy={dot.y} r="1.4" />)}
-            {opDots.map((dot) => <circle key={`o-${dot.year}`} className="operatingDot" cx={dot.x} cy={dot.y} r="1.4" />)}
-            {fcfDots.map((dot) => <circle key={`f-${dot.year}`} className="fcfDot" cx={dot.x} cy={dot.y} r="1.4" />)}
+            {grossDots.map((dot) => <circle key={`g-${dot.year}`} className={dot.year === selectedYear ? "grossDot activeDot" : "grossDot"} cx={dot.x} cy={dot.y} r={dot.year === selectedYear ? "2.3" : "1.4"} />)}
+            {opDots.map((dot) => <circle key={`o-${dot.year}`} className={dot.year === selectedYear ? "operatingDot activeDot" : "operatingDot"} cx={dot.x} cy={dot.y} r={dot.year === selectedYear ? "2.3" : "1.4"} />)}
+            {fcfDots.map((dot) => <circle key={`f-${dot.year}`} className={dot.year === selectedYear ? "fcfDot activeDot" : "fcfDot"} cx={dot.x} cy={dot.y} r={dot.year === selectedYear ? "2.3" : "1.4"} />)}
+            {points.map((point, index) => {
+              const slot = 84 / Math.max(points.length - 1, 1);
+              const pointX = 8 + index * slot;
+              return (
+                <rect
+                  key={point.fiscalYear}
+                  x={pointX - slot / 2}
+                  y="10"
+                  width={slot}
+                  height="82"
+                  fill="transparent"
+                  className="chartHitArea"
+                  onMouseEnter={() => onSelect(point.fiscalYear)}
+                  onClick={() => onSelect(point.fiscalYear)}
+                />
+              );
+            })}
           </svg>
         </div>
       </div>
-      <ChartAxis points={points} offset />
+      <ChartAxis points={points} selectedYear={selectedYear} onSelect={onSelect} offset />
       <div className="chartLegend">
         <span><i className="legendSwatch grossLegend" />Gross margin</span>
         <span><i className="legendSwatch operatingLegend" />Operating margin</span>
         <span><i className="legendSwatch fcfMarginLegend" />FCF margin</span>
-      </div>
-      <div className="chartValueTable marginValueTable">
-        {points.map((point) => (
-          <div key={point.fiscalYear}>
-            <strong>{point.fiscalYear}</strong>
-            <span>Gross {point.grossMargin.toFixed(1)}%</span>
-            <span>Op {point.operatingMargin.toFixed(1)}%</span>
-            <span>FCF {point.fcfMargin.toFixed(1)}%</span>
-          </div>
-        ))}
       </div>
     </>
   );
@@ -184,6 +228,8 @@ function SingleLineChart({
   axisFormatter,
   className,
   ariaLabel,
+  selectedYear,
+  onSelect,
 }: {
   points: HistoricalFinancialPoint[];
   accessor: (point: HistoricalFinancialPoint) => number;
@@ -191,6 +237,8 @@ function SingleLineChart({
   axisFormatter?: (value: number) => string;
   className: string;
   ariaLabel: string;
+  selectedYear: number;
+  onSelect: (year: number) => void;
 }) {
   const values = points.map(accessor);
   const rawMin = Math.min(...values);
@@ -200,6 +248,7 @@ function SingleLineChart({
   const max = rawMax + pad;
   const dots = lineDots(points, accessor, min, max);
   const yTicks = ticks(min, max);
+  const x = selectedX(points, selectedYear);
 
   return (
     <>
@@ -208,31 +257,51 @@ function SingleLineChart({
         <div className="svgChart compactSvgChart">
           <svg viewBox="0 0 100 100" role="img" aria-label={ariaLabel}>
             <path className="chartGridLine" d="M 5 16 L 95 16 M 5 34 L 95 34 M 5 52 L 95 52 M 5 70 L 95 70 M 5 88 L 95 88" />
+            <line className="chartCrosshair" x1={x} x2={x} y1="12" y2="92" />
             <path className={`chartLine ${className}`} d={linePath(points, accessor, min, max)} />
             {dots.map((dot) => (
               <g key={dot.year}>
-                <circle className={`${className}Dot`} cx={dot.x} cy={dot.y} r="1.6" />
+                <circle className={`${className}Dot ${dot.year === selectedYear ? "activeDot" : ""}`} cx={dot.x} cy={dot.y} r={dot.year === selectedYear ? "2.5" : "1.6"} />
                 <title>{`${dot.year}: ${formatter(dot.value)}`}</title>
               </g>
             ))}
+            {points.map((point, index) => {
+              const slot = 84 / Math.max(points.length - 1, 1);
+              const pointX = 8 + index * slot;
+              return (
+                <rect
+                  key={point.fiscalYear}
+                  x={pointX - slot / 2}
+                  y="10"
+                  width={slot}
+                  height="82"
+                  fill="transparent"
+                  className="chartHitArea"
+                  onMouseEnter={() => onSelect(point.fiscalYear)}
+                  onClick={() => onSelect(point.fiscalYear)}
+                />
+              );
+            })}
           </svg>
         </div>
       </div>
-      <ChartAxis points={points} offset />
-      <div className="chartPointValues">
-        {points.map((point) => (
-          <span key={point.fiscalYear}>{formatter(accessor(point))}</span>
-        ))}
-      </div>
+      <ChartAxis points={points} selectedYear={selectedYear} onSelect={onSelect} offset />
     </>
   );
 }
 
 export function HistoricalFinancials({ ticker }: { ticker: string }) {
   const series = getHistoricalFinancials(ticker);
-  if (!series) return null;
+  const points = series?.points ?? [];
+  const [selectedYear, setSelectedYear] = useState(points.at(-1)?.fiscalYear ?? new Date().getFullYear());
 
-  const points = series.points;
+  const activePoint = useMemo(
+    () => points.find((point) => point.fiscalYear === selectedYear) ?? points.at(-1),
+    [points, selectedYear]
+  );
+
+  if (!series || !points.length || !activePoint) return null;
+
   const first = points[0];
   const last = points[points.length - 1];
   const revenueCagr = ((last.revenue / first.revenue) ** (1 / (points.length - 1)) - 1) * 100;
@@ -245,11 +314,61 @@ export function HistoricalFinancials({ ticker }: { ticker: string }) {
         <div>
           <span className="panelKicker">5-YEAR FUNDAMENTALS</span>
           <h2>Business performance over time</h2>
+          <p className="historicalHint">Hover a chart or select a year to inspect the same period across every metric.</p>
         </div>
         <div className="historicalSummaryStats">
           <div><span>Revenue CAGR</span><strong>{revenueCagr.toFixed(1)}%</strong></div>
           <div><span>FCF CAGR</span><strong>{fcfCagr.toFixed(1)}%</strong></div>
           <div><span>Diluted shares</span><strong>{shareReduction.toFixed(1)}%</strong></div>
+        </div>
+      </div>
+
+      <div className="historicalYearSelector" role="group" aria-label="Select fiscal year">
+        {points.map((point) => (
+          <button
+            type="button"
+            key={point.fiscalYear}
+            className={point.fiscalYear === selectedYear ? "active" : ""}
+            onClick={() => setSelectedYear(point.fiscalYear)}
+            aria-pressed={point.fiscalYear === selectedYear}
+          >
+            FY{point.fiscalYear}
+          </button>
+        ))}
+      </div>
+
+      <div className="historicalInspector" aria-live="polite">
+        <div>
+          <span>Selected period</span>
+          <strong>FY{activePoint.fiscalYear}</strong>
+        </div>
+        <div>
+          <span>Revenue</span>
+          <strong>{billions(activePoint.revenue)}</strong>
+        </div>
+        <div>
+          <span>Free cash flow</span>
+          <strong>{billions(activePoint.freeCashFlow)}</strong>
+        </div>
+        <div>
+          <span>Gross margin</span>
+          <strong>{activePoint.grossMargin.toFixed(1)}%</strong>
+        </div>
+        <div>
+          <span>Operating margin</span>
+          <strong>{activePoint.operatingMargin.toFixed(1)}%</strong>
+        </div>
+        <div>
+          <span>FCF margin</span>
+          <strong>{activePoint.fcfMargin.toFixed(1)}%</strong>
+        </div>
+        <div>
+          <span>Diluted EPS</span>
+          <strong>${activePoint.dilutedEps.toFixed(2)}</strong>
+        </div>
+        <div>
+          <span>Diluted shares</span>
+          <strong>{activePoint.dilutedShares.toFixed(1)}M</strong>
         </div>
       </div>
 
@@ -262,7 +381,7 @@ export function HistoricalFinancials({ ticker }: { ticker: string }) {
             </div>
             <small>USD · billions</small>
           </div>
-          <BarChart points={points} />
+          <BarChart points={points} selectedYear={selectedYear} onSelect={setSelectedYear} />
         </article>
 
         <article className="historicalChartCard wideChartCard">
@@ -273,7 +392,7 @@ export function HistoricalFinancials({ ticker }: { ticker: string }) {
             </div>
             <small>Percent of revenue</small>
           </div>
-          <MultiLineMargins points={points} />
+          <MultiLineMargins points={points} selectedYear={selectedYear} onSelect={setSelectedYear} />
         </article>
 
         <article className="historicalChartCard">
@@ -282,7 +401,7 @@ export function HistoricalFinancials({ ticker }: { ticker: string }) {
               <span>Per-share economics</span>
               <h3>Diluted EPS</h3>
             </div>
-            <strong>${last.dilutedEps.toFixed(2)}</strong>
+            <strong>${activePoint.dilutedEps.toFixed(2)}</strong>
           </div>
           <SingleLineChart
             points={points}
@@ -291,6 +410,8 @@ export function HistoricalFinancials({ ticker }: { ticker: string }) {
             axisFormatter={(v) => `$${v.toFixed(1)}`}
             className="epsLine"
             ariaLabel="Diluted EPS history"
+            selectedYear={selectedYear}
+            onSelect={setSelectedYear}
           />
         </article>
 
@@ -301,7 +422,7 @@ export function HistoricalFinancials({ ticker }: { ticker: string }) {
                 <span>Capital returns</span>
                 <h3>ROIC</h3>
               </div>
-              <strong>{last.roic == null ? "—" : `${last.roic.toFixed(1)}%`}</strong>
+              <strong>{activePoint.roic == null ? "—" : `${activePoint.roic.toFixed(1)}%`}</strong>
             </div>
             <SingleLineChart
               points={points}
@@ -310,6 +431,8 @@ export function HistoricalFinancials({ ticker }: { ticker: string }) {
               axisFormatter={(v) => `${v.toFixed(0)}%`}
               className="roicLine"
               ariaLabel="Return on invested capital history"
+              selectedYear={selectedYear}
+              onSelect={setSelectedYear}
             />
           </article>
         ) : (
@@ -319,7 +442,7 @@ export function HistoricalFinancials({ ticker }: { ticker: string }) {
                 <span>Cash economics</span>
                 <h3>Free cash flow</h3>
               </div>
-              <strong>{compact(last.freeCashFlow)}</strong>
+              <strong>{billions(activePoint.freeCashFlow)}</strong>
             </div>
             <SingleLineChart
               points={points}
@@ -328,6 +451,8 @@ export function HistoricalFinancials({ ticker }: { ticker: string }) {
               axisFormatter={(v) => billions(v)}
               className="roicLine"
               ariaLabel="Free cash flow history"
+              selectedYear={selectedYear}
+              onSelect={setSelectedYear}
             />
           </article>
         )}
@@ -338,7 +463,7 @@ export function HistoricalFinancials({ ticker }: { ticker: string }) {
               <span>Ownership base</span>
               <h3>Diluted share count</h3>
             </div>
-            <strong>{last.dilutedShares.toFixed(0)}M</strong>
+            <strong>{activePoint.dilutedShares.toFixed(1)}M</strong>
           </div>
           <SingleLineChart
             points={points}
@@ -347,6 +472,8 @@ export function HistoricalFinancials({ ticker }: { ticker: string }) {
             axisFormatter={(v) => `${v.toFixed(0)}M`}
             className="sharesLine"
             ariaLabel="Diluted share count history"
+            selectedYear={selectedYear}
+            onSelect={setSelectedYear}
           />
         </article>
       </div>
