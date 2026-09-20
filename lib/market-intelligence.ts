@@ -165,7 +165,111 @@ const deck: CompanyIntelligence = {
   },
 };
 
+
+const adbe: CompanyIntelligence = {
+  ticker: "ADBE",
+  updatedAt: "2026-09-20T06:10:00Z",
+  smartMoney: [
+    {
+      manager: "AQR Capital Management",
+      investor: "Cliff Asness",
+      shares: 3928010,
+      value: 805006000,
+      changePct: null,
+      reportDate: "2026-06-30",
+      sourceUrl: "https://www.holdingschannel.com/institutional/holders-of-adobe-systems/",
+    },
+    {
+      manager: "Citadel Advisors",
+      investor: "Ken Griffin",
+      shares: 868358,
+      value: 178031000,
+      changePct: null,
+      reportDate: "2026-06-30",
+      sourceUrl: "https://www.holdingschannel.com/institutional/holders-of-adobe-systems/",
+    },
+    {
+      manager: "Dodge & Cox",
+      investor: "Dodge & Cox",
+      shares: 3114932,
+      value: 638623000,
+      changePct: null,
+      reportDate: "2026-06-30",
+      sourceUrl: "https://www.holdingschannel.com/institutional/holders-of-adobe-systems/",
+    },
+    {
+      manager: "Primecap Management",
+      investor: "PRIMECAP",
+      shares: 5227139,
+      value: 1071668000,
+      changePct: null,
+      reportDate: "2026-06-30",
+      sourceUrl: "https://www.holdingschannel.com/institutional/holders-of-adobe-systems/",
+    },
+  ],
+  congress: [
+    {
+      politician: "Donald Trump",
+      chamber: "President",
+      partyState: "R",
+      action: "Purchase",
+      amountRange: "$500,001–$1,000,000",
+      tradeDate: "2026-06-18",
+      filingDate: "2026-08-22",
+      sourceUrl: "https://www.quiverquant.com/Donald-Trump-Stock-Trades/trade/Trump-4987",
+    },
+    {
+      politician: "Kevin Hern",
+      chamber: "House",
+      partyState: "R-OK",
+      action: "Sale",
+      amountRange: "$15,001–$50,000",
+      tradeDate: "2026-08-14",
+      filingDate: "2026-09-01",
+      sourceUrl: "https://www.quiverquant.com/congresstrading/stock/ADBE",
+    },
+    {
+      politician: "Ro Khanna",
+      chamber: "House",
+      partyState: "D-CA",
+      action: "Purchase",
+      amountRange: "$1,001–$15,000",
+      tradeDate: "2026-08-10",
+      filingDate: "2026-09-04",
+      sourceUrl: "https://www.quiverquant.com/congresstrading/stock/ADBE",
+    },
+    {
+      politician: "Gilbert Cisneros",
+      chamber: "House",
+      partyState: "D-CA",
+      action: "Sale",
+      amountRange: "$1,001–$15,000",
+      tradeDate: "2026-07-24",
+      filingDate: "2026-09-04",
+      sourceUrl: "https://www.quiverquant.com/congresstrading/stock/ADBE",
+    },
+  ],
+  insiders: [
+    {
+      insider: "Shantanu Narayen",
+      title: "Chair and CEO",
+      action: "Sell",
+      shares: 75000,
+      price: 243.54,
+      value: 18265234.27,
+      tradeDate: "2026-04-28",
+      sourceUrl: "https://www.sec.gov/Archives/edgar/data/796343/000079634326000105/xslF345X03/wk-form4_1777583385.xml",
+    },
+  ],
+  notes: {
+    smartMoney: "13F positions are delayed disclosures. They show reported long U.S. equity positions as of the quarter end, not real-time holdings.",
+    congress: "Political transaction disclosures can be filed after the trade date. SOLPIENT shows both dates and does not treat the activity as an investment recommendation.",
+    insiders: "The listed Adobe insider transaction is an open-market sale. Routine vesting and shares withheld for taxes are excluded from this view.",
+  },
+};
+
 const intelligenceByTicker: Record<string, CompanyIntelligence> = {
+  ADBE: adbe,
   DECK: deck,
 };
 
