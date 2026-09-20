@@ -7,7 +7,10 @@ on:
       - "data/research/**/*.json"
       - "scripts/import-research.mjs"
       - "scripts/test-research-changes.mjs"
+      - "scripts/test-research-standard.mjs"
+      - "scripts/validate-research-standard.mjs"
       - "lib/research-changes.mjs"
+      - "lib/research-standard-v1.mjs"
       - "supabase/migrations/**"
   workflow_dispatch:
 
@@ -29,8 +32,10 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Test research change engine
-        run: npm run test:changes
+      - name: Test research engines
+        run: |
+          npm run test:changes
+          npm run test:standard
 
       - name: Import research files
         env:
