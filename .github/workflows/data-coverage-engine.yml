@@ -5,11 +5,14 @@ on:
     branches: [main]
     paths:
       - "lib/sec-companyfacts.mjs"
-      - "lib/data-coverage-engine.mjs"\n      - "lib/yahoo-fundamentals.mjs"
+      - "lib/data-coverage-engine.mjs"
+      - "lib/yahoo-fundamentals.mjs"
       - "lib/baseline-factory.mjs"
       - "lib/historical-peer-engine.mjs"
       - "scripts/sync-sec-companyfacts-backfill.mjs"
-      - "scripts/sync-market-history.mjs"\n      - "scripts/sync-yahoo-fundamentals-fallback.mjs"\n      - "scripts/test-yahoo-fundamentals.mjs"
+      - "scripts/sync-market-history.mjs"
+      - "scripts/sync-yahoo-fundamentals-fallback.mjs"
+      - "scripts/test-yahoo-fundamentals.mjs"
       - "scripts/build-data-coverage.mjs"
       - "scripts/refresh-generated-baselines.mjs"
       - "scripts/test-data-coverage-engine.mjs"
