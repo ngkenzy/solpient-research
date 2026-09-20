@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { getSupabase } from "@/lib/supabase";
-import { getAllCompanyIntelligence } from "@/lib/market-intelligence";
 import { CapitalActivity, type CapitalActivityItem } from "@/components/CapitalActivity";
 import styles from "./home.module.css";
 import { SolpientBrand } from "@/components/SolpientBrand";
@@ -79,92 +78,73 @@ function uniqueFilings(rows: any[], companyById: Map<string, any>) {
   return output;
 }
 
-function buildCapitalActivity(companyByTicker: Map<string, any>): CapitalActivityItem[] {
-  const items: (CapitalActivityItem & { sortDate: string })[] = [];
+function buildCapitalActivity(rows: any[], companyById: Map<string, any>): CapitalActivityItem[] {
+  return rows
+    .map((row): (CapitalActivityItem & { sortDate: string }) | null => {
+      const company = companyById.get(row.company_id);
+      if (!company) return null;
 
-  for (const intelligence of getAllCompanyIntelligence()) {
-    const company = companyByTicker.get(intelligence.ticker);
-    const companyName = company?.company_name ?? intelligence.ticker;
+      const category =
+        row.activity_type === "insider"
+          ? "insiders"
+          : row.activity_type === "political"
+            ? "congress"
+            : "investors";
 
-    intelligence.smartMoney.forEach((holding, index) => {
-      const action =
-        holding.changePct == null
-          ? "Reported"
-          : holding.changePct > 0
-            ? "Increased"
-            : holding.changePct < 0
-              ? "Reduced"
-              : "Unchanged";
-      items.push({
-        id: intelligence.ticker + "-investor-" + index,
-        ticker: intelligence.ticker,
-        company: companyName,
-        category: "investors",
-        actor: holding.investor ?? holding.manager,
-        action,
-        detail:
-          holding.manager +
-          " reported " +
-          new Intl.NumberFormat("en-US").format(holding.shares) +
-          " shares · " +
-          compactMoney(holding.value),
-        dateLabel: "Position reported as of " + displayDate(holding.reportDate, true),
-        sourceUrl: holding.sourceUrl,
-        tone:
-          holding.changePct == null || holding.changePct === 0
-            ? "neutral"
-            : holding.changePct > 0
-              ? "positive"
-              : "negative",
-        sortDate: holding.reportDate,
-      });
-    });
+      let detail = row.actor_detail ?? row.activity_type;
+      let dateLabel = "Recorded " + displayDate(row.created_at, true);
+      let sortDate = row.created_at ?? "";
 
-    intelligence.insiders.forEach((trade, index) => {
-      items.push({
-        id: intelligence.ticker + "-insider-" + index,
-        ticker: intelligence.ticker,
-        company: companyName,
-        category: "insiders",
-        actor: trade.insider,
-        action: trade.action,
-        detail:
-          (trade.title ?? "Insider") +
-          " · " +
-          new Intl.NumberFormat("en-US").format(trade.shares) +
-          " shares at $" +
-          trade.price.toFixed(2),
-        dateLabel: "Transaction " + displayDate(trade.tradeDate, true),
-        sourceUrl: trade.sourceUrl,
-        tone: trade.action === "Buy" ? "positive" : "negative",
-        sortDate: trade.tradeDate,
-      });
-    });
+      if (row.activity_type === "institutional") {
+        const shares = num(row.shares);
+        const value = num(row.value);
+        detail =
+          (row.actor_detail ?? "Institution") +
+          (shares != null ? " · " + new Intl.NumberFormat("en-US").format(shares) + " shares" : "") +
+          (value != null ? " · " + compactMoney(value) : "");
+        dateLabel = row.position_date
+          ? "Position reported as of " + displayDate(row.position_date, true)
+          : "Ownership disclosure";
+        sortDate = row.disclosure_date ?? row.position_date ?? row.created_at ?? "";
+      } else if (row.activity_type === "insider") {
+        const shares = num(row.shares);
+        const price = num(row.price);
+        detail =
+          (row.actor_detail ?? "Insider") +
+          (shares != null ? " · " + new Intl.NumberFormat("en-US").format(shares) + " shares" : "") +
+          (price != null ? " at $" + price.toFixed(2) : "");
+        dateLabel = row.transaction_date
+          ? "Transaction " + displayDate(row.transaction_date, true)
+          : "Insider disclosure";
+        sortDate = row.disclosure_date ?? row.transaction_date ?? row.created_at ?? "";
+      } else {
+        detail = (row.actor_detail ?? "Political disclosure") + (row.amount_range ? " · " + row.amount_range : "");
+        dateLabel =
+          (row.transaction_date ? "Traded " + displayDate(row.transaction_date, true) : "Trade date unavailable") +
+          (row.disclosure_date ? " · filed " + displayDate(row.disclosure_date, true) : "");
+        sortDate = row.disclosure_date ?? row.transaction_date ?? row.created_at ?? "";
+      }
 
-    intelligence.congress.forEach((trade, index) => {
-      items.push({
-        id: intelligence.ticker + "-congress-" + index,
-        ticker: intelligence.ticker,
-        company: companyName,
-        category: "congress",
-        actor: trade.politician,
-        action: trade.action,
-        detail: trade.chamber + " disclosure · " + trade.amountRange,
-        dateLabel:
-          "Traded " +
-          displayDate(trade.tradeDate, true) +
-          " · filed " +
-          displayDate(trade.filingDate, true),
-        sourceUrl: trade.sourceUrl,
-        tone: trade.action === "Purchase" ? "positive" : "negative",
-        sortDate: trade.filingDate,
-      });
-    });
-  }
+      const positive = ["Buy", "Purchase", "Increased"].includes(row.action);
+      const negative = ["Sell", "Sale", "Reduced"].includes(row.action);
 
-  return items
-    .sort((a, b) => b.sortDate.localeCompare(a.sortDate))
-    .map(({ sortDate: _sortDate, ...item }) => item);
+      return {
+        id: row.id,
+        ticker: company.ticker,
+        company: company.company_name,
+        category,
+        actor: row.actor_name,
+        action: row.action,
+        detail,
+        dateLabel,
+        sourceUrl: row.source_url ?? "#",
+        tone: positive ? "positive" : negative ? "negative" : "neutral",
+        sortDate,
+      };
+    })
+    .filter(Boolean)
+    .sort((a: any, b: any) => String(b.sortDate).localeCompare(String(a.sortDate)))
+    .map(({ sortDate: _sortDate, ...item }: any) => item);
 }
 
 function Icon({ children }: { children: React.ReactNode }) {
@@ -193,6 +173,9 @@ export default async function Home() {
     marketResult,
     filingsResult,
     rankingResult,
+    capitalResult,
+    eventsResult,
+    rankingExplanationsResult,
     predictionsResult,
     predictionScoresResult,
     automationResult,
@@ -216,7 +199,22 @@ export default async function Home() {
       .from("ranking_history")
       .select("company_id,ranked_at,rank,overall_score,price,base_fair_value")
       .order("ranked_at", { ascending: false })
-      .limit(100),
+      .limit(200),
+    supabase
+      .from("capital_activity")
+      .select("id,company_id,activity_type,actor_name,actor_detail,action,shares,price,value,change_pct,amount_range,transaction_date,disclosure_date,position_date,source_url,provider,created_at")
+      .order("created_at", { ascending: false })
+      .limit(250),
+    supabase
+      .from("intelligence_events")
+      .select("id,company_id,source_kind,event_type,occurred_at,disclosed_at,title,summary,materiality,review_status,research_run_id,source_url,created_at")
+      .order("disclosed_at", { ascending: false, nullsFirst: false })
+      .limit(150),
+    supabase
+      .from("ranking_explanations")
+      .select("company_id,previous_rank,rank_delta,score_delta,price_delta_pct,valuation_gap_delta_pct,explanation,created_at")
+      .order("created_at", { ascending: false })
+      .limit(200),
     supabase
       .from("prediction_snapshots")
       .select("id,company_id,prediction_key,predicted_at,horizon_months,thesis_status,confidence")
@@ -237,7 +235,6 @@ export default async function Home() {
   const companies = companiesResult.data ?? [];
   const runs = runsResult.data ?? [];
   const companyById = new Map(companies.map((company: any) => [company.id, company]));
-  const companyByTicker = new Map(companies.map((company: any) => [company.ticker, company]));
 
   const latestRunByCompany = new Map<string, any>();
   for (const run of runs) {
@@ -314,16 +311,29 @@ export default async function Home() {
     (filing) => new Date(filing.filed_at + "T00:00:00Z") >= recentCutoff,
   );
 
-  const needsAttention = filings.filter((filing) => {
-    const latestRun = latestRunByCompany.get(filing.company_id);
-    if (!latestRun) return true;
-    return (
-      new Date(filing.filed_at + "T23:59:59Z").getTime() >
-      new Date(latestRun.researched_at).getTime()
-    );
-  });
+  const intelligenceEvents = (eventsResult.data ?? []).map((event: any) => ({
+    ...event,
+    company: companyById.get(event.company_id),
+  })).filter((event: any) => event.company);
 
-  const capitalItems = buildCapitalActivity(companyByTicker);
+  const recentChanges = intelligenceEvents
+    .filter((event: any) => event.source_kind !== "capital_activity")
+    .slice(0, 8);
+
+  const needsAttention = intelligenceEvents.filter(
+    (event: any) =>
+      event.review_status === "open" &&
+      (event.materiality === "review" || event.materiality === "high"),
+  );
+
+  const capitalItems = buildCapitalActivity(capitalResult.data ?? [], companyById);
+
+  const rankingExplanationByCompany = new Map<string, any>();
+  for (const row of rankingExplanationsResult.data ?? []) {
+    if (!rankingExplanationByCompany.has(row.company_id)) {
+      rankingExplanationByCompany.set(row.company_id, row);
+    }
+  }
   const predictions = predictionsResult.data ?? [];
   const predictionScores = predictionScoresResult.data ?? [];
   const directionScores = predictionScores.filter((score: any) => score.direction_correct != null);
@@ -395,13 +405,14 @@ export default async function Home() {
 
             <div className={styles.rankHeader}>
               <span>#</span><span>Company</span><span>Score</span><span>Price</span>
-              <span>Base value</span><span>Valuation</span><span>Change</span>
+              <span>Base value</span><span>Valuation</span><span>Change</span><span>Why</span>
             </div>
 
             <div className={styles.rankList}>
               {ranked.length ? ranked.slice(0, 6).map((item: any, index: number) => {
                 const valuation = valuationText(item.gap);
-                const delta = rankDelta(item.company.id);
+                const why = rankingExplanationByCompany.get(item.company.id);
+                const delta = why?.rank_delta ?? rankDelta(item.company.id);
                 return (
                   <Link className={styles.rankRow} href={"/research/" + item.company.ticker} key={item.company.id}>
                     <span className={styles.rankNumber}>{index + 1}</span>
@@ -416,6 +427,7 @@ export default async function Home() {
                     <span className={delta == null ? styles.neutralText : delta > 0 ? styles.positiveText : styles.negativeText}>
                       {delta == null ? "—" : delta > 0 ? "↑ " + delta : "↓ " + Math.abs(delta)}
                     </span>
+                    <span className={styles.rankWhy}>{why?.explanation ?? "No prior ranking movement to explain yet."}</span>
                   </Link>
                 );
               }) : (
@@ -447,18 +459,28 @@ export default async function Home() {
               <Link href="/research">View research →</Link>
             </div>
             <div className={styles.changeList}>
-              {recentFilings.slice(0, 6).map((filing: any) => (
-                <a className={styles.changeRow} href={filing.filing_url} target="_blank" rel="noreferrer" key={filing.id}>
-                  <div className={styles.tickerMark}>{filing.company.ticker}</div>
-                  <div>
-                    <strong>New {filing.form_type} filed</strong>
-                    <p>{filing.company.company_name} added a new primary-source filing to the monitoring queue.</p>
-                    <span>Filed {displayDate(filing.filed_at, true)} · Review before changing the thesis</span>
-                  </div>
-                  <span>↗</span>
-                </a>
-              ))}
-              {!recentFilings.length ? <div className={styles.emptyCompact}>No new tracked filings in the last 14 days.</div> : null}
+              {recentChanges.slice(0, 6).map((event: any) => {
+                const href = event.source_url ?? (event.research_run_id ? "/research/" + event.company.ticker : "/alerts");
+                const external = Boolean(event.source_url);
+                return (
+                  <a
+                    className={styles.changeRow}
+                    href={href}
+                    target={external ? "_blank" : undefined}
+                    rel={external ? "noreferrer" : undefined}
+                    key={event.id}
+                  >
+                    <div className={styles.tickerMark}>{event.company.ticker}</div>
+                    <div>
+                      <strong>{event.title}</strong>
+                      <p>{event.summary ?? "New evidence entered the Solpient research queue."}</p>
+                      <span>{displayDate(event.disclosed_at ?? event.occurred_at ?? event.created_at, true)} · {event.review_status === "incorporated" ? "Incorporated into research" : "Review queue"}</span>
+                    </div>
+                    <span>↗</span>
+                  </a>
+                );
+              })}
+              {!recentChanges.length ? <div className={styles.emptyCompact}>No new evidence changes are waiting to be shown.</div> : null}
             </div>
           </section>
 
@@ -504,12 +526,17 @@ export default async function Home() {
               <Link href="/alerts">View alerts →</Link>
             </div>
             <div className={styles.attentionList}>
-              {needsAttention.slice(0, 7).map((filing: any) => (
-                <a href={filing.filing_url} target="_blank" rel="noreferrer" key={filing.id}>
+              {needsAttention.slice(0, 7).map((event: any) => (
+                <a
+                  href={event.source_url ?? ("/research/" + event.company.ticker)}
+                  target={event.source_url ? "_blank" : undefined}
+                  rel={event.source_url ? "noreferrer" : undefined}
+                  key={event.id}
+                >
                   <span className={styles.attentionDot}>!</span>
-                  <strong>{filing.company.ticker}</strong>
-                  <p>{filing.form_type} filed after latest published research</p>
-                  <small>{displayDate(filing.filed_at)}</small>
+                  <strong>{event.company.ticker}</strong>
+                  <p>{event.title}</p>
+                  <small>{displayDate(event.disclosed_at ?? event.occurred_at ?? event.created_at)}</small>
                 </a>
               ))}
               {!needsAttention.length ? <div className={styles.emptyCompact}>No unreviewed filings in the current queue.</div> : null}
