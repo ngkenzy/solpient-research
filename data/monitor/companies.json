@@ -2,13 +2,199 @@
   {
     "ticker": "ADBE",
     "company_name": "Adobe Inc.",
-    "cik": "0000796343",
-    "forms": ["10-K", "10-Q", "8-K"]
+    "forms": [
+      "10-K",
+      "10-Q",
+      "8-K"
+    ]
   },
   {
     "ticker": "DECK",
     "company_name": "Deckers Outdoor Corporation",
-    "cik": "0000910521",
-    "forms": ["10-K", "10-Q", "8-K"]
+    "forms": [
+      "10-K",
+      "10-Q",
+      "8-K"
+    ]
+  },
+  {
+    "ticker": "FDS",
+    "company_name": "FactSet Research Systems Inc.",
+    "forms": [
+      "10-K",
+      "10-Q",
+      "8-K"
+    ]
+  },
+  {
+    "ticker": "GMED",
+    "company_name": "Globus Medical, Inc.",
+    "forms": [
+      "10-K",
+      "10-Q",
+      "8-K"
+    ]
+  },
+  {
+    "ticker": "CRM",
+    "company_name": "Salesforce, Inc.",
+    "forms": [
+      "10-K",
+      "10-Q",
+      "8-K"
+    ]
+  },
+  {
+    "ticker": "MCK",
+    "company_name": "McKesson Corporation",
+    "forms": [
+      "10-K",
+      "10-Q",
+      "8-K"
+    ]
+  },
+  {
+    "ticker": "BLBD",
+    "company_name": "Blue Bird Corporation",
+    "forms": [
+      "10-K",
+      "10-Q",
+      "8-K"
+    ]
+  },
+  {
+    "ticker": "GOOGL",
+    "company_name": "Alphabet Inc.",
+    "forms": [
+      "10-K",
+      "10-Q",
+      "8-K"
+    ]
+  },
+  {
+    "ticker": "META",
+    "company_name": "Meta Platforms, Inc.",
+    "forms": [
+      "10-K",
+      "10-Q",
+      "8-K"
+    ]
+  },
+  {
+    "ticker": "MSFT",
+    "company_name": "Microsoft Corporation",
+    "forms": [
+      "10-K",
+      "10-Q",
+      "8-K"
+    ]
+  },
+  {
+    "ticker": "MA",
+    "company_name": "Mastercard Incorporated",
+    "forms": [
+      "10-K",
+      "10-Q",
+      "8-K"
+    ]
+  },
+  {
+    "ticker": "ICE",
+    "company_name": "Intercontinental Exchange, Inc.",
+    "forms": [
+      "10-K",
+      "10-Q",
+      "8-K"
+    ]
+  },
+  {
+    "ticker": "JPM",
+    "company_name": "JPMorgan Chase & Co.",
+    "forms": [
+      "10-K",
+      "10-Q",
+      "8-K"
+    ]
+  },
+  {
+    "ticker": "BSY",
+    "company_name": "Bentley Systems, Incorporated",
+    "forms": [
+      "10-K",
+      "10-Q",
+      "8-K"
+    ]
+  },
+  {
+    "ticker": "DCI",
+    "company_name": "Donaldson Company, Inc.",
+    "forms": [
+      "10-K",
+      "10-Q",
+      "8-K"
+    ]
+  },
+  {
+    "ticker": "AOS",
+    "company_name": "A. O. Smith Corporation",
+    "forms": [
+      "10-K",
+      "10-Q",
+      "8-K"
+    ]
+  },
+  {
+    "ticker": "DPZ",
+    "company_name": "Domino's Pizza, Inc.",
+    "forms": [
+      "10-K",
+      "10-Q",
+      "8-K"
+    ]
+  },
+  {
+    "ticker": "ALSN",
+    "company_name": "Allison Transmission Holdings, Inc.",
+    "forms": [
+      "10-K",
+      "10-Q",
+      "8-K"
+    ]
+  },
+  {
+    "ticker": "POWL",
+    "company_name": "Powell Industries, Inc.",
+    "forms": [
+      "10-K",
+      "10-Q",
+      "8-K"
+    ]
+  },
+  {
+    "ticker": "TILE",
+    "company_name": "Interface, Inc.",
+    "forms": [
+      "10-K",
+      "10-Q",
+      "8-K"
+    ]
+  },
+  {
+    "ticker": "GIC",
+    "company_name": "Global Industrial Company",
+    "forms": [
+      "10-K",
+      "10-Q",
+      "8-K"
+    ]
+  },
+  {
+    "ticker": "ESQ",
+    "company_name": "Esquire Financial Holdings, Inc.",
+    "forms": [
+      "10-K",
+      "10-Q",
+      "8-K"
+    ]
   }
 ]
