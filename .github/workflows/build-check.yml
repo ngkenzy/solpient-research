@@ -39,6 +39,7 @@ jobs:
           npm run test:coverage
           npm run test:composer
           npm run test:capital-intelligence
+          npm run test:capital-orchestrator
 
       - name: Build Next.js
         env:
