@@ -20,6 +20,32 @@ function asNumber(value: unknown) {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+function providerRank(provider?: string | null) {
+  return ({
+    web_verified: 100,
+    sec_form4: 95,
+    sec_13f: 95,
+    sec_direct: 95,
+    financial_datasets: 90,
+    quiver: 85,
+    fmp: 75,
+    alpha_vantage: 65,
+    legacy_seed: 30,
+    manual: 20,
+  } as Record<string, number>)[provider ?? ""] ?? 0;
+}
+
+function activityIdentity(row: any) {
+  return [
+    row.activity_type,
+    String(row.actor_name ?? "").toLowerCase(),
+    String(row.action ?? "").toLowerCase(),
+    row.transaction_date ?? row.position_date ?? row.disclosure_date ?? "",
+    row.shares ?? "",
+    row.amount_range ?? "",
+  ].join("|");
+}
+
 function date(value?: string | null) {
   if (!value) return "Date unavailable";
   return new Date(value + (value.includes("T") ? "" : "T00:00:00Z")).toLocaleDateString("en-US", {
@@ -58,30 +84,39 @@ export async function CompanyIntelligence({ ticker }: { ticker: string }) {
     .eq("feed_type", "all")
     .order("updated_at", { ascending: false });
 
-  const institutionalAll = rows
+  const dedupedRows = [...rows]
+    .sort((a, b) =>
+      providerRank(b.provider) - providerRank(a.provider) ||
+      String(b.verified_at ?? b.created_at).localeCompare(String(a.verified_at ?? a.created_at))
+    )
+    .filter((row, index, array) =>
+      array.findIndex((item) => activityIdentity(item) === activityIdentity(row)) === index
+    );
+
+  const institutionalAll = dedupedRows
     .filter((row) => row.activity_type === "institutional")
     .sort((a, b) => String(b.position_date ?? b.disclosure_date ?? b.created_at).localeCompare(String(a.position_date ?? a.disclosure_date ?? a.created_at)));
   const institutional = institutionalAll.filter((row, index, array) =>
     array.findIndex((item) => item.actor_name === row.actor_name && item.actor_detail === row.actor_detail) === index
   );
-  const political = rows
+  const political = dedupedRows
     .filter((row) => row.activity_type === "political")
     .sort((a, b) => String(b.disclosure_date ?? b.transaction_date ?? b.created_at).localeCompare(String(a.disclosure_date ?? a.transaction_date ?? a.created_at)));
-  const insiders = rows
+  const insiders = dedupedRows
     .filter((row) => row.activity_type === "insider")
     .sort((a, b) => String(b.disclosure_date ?? b.transaction_date ?? b.created_at).localeCompare(String(a.disclosure_date ?? a.transaction_date ?? a.created_at)));
 
-  const latest = rows
+  const latest = dedupedRows
     .map((row) => row.disclosure_date ?? row.transaction_date ?? row.position_date ?? row.created_at)
     .filter(Boolean)
     .sort()
     .at(-1);
-  const latestVerified = rows
+  const latestVerified = dedupedRows
     .map((row) => row.verified_at ?? row.created_at)
     .filter(Boolean)
     .sort()
     .at(-1);
-  const providers = [...new Set(rows.map((row) => row.provider).filter(Boolean))];
+  const providers = [...new Set(dedupedRows.map((row) => row.provider).filter(Boolean))];
   const providerStatus = (providerHealth ?? [])
     .filter((row) => ["healthy", "degraded", "blocked", "stale"].includes(row.status))
     .slice(0, 4);
