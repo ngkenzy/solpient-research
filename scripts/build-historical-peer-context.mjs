@@ -13,6 +13,7 @@ const sb=createClient(url,secret,{auth:{persistSession:false,autoRefreshToken:fa
 const asOfDate=process.env.CONTEXT_AS_OF_DATE??new Date().toISOString().slice(0,10);
 const outputFlag=process.argv.indexOf("--output");
 const outputPath=outputFlag>=0?process.argv[outputFlag+1]:null;
+const onlyTicker=process.env.COVERAGE_TICKER?String(process.env.COVERAGE_TICKER).toUpperCase():null;
 
 const {data:companies,error:companiesError}=await sb
   .from("companies")
@@ -21,6 +22,7 @@ const {data:companies,error:companiesError}=await sb
 if(companiesError)throw companiesError;
 
 const tracked=new Set((companies??[]).map(c=>c.ticker));
+const selected=(companies??[]).filter(c=>!onlyTicker||c.ticker===onlyTicker);
 const results=new Map();
 
 async function upsertRows(table,rows,onConflict){
@@ -31,7 +33,7 @@ async function upsertRows(table,rows,onConflict){
   }
 }
 
-for(const company of companies??[]){
+for(const company of selected){
   const [fundR,marketR]=await Promise.all([
     sb.from("fundamental_snapshots").select("*").eq("company_id",company.id).order("period_end",{ascending:false}).limit(160),
     sb.from("market_snapshots").select("*").eq("company_id",company.id).order("trading_date",{ascending:false}).limit(3200),
@@ -61,7 +63,7 @@ for(const company of companies??[]){
 const latestByTicker=new Map([...results.entries()].map(([ticker,result])=>[ticker,latestMetricMap(result)]));
 const summary=[];
 
-for(const company of companies??[]){
+for(const company of selected){
   const result=results.get(company.ticker);
   const peerContext=buildPeerContext({company,trackedCompanies:tracked,latestByTicker,asOfDate});
   await upsertRows("peer_metric_snapshots",peerContext.snapshotRows,"company_id,peer_ticker,metric_key,as_of_date");
