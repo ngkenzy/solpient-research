@@ -1,0 +1,35 @@
+name: SOLPIENT Decision Trigger Engine
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "52 */6 * * *"
+  push:
+    branches: [main]
+    paths:
+      - "lib/decision-trigger-engine.mjs"
+      - "scripts/build-decision-triggers.mjs"
+      - ".github/workflows/decision-trigger-engine.yml"
+
+concurrency:
+  group: solpient-decision-trigger-engine
+  cancel-in-progress: false
+
+jobs:
+  triggers:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+      - name: Test trigger rules
+        run: npm run test:decision-triggers
+      - name: Evaluate decision triggers
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: npm run decision:triggers
