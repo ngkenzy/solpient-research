@@ -19,6 +19,7 @@ import {
   type TransactionDirection,
 } from "@/lib/money-v2";
 import type { FinancialProfile } from "@/lib/financial-planner";
+import { askLocalMoneyAI, buildRulesMoneyExplanation, loadLocalMoneyAI, localAISupported, localAIModelLabel } from "@/lib/local-money-ai";
 import styles from "./money.module.css";
 
 const STORAGE_KEY = "solpient.money.profile.v2";
@@ -128,7 +129,12 @@ export default function MoneyPage() {
   const [coachQuestion, setCoachQuestion] = useState("");
   const [coachAnswer, setCoachAnswer] = useState("");
   const [coachLoading, setCoachLoading] = useState(false);
-  const [coachSource, setCoachSource] = useState<"ai" | "rules" | "">("");
+  const [coachSource, setCoachSource] = useState<"local" | "cloud" | "rules" | "">("");
+  const [coachMode, setCoachMode] = useState<"local" | "cloud" | "rules">("local");
+  const [localSupported, setLocalSupported] = useState(false);
+  const [localStatus, setLocalStatus] = useState<"checking" | "unsupported" | "idle" | "loading" | "ready" | "error">("checking");
+  const [localProgress, setLocalProgress] = useState(0);
+  const [localProgressText, setLocalProgressText] = useState("Checking this device…");
 
   useEffect(() => {
     try {
@@ -145,6 +151,13 @@ export default function MoneyPage() {
     } finally {
       setLoaded(true);
     }
+  }, []);
+
+  useEffect(() => {
+    const supported = localAISupported();
+    setLocalSupported(supported);
+    setLocalStatus(supported ? "idle" : "unsupported");
+    setLocalProgressText(supported ? "Ready to download on this device" : "WebGPU is not available in this browser");
   }, []);
 
   useEffect(() => {
@@ -213,6 +226,25 @@ export default function MoneyPage() {
     });
   };
 
+  const prepareLocalAI = async () => {
+    if (!localSupported || localStatus === "loading" || localStatus === "ready") return;
+    setLocalStatus("loading");
+    setLocalProgress(0);
+    setLocalProgressText("Starting Private AI…");
+    try {
+      await loadLocalMoneyAI((report) => {
+        setLocalProgress(report.progress);
+        setLocalProgressText(report.text);
+      });
+      setLocalProgress(1);
+      setLocalProgressText("Private AI ready");
+      setLocalStatus("ready");
+    } catch (error) {
+      setLocalStatus("error");
+      setLocalProgressText(error instanceof Error ? error.message : "Private AI could not start on this device.");
+    }
+  };
+
   const askCoach = async (question = coachQuestion) => {
     const cleanQuestion = question.trim();
     if (!cleanQuestion || coachLoading) return;
@@ -220,14 +252,54 @@ export default function MoneyPage() {
     setCoachLoading(true);
     setCoachAnswer("");
     setCoachSource("");
+
+    const summary = buildCoachSummary(analysis);
+
     try {
-      const response = await fetch("/api/money/coach", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ question: cleanQuestion, summary: buildCoachSummary(analysis) }) });
+      if (coachMode === "local") {
+        if (!localSupported) {
+          setCoachAnswer("Private AI requires a WebGPU-capable browser. You can still use Rules mode without sending financial context to an AI provider.");
+          setCoachSource("rules");
+          return;
+        }
+        if (localStatus !== "ready") {
+          setCoachAnswer("Enable Private AI first. The model is downloaded and cached in your browser only after you choose to load it.");
+          setCoachSource("rules");
+          return;
+        }
+        const answer = await askLocalMoneyAI(cleanQuestion, summary, (report) => {
+          setLocalProgress(report.progress);
+          setLocalProgressText(report.text);
+        });
+        setCoachAnswer(answer);
+        setCoachSource("local");
+        return;
+      }
+
+      if (coachMode === "rules") {
+        setCoachAnswer(buildRulesMoneyExplanation(cleanQuestion, summary));
+        setCoachSource("rules");
+        return;
+      }
+
+      const response = await fetch("/api/money/coach", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question: cleanQuestion, summary }),
+      });
       const payload = await response.json();
       setCoachAnswer(payload.answer ?? payload.error ?? "Solpient could not explain the plan.");
-      setCoachSource(payload.source === "ai" ? "ai" : "rules");
-    } catch {
-      setCoachAnswer("Solpient could not reach the coach. Your deterministic plan is still available.");
-      setCoachSource("rules");
+      setCoachSource(payload.source === "ai" ? "cloud" : "rules");
+    } catch (error) {
+      if (coachMode === "local") {
+        setCoachAnswer("Private AI stopped unexpectedly. Your financial plan is unchanged; switch to Rules mode or reload the local model.");
+        setCoachSource("rules");
+        setLocalStatus("error");
+        setLocalProgressText(error instanceof Error ? error.message : "Local generation failed.");
+      } else {
+        setCoachAnswer(buildRulesMoneyExplanation(cleanQuestion, summary));
+        setCoachSource("rules");
+      }
     } finally {
       setCoachLoading(false);
     }
@@ -358,16 +430,71 @@ export default function MoneyPage() {
               </section>
 
               <section className={styles.coach}>
-                <div className={styles.coachIntro}><span className={styles.kicker}>ASK SOLPIENT</span><h2>Why is this my next move?</h2><p>The coach explains the deterministic plan. It does not replace the numbers underneath it.</p></div>
+                <div className={styles.coachIntro}>
+                  <span className={styles.kicker}>ASK SOLPIENT</span>
+                  <h2>Private by default.</h2>
+                  <p>Use Qwen locally on this device, switch to cloud AI, or use the zero-AI rules explanation.</p>
+                  <div className={styles.coachModeSwitch}>
+                    <button type="button" data-active={coachMode === "local"} onClick={() => setCoachMode("local")}>Private AI</button>
+                    <button type="button" data-active={coachMode === "cloud"} onClick={() => setCoachMode("cloud")}>Cloud AI</button>
+                    <button type="button" data-active={coachMode === "rules"} onClick={() => setCoachMode("rules")}>Rules</button>
+                  </div>
+                </div>
                 <div className={styles.coachBox}>
+                  {coachMode === "local" ? (
+                    <div className={styles.localAIStatus} data-status={localStatus}>
+                      <div>
+                        <strong>{localAIModelLabel()}</strong>
+                        <span>
+                          {localStatus === "ready"
+                            ? "Running in your browser · no AI API"
+                            : localStatus === "unsupported"
+                              ? "This browser does not expose WebGPU"
+                              : localProgressText}
+                        </span>
+                      </div>
+                      {localStatus === "loading" ? (
+                        <div className={styles.localProgress}>
+                          <i style={{ width: Math.max(2, localProgress * 100) + "%" }} />
+                        </div>
+                      ) : null}
+                      {(localStatus === "idle" || localStatus === "error") && localSupported ? (
+                        <button type="button" onClick={prepareLocalAI}>
+                          {localStatus === "error" ? "Try again" : "Enable Private AI"}
+                        </button>
+                      ) : null}
+                    </div>
+                  ) : coachMode === "cloud" ? (
+                    <div className={styles.modeNote}>
+                      Cloud AI sends only Solpient's privacy-safe summary and calculated action plan—not account names or raw transaction descriptions.
+                    </div>
+                  ) : (
+                    <div className={styles.modeNote}>
+                      Rules mode uses no AI model and makes no AI network request. It explains the deterministic Next Best Dollar sequence directly.
+                    </div>
+                  )}
+
                   <div className={styles.quickQuestions}>
-                    {["Why is this first?", "What improves my score fastest?", "Can I invest more this month?"].map((question) => <button type="button" key={question} onClick={() => askCoach(question)}>{question}</button>)}
+                    {["Why is this first?", "What improves my score fastest?", "Can I invest more this month?"].map((question) => (
+                      <button type="button" key={question} onClick={() => askCoach(question)}>{question}</button>
+                    ))}
                   </div>
                   <div className={styles.coachComposer}>
                     <input value={coachQuestion} onChange={(event) => setCoachQuestion(event.target.value)} placeholder="Ask about your plan…" maxLength={600} />
                     <button type="button" disabled={coachLoading || !coachQuestion.trim()} onClick={() => askCoach()}>{coachLoading ? "…" : "Ask"}</button>
                   </div>
-                  {coachAnswer ? <div className={styles.coachAnswer}><span>{coachSource === "ai" ? "AI explanation" : "Rules explanation"}</span>{coachAnswer}</div> : null}
+                  {coachAnswer ? (
+                    <div className={styles.coachAnswer}>
+                      <span>
+                        {coachSource === "local"
+                          ? "Private AI · on-device"
+                          : coachSource === "cloud"
+                            ? "Cloud AI"
+                            : "Rules explanation"}
+                      </span>
+                      {coachAnswer}
+                    </div>
+                  ) : null}
                 </div>
               </section>
             </div>
