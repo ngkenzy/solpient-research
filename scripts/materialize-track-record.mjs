@@ -27,8 +27,12 @@ function directionCorrect(outcome,actual){
   if(p!=null&&y!=null&&[0,1].includes(y)){
     return (p>=50&&y===1)||(p<50&&y===0);
   }
-  const predicted=n(outcome.predicted_value);
-  if(predicted!=null&&y!=null)return Math.sign(predicted)===Math.sign(y);
+
+  if(["price_return_pct","relative_return_pct","benchmark_excess_return"].includes(outcome.metric_key)){
+    const predicted=n(outcome.predicted_value);
+    if(predicted!=null&&y!=null)return Math.sign(predicted)===Math.sign(y);
+  }
+
   const text=String(outcome.predicted_text??"").toLowerCase();
   if(y!=null&&text.includes("outperform"))return y>0;
   if(y!=null&&text.includes("underperform"))return y<0;
