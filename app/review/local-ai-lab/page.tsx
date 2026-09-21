@@ -49,8 +49,18 @@ export default async function LocalAILabPage({
     if (!run) {
       missingReason = "This company has no published research version.";
     } else {
-      const [scoresR, valuationR, metricsR, thesisR, changesR, triggersR, sourcesR] =
-        await Promise.all([
+      const [
+        scoresR,
+        valuationR,
+        metricsR,
+        thesisR,
+        changesR,
+        triggersR,
+        sourcesR,
+        rankingR,
+        universeR,
+        candidateR,
+      ] = await Promise.all([
           supabase.from("scores").select("*").eq("research_run_id", run.id).maybeSingle(),
           supabase.from("valuations").select("*").eq("research_run_id", run.id).maybeSingle(),
           supabase.from("financial_metrics").select("*").eq("research_run_id", run.id).maybeSingle(),
@@ -58,9 +68,38 @@ export default async function LocalAILabPage({
           supabase.from("research_changes").select("*").eq("current_run_id", run.id).order("created_at", { ascending: false }).limit(12),
           supabase.from("decision_triggers").select("*").eq("research_run_id", run.id).order("severity", { ascending: false }).limit(12),
           supabase.from("sources").select("*").eq("research_run_id", run.id).order("retrieved_at", { ascending: false }).limit(16),
+          supabase.from("ranking_history")
+            .select("rank,decision_score,evidence_confidence_score,readiness_state,ranked_at,methodology_version")
+            .eq("company_id", company.id)
+            .order("ranked_at", { ascending: false })
+            .limit(1)
+            .maybeSingle(),
+          supabase.from("universe_screen_results")
+            .select("screen_state,shortlist_rank,proposed_for_deep_research,screen_score,evidence_coverage_pct,created_at")
+            .eq("ticker", company.ticker)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle(),
+          supabase.from("research_candidate_pipeline_items")
+            .select("stage,readiness_state,decision_score,evidence_confidence,next_actions,created_at")
+            .eq("ticker", company.ticker)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle(),
         ]);
 
-      for (const result of [scoresR, valuationR, metricsR, thesisR, changesR, triggersR, sourcesR]) {
+      for (const result of [
+        scoresR,
+        valuationR,
+        metricsR,
+        thesisR,
+        changesR,
+        triggersR,
+        sourcesR,
+        rankingR,
+        universeR,
+        candidateR,
+      ]) {
         if (result.error) throw result.error;
       }
 
@@ -74,6 +113,9 @@ export default async function LocalAILabPage({
         changes: changesR.data ?? [],
         triggers: triggersR.data ?? [],
         sources: sourcesR.data ?? [],
+        ranking: rankingR.data,
+        universeScreening: universeR.data,
+        candidatePipeline: candidateR.data,
       });
     }
   }
@@ -95,9 +137,9 @@ export default async function LocalAILabPage({
             <span className={styles.kicker}>PRIVATE RESEARCH AI</span>
             <h1>Ask Solpient without sending the question to an AI API.</h1>
             <p>
-              This lab packages only the selected published research version into a compact,
-              structured context and runs Qwen locally in the browser through WebGPU.
-              Deterministic Solpient values remain authoritative.
+              This lab packages the selected published research version plus read-only Solpient
+              100, ranking, and readiness metadata into a compact context and runs Qwen locally
+              in the browser through WebGPU. Published deterministic research values remain authoritative.
             </p>
           </div>
         </section>
