@@ -7,6 +7,16 @@ const secret=process.env.SUPABASE_SECRET_KEY??process.env.SUPABASE_SERVICE_ROLE_
 if(!url||!secret)throw new Error("Missing SUPABASE_URL and server secret.");
 const sb=createClient(url,secret,{auth:{persistSession:false,autoRefreshToken:false}});
 const maxJobs=Math.max(1,Math.min(12,Number(process.env.REPAIR_MAX_JOBS??6)));
+const startedAt=new Date().toISOString();
+const {data:automationRun,error:automationRunError}=await sb.from("automation_runs").insert({
+  pipeline:"research_repair_center",
+  started_at:startedAt,
+  status:"running",
+  records_written:0,
+  message:"Processing automatic research repair jobs.",
+  details:{max_jobs:maxJobs}
+}).select("id").single();
+if(automationRunError)throw automationRunError;
 
 function runNode(script,extraEnv={}){
   return new Promise((resolve,reject)=>{
@@ -42,6 +52,13 @@ const {data:jobs,error}=await sb
 if(error)throw error;
 
 if(!(jobs??[]).length){
+  await sb.from("automation_runs").update({
+    status:"success",
+    completed_at:new Date().toISOString(),
+    records_written:0,
+    message:"No automatic research repair jobs were pending.",
+    details:{max_jobs:maxJobs,processed:0}
+  }).eq("id",automationRun.id);
   console.log(JSON.stringify({processed:0,message:"No automatic repair jobs are pending."},null,2));
   process.exit(0);
 }
@@ -128,6 +145,24 @@ for(const job of jobs){
     });
   }
 }
+
+const completedAt=new Date().toISOString();
+const runStatus=failures.size===jobs.length?"failed":failures.size?"partial":"success";
+await sb.from("automation_runs").update({
+  status:runStatus,
+  completed_at:completedAt,
+  records_written:jobs.filter(j=>!failures.has(j.id)).length,
+  message:failures.size
+    ? "Research repair worker completed with "+failures.size+" failed job(s)."
+    : "Research repair worker completed successfully.",
+  details:{
+    max_jobs:maxJobs,
+    processed:jobs.length,
+    verifying:jobs.filter(j=>!failures.has(j.id)).length,
+    failed:failures.size,
+    results:results.map(r=>({name:r.name,status:r.status,error:r.error??null}))
+  }
+}).eq("id",automationRun.id);
 
 console.log(JSON.stringify({
   processed:jobs.length,
