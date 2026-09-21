@@ -26,6 +26,7 @@ on:
       - "scripts/import-capital-intelligence-batch.mjs"
       - "scripts/test-capital-intelligence-engine.mjs"
       - "scripts/test-capital-intelligence-orchestrator.mjs"
+      - "components/CompanyIntelligence.tsx"
       - "data/monitor/companies.json"
       - "data/monitor/managers.json"
       - "data/monitor/capital-providers.json"
