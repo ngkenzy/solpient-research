@@ -44,20 +44,22 @@ const summary=[];
 for(const company of (companies??[]).filter(c=>!onlyTicker||c.ticker===onlyTicker)){
   const [
     fundR,marketLatestR,marketHistoryCountR,contextR,filingR,
-    valuationR,capitalR,peerR,consensusR,runR
+    valuationCountR,valuationFirstR,valuationLastR,capitalR,peerR,consensusR,runR
   ]=await Promise.all([
     sb.from("fundamental_snapshots").select("*").eq("company_id",company.id).order("period_end",{ascending:false}).limit(160),
     sb.from("market_snapshots").select("trading_date,price,market_cap,observed_at,source_url,provider").eq("company_id",company.id).order("trading_date",{ascending:false}).limit(1).maybeSingle(),
     sb.from("market_snapshots").select("id",{count:"exact",head:true}).eq("company_id",company.id).eq("provider","yahoo-chart-history"),
     sb.from("research_context_packs").select("summary").eq("company_id",company.id).order("as_of_date",{ascending:false}).limit(1).maybeSingle(),
     sb.from("filing_events").select("id,provider,form_type,filed_at,accepted_at,accession_number,filing_url,period_end,title").eq("company_id",company.id).order("filed_at",{ascending:false}).limit(25),
-    sb.from("valuation_history").select("trading_date").eq("company_id",company.id).not("price_to_fcf","is",null).not("fcf_yield","is",null).order("trading_date",{ascending:true}).limit(4000),
+    sb.from("valuation_history").select("id",{count:"exact",head:true}).eq("company_id",company.id).not("price_to_fcf","is",null).not("fcf_yield","is",null),
+    sb.from("valuation_history").select("trading_date").eq("company_id",company.id).not("price_to_fcf","is",null).not("fcf_yield","is",null).order("trading_date",{ascending:true}).limit(1).maybeSingle(),
+    sb.from("valuation_history").select("trading_date").eq("company_id",company.id).not("price_to_fcf","is",null).not("fcf_yield","is",null).order("trading_date",{ascending:false}).limit(1).maybeSingle(),
     sb.from("company_metric_history").select("fiscal_year,period_type,metric_key").eq("company_id",company.id).in("metric_key",CAPITAL_KEYS),
     sb.from("peer_metric_snapshots").select("peer_ticker").eq("company_id",company.id),
     sb.from("consensus_snapshots").select("id",{count:"exact",head:true}).eq("company_id",company.id),
     sb.from("research_runs").select("id,version,standard_version,status").eq("company_id",company.id).eq("status","published").order("version",{ascending:false}).limit(1).maybeSingle(),
   ]);
-  for(const r of [fundR,marketLatestR,marketHistoryCountR,contextR,filingR,valuationR,capitalR,peerR,consensusR,runR])if(r.error)throw r.error;
+  for(const r of [fundR,marketLatestR,marketHistoryCountR,contextR,filingR,valuationCountR,valuationFirstR,valuationLastR,capitalR,peerR,consensusR,runR])if(r.error)throw r.error;
 
   let valuationFormulaPersisted=false;
   if(runR.data?.id&&runR.data?.standard_version==="solpient-v2"){
@@ -73,7 +75,8 @@ for(const company of (companies??[]).filter(c=>!onlyTicker||c.ticker===onlyTicke
     filings:filingR.data??[],
   });
 
-  const valuationDates=(valuationR.data??[]).map(r=>r.trading_date).filter(Boolean);
+  const valuationFirst=valuationFirstR.data?.trading_date??null;
+  const valuationLast=valuationLastR.data?.trading_date??null;
   const peerTickers=new Set((peerR.data??[]).map(r=>r.peer_ticker).filter(Boolean));
   const report=buildCoverageReport({
     company,
@@ -81,8 +84,8 @@ for(const company of (companies??[]).filter(c=>!onlyTicker||c.ticker===onlyTicke
     marketDays:Number(marketHistoryCountR.count??0),
     context:contextR.data,
     draft:{draft_payload:temporaryBaseline.payload},
-    valuationObservations:valuationDates.length,
-    valuationCoverageYears:valuationDates.length?yearsBetween(valuationDates[0],valuationDates.at(-1)):0,
+    valuationObservations:Number(valuationCountR.count??0),
+    valuationCoverageYears:yearsBetween(valuationFirst,valuationLast),
     capitalCompleteYears:capitalCompleteYears(capitalR.data??[]),
     peerMetricTickers:peerTickers.size,
     consensusSnapshots:Number(consensusR.count??0),
