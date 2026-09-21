@@ -134,9 +134,13 @@ export async function CompanyPerformanceHistory({
           .limit(1)
           .maybeSingle(),
     asOf && researchRunId
-      ? supabase.rpc("get_public_research_history_as_of_v1", {
-          p_research_run_id: researchRunId,
-        })
+      ? supabase
+          .from("research_public_history_items")
+          .select("module,metric_key,value_numeric,unit,economic_period_end,economic_period_type,known_at,source_confidence_class,conflict_state")
+          .eq("research_run_id", researchRunId)
+          .order("module")
+          .order("metric_key")
+          .order("economic_period_end", { ascending: true })
       : Promise.resolve({ data: null, error: null }),
   ]);
 
