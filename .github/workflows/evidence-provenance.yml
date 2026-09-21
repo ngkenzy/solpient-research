@@ -10,7 +10,7 @@ on:
   schedule:
     - cron: "35 10 * * *"
   push:
-    branches: [main, phase2-evidence-provenance]
+    branches: [main]
     paths:
       - "lib/evidence-provenance.mjs"
       - "lib/evidence-provenance-db.mjs"
