@@ -7,6 +7,7 @@ import { AdvancedResearchModules } from "@/components/AdvancedResearchModules";
 import { ValuationBridge } from "@/components/ValuationBridge";
 import { ResearchCoveragePanel } from "@/components/ResearchCoveragePanel";
 import { CompanyChangePanel } from "@/components/CompanyChangePanel";
+import { DecisionTriggerPanel } from "@/components/DecisionTriggerPanel";
 import { ResearchControls } from "@/components/ResearchControls";
 import { PredictionHistory } from "@/components/PredictionHistory";
 import { SolpientBrand } from "@/components/SolpientBrand";
@@ -400,6 +401,12 @@ export default async function CompanyResearch({
         </section>
 
         <CompanyChangePanel
+          companyId={company.id}
+          researchRunId={run.id}
+          ticker={company.ticker}
+        />
+
+        <DecisionTriggerPanel
           companyId={company.id}
           researchRunId={run.id}
           ticker={company.ticker}
