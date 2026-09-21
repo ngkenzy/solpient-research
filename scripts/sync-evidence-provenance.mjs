@@ -110,14 +110,38 @@ const selectedIds=new Set(selected.map((c)=>c.id));
 const sourceMap=new Map(),observationMap=new Map();
 
 const [fundamentals,history,valuations,peers,consensus,capital,activity,events]=await Promise.all([
-  fetchAll("fundamental_snapshots",(q)=>selected.length===1?q.eq("company_id",selected[0].id):q),
-  fetchAll("company_metric_history",(q)=>selected.length===1?q.eq("company_id",selected[0].id):q),
-  fetchAll("valuation_history",(q)=>selected.length===1?q.eq("company_id",selected[0].id):q),
-  fetchAll("peer_metric_snapshots",(q)=>selected.length===1?q.eq("company_id",selected[0].id):q),
-  fetchAll("consensus_snapshots",(q)=>selected.length===1?q.eq("company_id",selected[0].id):q),
-  fetchAll("capital_allocation_history",(q)=>selected.length===1?q.eq("company_id",selected[0].id):q),
-  fetchAll("capital_activity",(q)=>selected.length===1?q.eq("company_id",selected[0].id):q),
-  fetchAll("intelligence_events",(q)=>selected.length===1?q.eq("company_id",selected[0].id):q),
+  fetchAll("fundamental_snapshots",(q)=>{
+    q=selected.length===1?q.eq("company_id",selected[0].id):q;
+    return q.order("id",{ascending:true});
+  }),
+  fetchAll("company_metric_history",(q)=>{
+    q=selected.length===1?q.eq("company_id",selected[0].id):q;
+    return q.order("id",{ascending:true});
+  }),
+  fetchAll("valuation_history",(q)=>{
+    q=selected.length===1?q.eq("company_id",selected[0].id):q;
+    return q.order("id",{ascending:true});
+  }),
+  fetchAll("peer_metric_snapshots",(q)=>{
+    q=selected.length===1?q.eq("company_id",selected[0].id):q;
+    return q.order("id",{ascending:true});
+  }),
+  fetchAll("consensus_snapshots",(q)=>{
+    q=selected.length===1?q.eq("company_id",selected[0].id):q;
+    return q.order("id",{ascending:true});
+  }),
+  fetchAll("capital_allocation_history",(q)=>{
+    q=selected.length===1?q.eq("company_id",selected[0].id):q;
+    return q.order("id",{ascending:true});
+  }),
+  fetchAll("capital_activity",(q)=>{
+    q=selected.length===1?q.eq("company_id",selected[0].id):q;
+    return q.order("id",{ascending:true});
+  }),
+  fetchAll("intelligence_events",(q)=>{
+    q=selected.length===1?q.eq("company_id",selected[0].id):q;
+    return q.order("id",{ascending:true});
+  }),
 ]);
 
 for(const row of fundamentals.filter((x)=>selectedIds.has(x.company_id))){
@@ -273,7 +297,10 @@ for(const row of allObs){
 }
 
 const existingFactsRaw=await fetchAll("normalized_facts",(q)=>{
-  q=q.select("id,fact_key,company_id,module,metric_key,value_numeric,unit,economic_period_end,economic_period_type,known_at,source_confidence_class,conflict_state,supersedes_fact_id,formula_identifier,derivation_basis");
+  q=q
+    .select("id,fact_key,company_id,module,metric_key,value_numeric,unit,economic_period_end,economic_period_type,known_at,source_confidence_class,conflict_state,supersedes_fact_id,formula_identifier,derivation_basis")
+    .order("known_at",{ascending:true})
+    .order("id",{ascending:true});
   return selected.length===1?q.eq("company_id",selected[0].id):q;
 });
 const factByKey=new Map(existingFactsRaw.map((r)=>[r.fact_key,r]));
@@ -443,6 +470,7 @@ function publicHistoryAllowed(fact){
 const publishedRuns=await fetchAll("research_runs",(q)=>q
   .select("id,company_id,data_cutoff_at,researched_at,published_at,status")
   .eq("status","published")
+  .order("id",{ascending:true})
 );
 let publicHistoryPrepared=0;
 for(const run of publishedRuns){
