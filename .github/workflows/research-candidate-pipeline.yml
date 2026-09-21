@@ -1,0 +1,41 @@
+name: Research Candidate Pipeline
+
+on:
+  pull_request:
+    paths:
+      - "lib/universe-screening-engine.mjs"
+      - "lib/research-candidate-pipeline.mjs"
+      - "lib/valuation-engine-v3.mjs"
+      - "scripts/test-universe-screening-engine.mjs"
+      - "scripts/test-research-candidate-pipeline.mjs"
+      - "scripts/materialize-research-candidate-pipeline.mjs"
+      - "scripts/register-candidate-valuation-input.mjs"
+      - "supabase/migrations/20260921223000_solpient_100_universe_screening.sql"
+      - "supabase/migrations/20260921224000_research_candidate_pipeline.sql"
+      - "supabase/tests/universe_screening.sql"
+      - "supabase/tests/research_candidate_pipeline.sql"
+      - "app/review/universe-screening/page.tsx"
+      - "app/review/research-candidates/page.tsx"
+      - ".github/workflows/research-candidate-pipeline.yml"
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+      - name: Test universe screening
+        run: node scripts/test-universe-screening-engine.mjs
+      - name: Test candidate handoff
+        run: node scripts/test-research-candidate-pipeline.mjs
+      - name: Syntax check materializers
+        run: |
+          node --check scripts/run-universe-screen.mjs
+          node --check scripts/materialize-research-candidate-pipeline.mjs
+          node --check scripts/register-candidate-valuation-input.mjs

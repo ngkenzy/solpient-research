@@ -522,6 +522,191 @@
         "historical_interpretation": true
       },
       "legacy_bootstrap": true
+    },
+    {
+      "methodology_key": "valuation_v3",
+      "version": "solpient-valuation-methodology-v3",
+      "name": "Valuation V3",
+      "category": "valuation",
+      "risk_class": "critical",
+      "purpose": "Produce sector-aware bear/base/bull intrinsic-value ranges and horizon-specific expected returns from explicit assumptions without silent fallback inputs.",
+      "owner": "Solpient",
+      "source_files": [
+        "lib/valuation-engine-v3.mjs",
+        "docs/VALUATION_ENGINE_V3.md"
+      ],
+      "input_contract": {
+        "valuation_inputs": "explicit per-share metrics, assumptions, historical/peer anchors, evidence support"
+      },
+      "output_contract": {
+        "fair_value": "bear/base/bull values and range",
+        "confidence": "valuation support score",
+        "expected_returns": "3/5/10 year scenario CAGRs"
+      },
+      "weights": {
+        "confidence": {
+          "anchor_sufficiency": 35,
+          "valuation_history": 25,
+          "peer_coverage": 15,
+          "primary_source": 15,
+          "assumption_completeness": 10
+        }
+      },
+      "thresholds": {
+        "confidence_high": 85,
+        "confidence_medium": 65,
+        "confidence_developing": 45
+      },
+      "assumptions": {
+        "missing_inputs": "method unavailable; never silently imputed",
+        "fair_value_range": "confidence-dependent minimum width"
+      },
+      "dependencies": [
+        {
+          "methodology_key": "canonical_fact_normalization",
+          "version": "canonical-fact-v1",
+          "required": true
+        }
+      ],
+      "known_limitations": [
+        "Requires reviewed explicit assumptions and relative-valuation anchors.",
+        "Fair value is model output, not a timing forecast."
+      ],
+      "change_summary": "Adds explicit sector-aware valuation engine with no silent fallback assumptions.",
+      "predecessor_version": null,
+      "impacts": {
+        "database": false,
+        "public_ui": true,
+        "publication": false,
+        "ranking": true,
+        "capital_decision": true,
+        "historical_interpretation": true
+      },
+      "legacy_bootstrap": false
+    },
+    {
+      "methodology_key": "universe_screening",
+      "version": "solpient-universe-screen-v1",
+      "name": "Solpient 100 Universe Screening V1",
+      "category": "screening",
+      "risk_class": "high",
+      "purpose": "Screen a broad investable equity universe for companies that merit deeper Solpient research without treating the pre-research score as an investment decision.",
+      "owner": "Solpient",
+      "source_files": [
+        "lib/universe-screening-engine.mjs",
+        "docs/SOLPIENT_100_UNIVERSE_SCREENING.md"
+      ],
+      "input_contract": {
+        "universe_row": "normalized investability, quality, durability, balance sheet, growth and valuation fields"
+      },
+      "output_contract": {
+        "screen_state": "excluded/watch/research_candidate/solpient_100_candidate/solpient_100",
+        "deep_research_shortlist": "deterministic top-N eligible names"
+      },
+      "weights": {
+        "default": {
+          "quality": 35,
+          "durability": 20,
+          "balance_sheet": 15,
+          "growth": 15,
+          "valuation": 15
+        }
+      },
+      "thresholds": {
+        "research_candidate": {
+          "score": 60,
+          "quality_core": 60,
+          "coverage": 60
+        },
+        "solpient_100_candidate": {
+          "score": 75,
+          "quality_core": 72,
+          "coverage": 70
+        }
+      },
+      "assumptions": {
+        "missing_data": "reduces evidence coverage; never mapped to neutral 50"
+      },
+      "dependencies": [],
+      "known_limitations": [
+        "Broad quantitative screen does not replace qualitative moat/management research.",
+        "Provider coverage can affect evidence completeness."
+      ],
+      "change_summary": "Adds provider-agnostic broad-universe research-funnel methodology.",
+      "predecessor_version": null,
+      "impacts": {
+        "database": true,
+        "public_ui": true,
+        "publication": false,
+        "ranking": false,
+        "capital_decision": false,
+        "historical_interpretation": true
+      },
+      "legacy_bootstrap": false
+    },
+    {
+      "methodology_key": "research_candidate_pipeline",
+      "version": "research-candidate-pipeline-v1",
+      "name": "Research Candidate Pipeline V1",
+      "category": "repair",
+      "risk_class": "high",
+      "purpose": "Connect shortlisted Solpient 100 candidates to explicit Valuation V3 inputs and Readiness V1 gates without substituting screening scores for reviewed research.",
+      "owner": "Solpient",
+      "source_files": [
+        "lib/research-candidate-pipeline.mjs",
+        "scripts/materialize-research-candidate-pipeline.mjs"
+      ],
+      "input_contract": {
+        "screen_result": "eligible shortlisted company",
+        "valuation_input_pack": "reviewed V3 inputs",
+        "research_scores": "published reviewed scores",
+        "coverage": "Coverage V2 evidence"
+      },
+      "output_contract": {
+        "stage": "onboarding/valuation_building/research_building/research_ready/decision_ready",
+        "next_actions": "ordered blockers and repair actions"
+      },
+      "weights": {},
+      "thresholds": {
+        "research_ready": "Readiness V1",
+        "decision_ready": "Readiness V1"
+      },
+      "assumptions": {
+        "screen_score_reuse": false,
+        "valuation_requires_reviewed_inputs": true
+      },
+      "dependencies": [
+        {
+          "methodology_key": "universe_screening",
+          "version": "solpient-universe-screen-v1",
+          "required": true
+        },
+        {
+          "methodology_key": "valuation_v3",
+          "version": "solpient-valuation-methodology-v3",
+          "required": true
+        },
+        {
+          "methodology_key": "decision_readiness",
+          "version": "readiness-v1",
+          "required": true
+        }
+      ],
+      "known_limitations": [
+        "A shortlisted company can remain blocked until reviewed V3 inputs exist.",
+        "Readiness quality scores come from reviewed research, never screening proxies."
+      ],
+      "change_summary": "Adds governed shortlist-to-valuation-to-readiness handoff.",
+      "predecessor_version": null,
+      "impacts": {
+        "database": true,
+        "public_ui": true,
+        "publication": false,
+        "ranking": false,
+        "capital_decision": true,
+        "historical_interpretation": true
+      },
+      "legacy_bootstrap": false
     }
   ]
 }
