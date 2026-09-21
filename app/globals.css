@@ -5429,3 +5429,18 @@ h2 { letter-spacing: -.02em; }
     grid-template-columns: repeat(2,minmax(0,1fr));
   }
 }
+
+
+.performanceBarGroup:not(.active) .performanceBarValue {
+  opacity: 0;
+}
+
+.performanceBarGroup .performanceBarValue {
+  transition: opacity .12s ease;
+}
+
+.performanceBarGroup.active .performanceBarValue,
+.performanceBarGroup:hover .performanceBarValue,
+.performanceBarGroup:focus-visible .performanceBarValue {
+  opacity: 1;
+}
