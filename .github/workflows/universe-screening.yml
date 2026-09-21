@@ -1,0 +1,40 @@
+name: Solpient 100 Universe Screening
+
+on:
+  pull_request:
+    paths:
+      - "lib/universe-screening-engine.mjs"
+      - "scripts/test-universe-screening-engine.mjs"
+      - "scripts/run-universe-screen.mjs"
+      - "scripts/fixtures/universe-screen-sample.json"
+      - "supabase/migrations/20260921223000_solpient_100_universe_screening.sql"
+      - "supabase/tests/universe_screening.sql"
+      - "app/review/universe-screening/page.tsx"
+      - "docs/SOLPIENT_100_UNIVERSE_SCREENING.md"
+      - ".github/workflows/universe-screening.yml"
+  push:
+    branches: [main]
+    paths:
+      - "lib/universe-screening-engine.mjs"
+      - "scripts/test-universe-screening-engine.mjs"
+      - "scripts/run-universe-screen.mjs"
+      - ".github/workflows/universe-screening.yml"
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+      - name: Test screening methodology
+        run: node scripts/test-universe-screening-engine.mjs
+      - name: Syntax check materializer
+        run: node --check scripts/run-universe-screen.mjs
+      - name: Dry-run provider contract
+        run: node scripts/run-universe-screen.mjs --input=scripts/fixtures/universe-screen-sample.json --limit=2 --dry-run
