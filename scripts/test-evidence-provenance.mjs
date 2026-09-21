@@ -36,6 +36,30 @@ assert.equal(resolution.conflict_state,"conflicting");
 assert.equal(resolution.conflicting.length,1);
 assert.equal(resolution.confidence_metadata.material_conflict,true);
 
+const sameProviderRevision={
+  ...primary,
+  id:"00000000-0000-0000-0000-000000000005",
+  source_id:"00000000-0000-0000-0000-000000000015",
+  raw_value_numeric:112,
+  known_at:"2026-03-02T12:00:00.000Z",
+};
+const revised=selectCanonicalObservation([primary,sameProviderRevision]);
+assert.equal(revised.selected.id,sameProviderRevision.id);
+assert.equal(revised.conflict_state,"verified");
+assert.equal(revised.conflicting.length,0);
+assert.equal(revised.superseded.length,1);
+assert.equal(revised.superseded[0].id,primary.id);
+assert.equal(revised.confidence_metadata.independent_provider_count,1);
+
+const reviewedResolution=selectCanonicalObservation([secondary,primary],{
+  preferredObservationId:secondary.id,
+  resolutionReason:"Human review accepted the licensed provider after reconciling the filing presentation.",
+});
+assert.equal(reviewedResolution.selected.id,secondary.id);
+assert.equal(reviewedResolution.conflict_state,"verified");
+assert.equal(reviewedResolution.confidence_metadata.conflict_resolved,true);
+assert.match(reviewedResolution.selection_reason,/Explicit reviewed source-selection override/);
+
 const supporting={...secondary,id:"00000000-0000-0000-0000-000000000003",raw_value_numeric:101};
 const verified=selectCanonicalObservation([primary,supporting]);
 assert.equal(verified.conflict_state,"verified");
