@@ -1,0 +1,45 @@
+name: Methodology Registry Governance
+
+on:
+  pull_request:
+    paths:
+      - "lib/methodology-governance.mjs"
+      - "methodologies/catalog.json"
+      - "scripts/test-methodology-governance.mjs"
+      - "scripts/check-methodology-drift.mjs"
+      - "scripts/register-methodologies.mjs"
+      - "scripts/govern-methodology.mjs"
+      - "supabase/migrations/20260921230000_methodology_registry_governance.sql"
+      - "supabase/tests/methodology_governance.sql"
+      - "app/review/methodologies/page.tsx"
+      - "docs/METHODOLOGY_GOVERNANCE.md"
+      - ".github/workflows/methodology-governance.yml"
+  push:
+    branches: [main]
+    paths:
+      - "lib/methodology-governance.mjs"
+      - "methodologies/catalog.json"
+      - "scripts/test-methodology-governance.mjs"
+      - "scripts/check-methodology-drift.mjs"
+      - ".github/workflows/methodology-governance.yml"
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+      - name: Test governance rules
+        run: node scripts/test-methodology-governance.mjs
+      - name: Check catalog implementation drift
+        run: node scripts/check-methodology-drift.mjs
+      - name: Dry-run registry bootstrap
+        run: node scripts/register-methodologies.mjs --dry-run
+      - name: Syntax check governance CLI
+        run: node --check scripts/govern-methodology.mjs
