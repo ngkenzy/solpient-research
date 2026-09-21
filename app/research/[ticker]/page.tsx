@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getSupabase } from "@/lib/supabase";
-import { HistoricalFinancials } from "@/components/HistoricalFinancials";
 import { CompanyIntelligence } from "@/components/CompanyIntelligence";
+import { CompanyPerformanceHistory } from "@/components/CompanyPerformanceHistory";
 import { ResearchControls } from "@/components/ResearchControls";
 import { PredictionHistory } from "@/components/PredictionHistory";
 import { SolpientBrand } from "@/components/SolpientBrand";
@@ -551,7 +551,11 @@ export default async function CompanyResearch({
 
         <ResearchStandardV1 researchRunId={run.id} />
 
-        <HistoricalFinancials ticker={company.ticker} />
+        <CompanyPerformanceHistory
+          companyId={company.id}
+          ticker={company.ticker}
+          benchmarkTicker={run.benchmark_ticker ?? "SPY"}
+        />
 
         <CompanyIntelligence ticker={company.ticker} />
 
