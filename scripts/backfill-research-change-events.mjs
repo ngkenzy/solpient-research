@@ -95,7 +95,12 @@ for(const company of companies??[]){
       old_text:change.old_text??null,
       new_text:change.new_text??null,
       direction:change.direction??"changed",
-      materiality:change.materiality==="material"?"material":change.materiality??"notable",
+      materiality:
+        change.category==="valuation"&&Math.abs(Number(change.delta_percent??0))>=10?"high":
+        change.category==="score"&&Math.abs(Number(change.delta_value??0))>=6?"high":
+        change.category==="financial"&&Math.abs(Number(change.delta_value??0))>=4?"high":
+        change.category==="thesis"&&change.change_type==="status"?"high":
+        change.materiality==="material"?"material":change.materiality??"notable",
       decision_impact:impact(change),
       summary:change.summary,
       source_kind:"research_version",
