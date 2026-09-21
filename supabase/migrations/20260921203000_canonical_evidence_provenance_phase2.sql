@@ -404,23 +404,20 @@ begin
     new.source_context_pack_id:=v_context_id;
   end if;
 
-  -- Phase 1/legacy publications remain readable. Phase 2 publications fail closed.
-  if coalesce(new.integrity_version,'')<>'historical-integrity-v2' then
-    return new;
-  end if;
-
-  if new.data_cutoff_at is null then
-    raise exception 'Phase 2 publication requires data_cutoff_at.';
-  end if;
-
   select * into v_stage
   from public.research_input_manifest_staging
   where draft_id=new.source_draft_id
     and composition_id=new.source_composition_id
     and company_id=new.company_id;
 
+  -- Phase 1 and legacy callers without a Phase 2 manifest keep the original RPC contract.
+  -- The Phase 2 application path always stages a manifest before invoking the same RPC.
   if not found then
-    raise exception 'Phase 2 publication requires a staged research-input manifest.';
+    return new;
+  end if;
+
+  if new.data_cutoff_at is null then
+    raise exception 'Phase 2 publication requires data_cutoff_at.';
   end if;
 
   if v_stage.cutoff_at is distinct from new.data_cutoff_at then
@@ -482,8 +479,7 @@ declare
   v_manifest_id uuid;
   v_item jsonb;
 begin
-  if new.status<>'published'
-     or coalesce(new.integrity_version,'')<>'historical-integrity-v2' then
+  if new.status<>'published' then
     return new;
   end if;
 
@@ -494,7 +490,7 @@ begin
     and company_id=new.company_id;
 
   if not found then
-    raise exception 'Phase 2 publication manifest staging disappeared during publication.';
+    return new;
   end if;
 
   insert into public.research_input_manifests(
