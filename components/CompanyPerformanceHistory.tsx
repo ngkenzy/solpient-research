@@ -86,9 +86,10 @@ export async function CompanyPerformanceHistory({
       .order("trading_date", { ascending: true })
       .limit(2000),
     supabase
-      .from("capital_allocation_history")
-      .select("fiscal_year,period_end,dividends_paid,buybacks,stock_based_compensation,acquisitions,debt_issued,debt_repaid,ending_share_count")
+      .from("company_metric_history")
+      .select("module,metric_key,period_end,fiscal_year,period_type,value_numeric")
       .eq("company_id", companyId)
+      .in("metric_key", ["dividends_paid","buybacks","stock_based_compensation","acquisitions","debt_issued","debt_repaid"])
       .order("period_end", { ascending: true }),
     supabase
       .from("peer_metric_snapshots")
@@ -158,25 +159,61 @@ export async function CompanyPerformanceHistory({
     forwardPe: row.forward_pe,
   }));
 
-  const quarterLabel = (periodEnd: string | null | undefined, fiscalYear: number) => {
-    if (!periodEnd) return String(fiscalYear);
-    const month = Number(periodEnd.slice(5, 7));
-    const quarter = month === 3 ? "Q1" : month === 6 ? "Q2" : month === 9 ? "Q3" : month === 12 ? "Q4" : "";
-    return quarter ? quarter + " " + fiscalYear : periodEnd.slice(0, 7);
+  const metricToCapitalKey: Record<string, string> = {
+    dividends_paid: "dividends",
+    buybacks: "buybacks",
+    stock_based_compensation: "sbc",
+    acquisitions: "acquisitions",
+    debt_issued: "debtIssued",
+    debt_repaid: "debtRepaid",
   };
+  const annualCapital = new Map<number, Record<string, number | null>>();
+  const quarterlyCapital = new Map<number, Record<string, number>>();
 
-  const capital = (capitalResult.data ?? []).map((row: any) => ({
-    period: quarterLabel(row.period_end, Number(row.fiscal_year)),
-    periodEnd: row.period_end,
-    year: Number(row.fiscal_year),
-    dividends: n(row.dividends_paid),
-    buybacks: n(row.buybacks),
-    sbc: n(row.stock_based_compensation),
-    acquisitions: n(row.acquisitions),
-    debtIssued: n(row.debt_issued),
-    debtRepaid: n(row.debt_repaid),
-    shares: n(row.ending_share_count),
-  }));
+  for (const row of capitalResult.data ?? []) {
+    const year = Number(row.fiscal_year);
+    const key = metricToCapitalKey[row.metric_key];
+    const value = n(row.value_numeric);
+    if (!Number.isInteger(year) || !key || value == null) continue;
+
+    if (row.period_type === "fiscal_year") {
+      const bucket = annualCapital.get(year) ?? {};
+      bucket[key] = value;
+      annualCapital.set(year, bucket);
+    } else if (row.period_type === "quarter") {
+      const bucket = quarterlyCapital.get(year) ?? {};
+      bucket[key] = (bucket[key] ?? 0) + value;
+      quarterlyCapital.set(year, bucket);
+    }
+  }
+
+  const capitalYears = [...new Set([
+    ...annualCapital.keys(),
+    ...quarterlyCapital.keys(),
+  ])].sort((a, b) => a - b);
+
+  const latestCapitalYear = capitalYears.at(-1);
+  const capital = capitalYears.map((year) => {
+    const annualValues = annualCapital.get(year) ?? {};
+    const quarterValues = quarterlyCapital.get(year) ?? {};
+    const merged: Record<string, number | null> = {};
+    for (const key of Object.values(metricToCapitalKey)) {
+      merged[key] = annualValues[key] ?? quarterValues[key] ?? null;
+    }
+    const hasAnnual = Object.keys(annualValues).length > 0;
+    return {
+      period: hasAnnual ? "FY" + year : year === latestCapitalYear ? year + " YTD" : year + " tracked",
+      periodEnd: null,
+      year,
+      dividends: merged.dividends ?? null,
+      buybacks: merged.buybacks ?? null,
+      sbc: merged.sbc ?? null,
+      acquisitions: merged.acquisitions ?? null,
+      debtIssued: merged.debtIssued ?? null,
+      debtRepaid: merged.debtRepaid ?? null,
+      shares: null,
+    };
+  });
 
   const peerMap = new Map<string, any>();
   for (const row of peerMetricResult.data ?? []) {
