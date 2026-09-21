@@ -23,7 +23,7 @@ on:
       - ".github/workflows/evidence-provenance.yml"
 
 concurrency:
-  group: solpient-evidence-provenance-ops-v2
+  group: solpient-evidence-provenance-ops-adbe
   cancel-in-progress: false
 
 jobs:
@@ -44,5 +44,5 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          COVERAGE_TICKER: ${{ inputs.ticker }}
+          COVERAGE_TICKER: ADBE
         run: npm run sync:provenance
