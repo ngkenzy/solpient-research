@@ -5444,3 +5444,8 @@ h2 { letter-spacing: -.02em; }
 .performanceBarGroup:focus-visible .performanceBarValue {
   opacity: 1;
 }
+
+
+.showAllBarValues .performanceBarValue {
+  opacity: 1 !important;
+}
