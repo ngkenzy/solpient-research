@@ -94,7 +94,10 @@ const derived=buildNormalizedFact({
   inputFactIds:["00000000-0000-0000-0000-000000000021","00000000-0000-0000-0000-000000000022"],
 });
 assert.equal(derived.fact.formula_identifier,"free_cash_flow_div_revenue_pct_v1");
+assert.equal(derived.fact.created_at,derived.fact.known_at);
+assert.equal(derived.observationLinks.every((row)=>row.created_at===derived.fact.known_at),true);
 assert.equal(derived.inputLinks.length,2);
+assert.equal(derived.inputLinks.every((row)=>row.created_at===derived.fact.known_at),true);
 assert.deepEqual(derived.fact.derivation_metadata.input_fact_ids,[
   "00000000-0000-0000-0000-000000000021",
   "00000000-0000-0000-0000-000000000022",
