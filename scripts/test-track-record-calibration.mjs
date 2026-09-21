@@ -20,6 +20,7 @@ assert.equal(sampleGrade(50),"robust");
 const base={
   locked_at:"2026-01-01T00:00:00Z",
   realized_outcome_id:"r1",
+  actual_value:1,
   source_note:"verified source",
 };
 assert.equal(verificationState(base),"verified");
