@@ -1,0 +1,59 @@
+name: Phase 3 Decision Ranking
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "lib/decision-ranking-engine.mjs"
+      - "lib/decision-ranking-read-model.ts"
+      - "scripts/refresh-rankings.mjs"
+      - "supabase/migrations/20260921213000_phase3_decision_ranking_readiness.sql"
+      - ".github/workflows/phase3-ranking-readiness.yml"
+  pull_request:
+    paths:
+      - "lib/decision-ranking-engine.mjs"
+      - "scripts/test-decision-ranking-engine.mjs"
+      - "scripts/refresh-rankings.mjs"
+      - "supabase/migrations/20260921213000_phase3_decision_ranking_readiness.sql"
+      - ".github/workflows/phase3-ranking-readiness.yml"
+      - "docs/DECISION_RANKING_READINESS.md"
+  workflow_dispatch:
+  schedule:
+    - cron: "5 12 * * 1-5"
+
+concurrency:
+  group: solpient-phase3-ranking
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Test decision ranking engine
+        run: node scripts/test-decision-ranking-engine.mjs
+      - name: Syntax check ranking refresh
+        run: node --check scripts/refresh-rankings.mjs
+
+  refresh:
+    if: github.event_name != 'pull_request'
+    needs: verify
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+      - name: Refresh Phase 3 decision rankings
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: node scripts/refresh-rankings.mjs

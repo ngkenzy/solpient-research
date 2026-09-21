@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getSupabase } from "@/lib/supabase";
 import { SolpientBrand } from "@/components/SolpientBrand";
+import { decisionRankingMap, loadLatestDecisionRanking, readinessDisplay } from "@/lib/decision-ranking-read-model";
 
 export const dynamic = "force-dynamic";
 
@@ -73,6 +74,9 @@ export default async function ResearchIndex() {
     );
   }
 
+  const phase3Ranking = await loadLatestDecisionRanking(supabase);
+  const phase3ByCompany = decisionRankingMap(phase3Ranking.rows);
+
   const latestRunByCompany = new Map<string, any>();
   for (const run of publishedRuns ?? []) {
     if (!latestRunByCompany.has(run.company_id)) latestRunByCompany.set(run.company_id, run);
@@ -134,10 +138,17 @@ export default async function ResearchIndex() {
         marketDate: market?.trading_date ?? null,
         fairValue,
         gap,
+        phase3: phase3ByCompany.get(company.id) ?? null,
       };
     })
     .filter(Boolean)
     .sort((a: any, b: any) => {
+      if (phase3Ranking.available) {
+        const ar = Number(a.phase3?.rank ?? Number.MAX_SAFE_INTEGER);
+        const br = Number(b.phase3?.rank ?? Number.MAX_SAFE_INTEGER);
+        if (ar !== br) return ar - br;
+      }
+
       const overallDiff = (asNumber(b.scores.overall_score) ?? -1) - (asNumber(a.scores.overall_score) ?? -1);
       if (overallDiff !== 0) return overallDiff;
 
@@ -157,6 +168,9 @@ export default async function ResearchIndex() {
   }, null);
 
   const undervaluedCount = ranked.filter((item: any) => item.gap != null && item.gap > 1).length;
+  const decisionReadyCount = ranked.filter((item: any) => item.phase3?.readiness_state === "decision_ready").length;
+  const researchReadyCount = ranked.filter((item: any) => item.phase3?.readiness_state === "research_ready").length;
+  const buildingCount = ranked.filter((item: any) => item.phase3?.readiness_state === "building").length;
 
   return (
     <>
@@ -178,44 +192,49 @@ export default async function ResearchIndex() {
             <span className="panelKicker">SOLPIENT RANKINGS</span>
             <h1>Company research, ranked.</h1>
             <p>
-              The strongest latest research rises to the top. Ranking is based on the SOLPIENT
-              overall score, with thesis integrity and valuation score used as tie-breakers.
+              {phase3Ranking.available
+                ? "Phase 3 separates business quality, investment opportunity, and evidence confidence. Readiness gates the ranking before decision score."
+                : "The strongest latest research rises to the top. Legacy ranking remains active until the Phase 3 decision-ranking snapshot is available."}
             </p>
           </div>
 
           <div className="rankingHeroStats">
-            <div>
-              <span>Research coverage</span>
-              <strong>{ranked.length}/{companies?.length ?? 0}</strong>
-            </div>
-            <div>
-              <span>Pending research</span>
-              <strong>{pendingCompanies.length}</strong>
-            </div>
-            <div>
-              <span>Below fair value</span>
-              <strong>{undervaluedCount}</strong>
-            </div>
-            <div>
-              <span>Latest research</span>
-              <strong>{latestResearchDate ? latestResearchDate.toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "—"}</strong>
-            </div>
+            {phase3Ranking.available ? (
+              <>
+                <div><span>Decision Ready</span><strong>{decisionReadyCount}</strong></div>
+                <div><span>Research Ready</span><strong>{researchReadyCount}</strong></div>
+                <div><span>Building</span><strong>{buildingCount}</strong></div>
+                <div><span>Published</span><strong>{ranked.length}/{companies?.length ?? 0}</strong></div>
+              </>
+            ) : (
+              <>
+                <div><span>Research coverage</span><strong>{ranked.length}/{companies?.length ?? 0}</strong></div>
+                <div><span>Pending research</span><strong>{pendingCompanies.length}</strong></div>
+                <div><span>Below fair value</span><strong>{undervaluedCount}</strong></div>
+                <div>
+                  <span>Latest research</span>
+                  <strong>{latestResearchDate ? latestResearchDate.toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "—"}</strong>
+                </div>
+              </>
+            )}
           </div>
         </section>
 
         <section className="rankingMethod">
           <div>
-            <strong>How to read this page</strong>
+            <strong>{phase3Ranking.available ? "Phase 3 decision ranking" : "How to read this page"}</strong>
             <span>
-              Score measures research quality across business quality, growth, valuation, financial
-              strength, moat, and thesis integrity.
+              {phase3Ranking.available
+                ? "Business Quality measures the company. Investment Opportunity measures the stock at today's price. Evidence Confidence determines whether the work is Building, Research Ready, or Decision Ready."
+                : "Legacy score measures research quality across business quality, growth, valuation, financial strength, moat, and thesis integrity."}
             </span>
           </div>
           <div>
-            <strong>Valuation gap</strong>
+            <strong>{phase3Ranking.available ? "Readiness is not a recommendation" : "Valuation gap"}</strong>
             <span>
-              “Undervalued” means research price is below SOLPIENT base fair value; “overvalued”
-              means it is above base fair value.
+              {phase3Ranking.available
+                ? "Decision Ready means the evidence package is sufficiently complete for decision-grade comparison. It does not mean Buy."
+                : "“Undervalued” means research price is below SOLPIENT base fair value; “overvalued” means it is above base fair value."}
             </span>
           </div>
         </section>
@@ -225,11 +244,23 @@ export default async function ResearchIndex() {
             <div className="rankingHeaderRow">
               <span>Rank</span>
               <span>Company</span>
-              <span>Overall</span>
-              <span>Quality</span>
-              <span>Growth</span>
-              <span>Valuation</span>
-              <span>Thesis</span>
+              {phase3Ranking.available ? (
+                <>
+                  <span>Readiness</span>
+                  <span>Decision</span>
+                  <span>Quality</span>
+                  <span>Opportunity</span>
+                  <span>Confidence</span>
+                </>
+              ) : (
+                <>
+                  <span>Overall</span>
+                  <span>Quality</span>
+                  <span>Growth</span>
+                  <span>Valuation</span>
+                  <span>Thesis</span>
+                </>
+              )}
               <span>Latest price</span>
               <span>Base value</span>
               <span>Value gap</span>
@@ -258,26 +289,39 @@ export default async function ResearchIndex() {
                     </div>
                   </div>
 
-                  <div className="rankScore primaryScore">
-                    <strong>{asNumber(item.scores.overall_score) ?? "—"}</strong>
-                    <span>/100</span>
-                  </div>
-
-                  <div className="rankScore">
-                    <strong>{asNumber(item.scores.quality_score) ?? "—"}</strong>
-                  </div>
-
-                  <div className="rankScore">
-                    <strong>{asNumber(item.scores.growth_score) ?? "—"}</strong>
-                  </div>
-
-                  <div className="rankScore">
-                    <strong>{asNumber(item.scores.valuation_score) ?? "—"}</strong>
-                  </div>
-
-                  <div className="rankScore">
-                    <strong>{asNumber(item.scores.thesis_integrity_score) ?? "—"}</strong>
-                  </div>
+                  {phase3Ranking.available ? (
+                    <>
+                      <div className="rankReadiness">
+                        <strong className={"readinessPill " + (item.phase3?.readiness_state ?? "building")}>
+                          {readinessDisplay(item.phase3?.readiness_state)}
+                        </strong>
+                      </div>
+                      <div className="rankScore primaryScore">
+                        <strong>{asNumber(item.phase3?.decision_score) ?? "—"}</strong>
+                        <span>/100</span>
+                      </div>
+                      <div className="rankScore">
+                        <strong>{asNumber(item.phase3?.business_quality_score) ?? "—"}</strong>
+                      </div>
+                      <div className="rankScore">
+                        <strong>{asNumber(item.phase3?.investment_opportunity_score) ?? "—"}</strong>
+                      </div>
+                      <div className="rankScore">
+                        <strong>{asNumber(item.phase3?.evidence_confidence_score) ?? "—"}</strong>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="rankScore primaryScore">
+                        <strong>{asNumber(item.scores.overall_score) ?? "—"}</strong>
+                        <span>/100</span>
+                      </div>
+                      <div className="rankScore"><strong>{asNumber(item.scores.quality_score) ?? "—"}</strong></div>
+                      <div className="rankScore"><strong>{asNumber(item.scores.growth_score) ?? "—"}</strong></div>
+                      <div className="rankScore"><strong>{asNumber(item.scores.valuation_score) ?? "—"}</strong></div>
+                      <div className="rankScore"><strong>{asNumber(item.scores.thesis_integrity_score) ?? "—"}</strong></div>
+                    </>
+                  )}
 
                   <div className="rankMoney">
                     <strong>{formatMoney(item.price)}</strong>
@@ -331,8 +375,9 @@ export default async function ResearchIndex() {
         <section className="rankingFootnote">
           <strong>Research shortlist, not a buy list.</strong>
           <p>
-            Rankings summarize the latest SOLPIENT research record. They are designed to prioritize
-            where deeper work may be most useful, not to replace judgment or portfolio construction.
+            {phase3Ranking.available
+              ? "Rankings compare the latest published research by readiness tier and decision score. Evidence Confidence is shown separately so incomplete research cannot masquerade as equal conviction."
+              : "Rankings summarize the latest SOLPIENT research record. They are designed to prioritize where deeper work may be most useful, not to replace judgment or portfolio construction."}
           </p>
         </section>
       </main>

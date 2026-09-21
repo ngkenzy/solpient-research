@@ -2637,12 +2637,12 @@ h2 { letter-spacing: -.02em; }
   display: grid;
   grid-template-columns:
     64px
-    minmax(210px, 1.8fr)
+    minmax(210px, 1.7fr)
+    118px
+    78px
+    78px
+    88px
     82px
-    72px
-    72px
-    82px
-    72px
     105px
     105px
     minmax(145px, 1fr);
@@ -2769,6 +2769,39 @@ h2 { letter-spacing: -.02em; }
   font-size: 9px;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.rankReadiness {
+  display: flex;
+  align-items: center;
+}
+
+.readinessPill {
+  width: fit-content;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-size: 9px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.readinessPill.decision_ready {
+  color: #74dda0;
+  border-color: rgba(76,190,119,.28);
+  background: rgba(65,166,98,.11);
+}
+
+.readinessPill.research_ready {
+  color: #e5c778;
+  border-color: rgba(215,181,109,.30);
+  background: rgba(215,181,109,.10);
+}
+
+.readinessPill.building {
+  color: #aab3bf;
+  border-color: rgba(141,147,158,.24);
+  background: rgba(141,147,158,.08);
 }
 
 .rankScore {
