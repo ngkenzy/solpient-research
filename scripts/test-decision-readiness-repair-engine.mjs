@@ -65,7 +65,7 @@ assert.match(peers.instruction,/at least 2 of 4 configured peers/i);
 assert.equal(peers.automationMode,"auto");
 
 const valuation=deckPlan.decisionReadyPlan.actions.find(a=>a.coverageKey==="valuation_history_pct");
-assert.match(valuation.instruction,/60\\+ valuation observations/i);
+assert.match(valuation.instruction,/60\+ valuation observations/i);
 assert.match(valuation.instruction,/1\.4 years/i);
 
 const researchReady={
