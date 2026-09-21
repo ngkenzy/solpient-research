@@ -11,9 +11,10 @@ import styles from "./LocalResearchAIWorkbench.module.css";
 
 const EXAMPLES = [
   "What is the weakest part of the thesis?",
-  "What changed in the latest research version?",
-  "Explain the valuation range and its assumptions.",
-  "Which decision trigger matters most right now?",
+  "Why is this company ranked where it is?",
+  "What is preventing it from becoming Decision Ready?",
+  "Why is it in the Solpient 100 research funnel?",
+  "Explain the published valuation range and its assumptions.",
 ];
 
 export function LocalResearchAIWorkbench({ pack }: { pack: ResearchAIPack }) {
@@ -122,6 +123,8 @@ export function LocalResearchAIWorkbench({ pack }: { pack: ResearchAIPack }) {
         <span>{pack.changes.length} recent changes</span>
         <span>{pack.triggers.length} decision triggers</span>
         <span>{pack.sources.length} source references</span>
+        <span>Rank {pack.systemContext.ranking.rank ?? "—"}</span>
+        <span>{pack.systemContext.ranking.readinessState ?? "readiness unavailable"}</span>
       </div>
     </section>
   );
