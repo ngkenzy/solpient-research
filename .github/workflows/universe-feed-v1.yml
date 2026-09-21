@@ -1,0 +1,27 @@
+name: Universe Feed V1
+
+on:
+  pull_request:
+    paths:
+      - "lib/universe-feed-eodhd.mjs"
+      - "scripts/build-eodhd-universe-feed.mjs"
+      - "scripts/test-universe-feed-eodhd.mjs"
+      - "scripts/fixtures/eodhd-universe-feed-sample.json"
+      - "docs/UNIVERSE_FEED_EODHD_US.md"
+      - ".github/workflows/universe-feed-v1.yml"
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Test EODHD normalizer against Solpient screen
+        run: node scripts/test-universe-feed-eodhd.mjs
+      - name: Syntax check feed builder
+        run: node --check scripts/build-eodhd-universe-feed.mjs
