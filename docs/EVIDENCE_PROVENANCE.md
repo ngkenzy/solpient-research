@@ -99,13 +99,11 @@ New publications freeze `source_context_pack_id`.
 
 Legacy publications without a frozen context pack use a conservative fallback requiring the context pack to have existed by the research cutoff.
 
-The public historical performance panel uses:
+The public historical performance panel uses the immutable `research_public_history_items` read model.
 
-`get_public_research_history_as_of_v1(research_run_id)`
+At publication, Solpient freezes whitelisted normalized historical values that were known by the research cutoff into rows tied to that exact research run. The table does not expose raw evidence, provider payloads, resolution notes, or arbitrary internal facts.
 
-This RPC exposes only whitelisted normalized values for the published company's frozen cutoff. It does not expose raw evidence, provider payloads, resolution notes, or arbitrary as-of access.
-
-Historical mode fails closed to this bitemporal read model rather than reconstructing history from mutable projection rows.
+Historical mode fails closed to this frozen bitemporal read model rather than reconstructing history from mutable projection rows.
 
 ## Restatements and amendments
 
