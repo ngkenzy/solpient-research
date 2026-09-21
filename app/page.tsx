@@ -361,6 +361,7 @@ export default async function Home() {
         <nav className={styles.nav}>
           <Link className={styles.activeNav} href="/">Home</Link>
           <Link href="/research">Research</Link>
+          <Link href="/research-health">Research Health</Link>
           <Link href="/money">Money</Link>
           <Link href="/watchlist">Watchlist</Link>
           <a href="#predictions">Predictions</a>
