@@ -5449,3 +5449,306 @@ h2 { letter-spacing: -.02em; }
 .showAllBarValues .performanceBarValue {
   opacity: 1 !important;
 }
+
+
+/* Valuation bridge */
+.valuationBridgeSection,
+.coveragePanelSection {
+  margin: 30px 0;
+  padding: 22px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 90% 5%, rgba(215,181,109,.06), transparent 28%),
+    linear-gradient(180deg,#101318,#0e1115);
+}
+
+.valuationBridgeHeader,
+.coveragePanelHeader {
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:18px;
+}
+
+.valuationBridgeHeader h2,
+.coveragePanelHeader h2 {
+  margin:4px 0 4px;
+}
+
+.valuationBridgeHeader p,
+.coveragePanelHeader p {
+  margin:0;
+  color:var(--muted);
+  font-size:10px;
+  line-height:1.5;
+  max-width:760px;
+}
+
+.bridgeAuditBadge,
+.coverageScore {
+  min-width:150px;
+  padding:12px 14px;
+  border:1px solid var(--line);
+  border-radius:14px;
+  background:#0f1216;
+  display:grid;
+  gap:4px;
+  text-align:right;
+}
+
+.bridgeAuditBadge span,
+.coverageScore span {
+  color:var(--muted);
+  font-size:8px;
+  text-transform:uppercase;
+  letter-spacing:.06em;
+}
+
+.bridgeAuditBadge strong,
+.coverageScore strong {
+  font-size:18px;
+}
+
+.bridgeAuditBadge.verified { border-color:rgba(89,189,128,.25); }
+.bridgeAuditBadge.partial { border-color:rgba(215,181,109,.28); }
+.coverageScore.good { border-color:rgba(89,189,128,.3); }
+.coverageScore.warn { border-color:rgba(215,181,109,.32); }
+.coverageScore.bad { border-color:rgba(210,100,100,.3); }
+
+.bridgeFormula {
+  margin-top:16px;
+  padding:13px 15px;
+  border:1px solid rgba(215,181,109,.14);
+  border-radius:13px;
+  background:rgba(215,181,109,.035);
+}
+
+.bridgeFormula span {
+  display:block;
+  color:var(--muted);
+  font-size:8px;
+  letter-spacing:.07em;
+}
+
+.bridgeFormula strong {
+  display:block;
+  margin-top:4px;
+  color:var(--accent);
+  font-size:13px;
+  text-transform:capitalize;
+}
+
+.bridgeFormula p {
+  margin:6px 0 0;
+  color:#aab3c0;
+  font-size:9px;
+  line-height:1.5;
+}
+
+.bridgeSteps {
+  margin-top:12px;
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:10px;
+}
+
+.bridgeStep {
+  min-width:0;
+  padding:13px;
+  border:1px solid rgba(255,255,255,.06);
+  border-radius:13px;
+  background:#111419;
+  display:grid;
+  grid-template-columns:26px minmax(0,1fr);
+  gap:10px;
+}
+
+.bridgeStepNumber {
+  width:24px;
+  height:24px;
+  border-radius:50%;
+  display:grid;
+  place-items:center;
+  background:rgba(215,181,109,.12);
+  color:var(--accent);
+  font-size:9px;
+  font-weight:800;
+}
+
+.bridgeStep span {
+  color:var(--muted);
+  font-size:8px;
+  text-transform:uppercase;
+  letter-spacing:.05em;
+}
+
+.bridgeStep strong {
+  display:block;
+  margin-top:4px;
+  font-size:18px;
+}
+
+.bridgeStep small {
+  display:block;
+  margin-top:5px;
+  color:#7f8996;
+  font-size:8px;
+  line-height:1.45;
+}
+
+.bridgeResult {
+  border-color:rgba(215,181,109,.22);
+  background:rgba(215,181,109,.045);
+}
+
+.bridgeDecisionGrid {
+  margin-top:12px;
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:7px;
+}
+
+.bridgeDecisionGrid > div {
+  padding:10px 11px;
+  border:1px solid rgba(255,255,255,.055);
+  border-radius:10px;
+  background:#0f1216;
+  display:grid;
+  gap:3px;
+}
+
+.bridgeDecisionGrid span {
+  color:var(--muted);
+  font-size:7px;
+  text-transform:uppercase;
+  letter-spacing:.05em;
+}
+
+.bridgeDecisionGrid strong { font-size:11px; }
+
+.bridgeLegacyNote {
+  margin:11px 0 0;
+  padding:9px 11px;
+  border-left:2px solid rgba(215,181,109,.45);
+  color:#919aa6;
+  font-size:8px;
+  line-height:1.5;
+}
+
+/* Universal coverage v2 */
+.coverageLayerGrid {
+  margin-top:16px;
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:8px;
+}
+
+.coverageLayer {
+  padding:10px 11px;
+  border:1px solid rgba(255,255,255,.055);
+  border-radius:10px;
+  background:#111419;
+}
+
+.coverageLayer > div {
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  margin-bottom:7px;
+}
+
+.coverageLayer span { color:var(--muted); font-size:8px; }
+.coverageLayer strong { font-size:9px; }
+
+.coverageLayer > i {
+  display:block;
+  height:5px;
+  overflow:hidden;
+  border-radius:999px;
+  background:rgba(255,255,255,.055);
+}
+
+.coverageLayer > i > b {
+  display:block;
+  height:100%;
+  border-radius:inherit;
+  background:linear-gradient(90deg,#8d7549,#d7b56d);
+}
+
+.coverageBottomGrid {
+  margin-top:12px;
+  display:grid;
+  grid-template-columns:1.5fr .8fr;
+  gap:12px;
+}
+
+.coverageBottomGrid > div {
+  padding:13px;
+  border:1px solid rgba(255,255,255,.055);
+  border-radius:12px;
+  background:#111419;
+}
+
+.coverageGapList {
+  margin-top:9px;
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:7px;
+}
+
+.coverageGapList > div,
+.coverageDetails > div {
+  padding:8px 9px;
+  border:1px solid rgba(255,255,255,.045);
+  border-radius:9px;
+  background:#0f1216;
+}
+
+.coverageGapList strong {
+  display:block;
+  font-size:9px;
+}
+
+.coverageGapList span {
+  display:block;
+  margin-top:3px;
+  color:var(--muted);
+  font-size:7px;
+  text-transform:capitalize;
+}
+
+.coverageDetails {
+  display:grid;
+  gap:6px;
+}
+
+.coverageDetails > div {
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+}
+
+.coverageDetails span { color:var(--muted); font-size:8px; }
+.coverageDetails strong { font-size:9px; }
+.coverageComplete { color:#8fcba8; font-size:9px; }
+
+@media (max-width:900px) {
+  .bridgeSteps,
+  .bridgeDecisionGrid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .coverageLayerGrid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .coverageBottomGrid { grid-template-columns:1fr; }
+}
+
+@media (max-width:620px) {
+  .valuationBridgeSection,
+  .coveragePanelSection { padding:16px; }
+  .valuationBridgeHeader,
+  .coveragePanelHeader { flex-direction:column; }
+  .bridgeAuditBadge,
+  .coverageScore { width:100%; text-align:left; }
+  .bridgeSteps,
+  .bridgeDecisionGrid,
+  .coverageLayerGrid,
+  .coverageGapList { grid-template-columns:1fr; }
+}
