@@ -6,6 +6,7 @@ import { CompanyPerformanceHistory } from "@/components/CompanyPerformanceHistor
 import { AdvancedResearchModules } from "@/components/AdvancedResearchModules";
 import { ValuationBridge } from "@/components/ValuationBridge";
 import { ResearchCoveragePanel } from "@/components/ResearchCoveragePanel";
+import { CompanyChangePanel } from "@/components/CompanyChangePanel";
 import { ResearchControls } from "@/components/ResearchControls";
 import { PredictionHistory } from "@/components/PredictionHistory";
 import { SolpientBrand } from "@/components/SolpientBrand";
@@ -397,6 +398,12 @@ export default async function CompanyResearch({
             <ScoreRing label="Thesis integrity" value={asNumber(scores?.thesis_integrity_score)} />
           </article>
         </section>
+
+        <CompanyChangePanel
+          companyId={company.id}
+          researchRunId={run.id}
+          ticker={company.ticker}
+        />
 
         <section className="dashboardGrid">
           <article className="dashboardPanel scorePanel">
