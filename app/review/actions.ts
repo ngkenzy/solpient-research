@@ -138,10 +138,79 @@ export async function applyComposerAction(formData:FormData) {
 
   const {error:compositionError}=await supabase.from("research_compositions").update({status:"applied",applied_at:now,updated_at:now}).eq("id",compositionId);
   if (compositionError) throw compositionError;
+  const {error:draftUpdateError}=await supabase.from("baseline_drafts").update({
+    status:readiness.ready?"ready_for_review":"generated",
+    standard_valid:readiness.standard.valid,standard_status:readiness.standard.status,
+    validation_result:readiness.standard,updated_at:now,
+  }).eq("id",draftId);
+  if (draftUpdateError) throw draftUpdateError;
 
   revalidatePath("/review");
   revalidatePath("/review/"+draftId);
   redirect("/review/"+draftId+"?composed=1");
+}
+
+export async function prepareV2ReviewsAction() {
+  await requireReviewAccess();
+  const supabase=getAdminSupabase();
+  if (!supabase) redirect("/review/login?setup=1");
+
+  const [draftResult,reviewResult,compositionResult]=await Promise.all([
+    supabase.from("baseline_drafts").select("*").neq("status","promoted"),
+    supabase.from("baseline_reviews").select("draft_id,status"),
+    supabase.from("research_compositions").select("*").eq("status","generated").order("generated_at",{ascending:true}),
+  ]);
+  if (draftResult.error) throw draftResult.error;
+  if (reviewResult.error) throw reviewResult.error;
+  if (compositionResult.error) throw compositionResult.error;
+
+  const draftById=new Map((draftResult.data ?? []).map((row:any)=>[row.id,row]));
+  const reviewedDrafts=new Set((reviewResult.data ?? []).map((row:any)=>row.draft_id));
+  let prepared=0;
+
+  for (const composition of compositionResult.data ?? []) {
+    if (reviewedDrafts.has(composition.draft_id)) continue;
+    const draft:any=draftById.get(composition.draft_id);
+    if (!draft) continue;
+
+    const composerPatch=composition.composition_payload?.review_patch ?? {};
+    if (!Object.keys(composerPatch).length) continue;
+
+    const merged=applyReviewPatch(draft.draft_payload,composerPatch);
+    const readiness=validatePromotionReadiness(merged);
+    const now=new Date().toISOString();
+
+    const {error:insertReviewError}=await supabase.from("baseline_reviews").insert({
+      draft_id:draft.id,
+      status:readiness.ready?"ready":"editing",
+      review_payload:composerPatch,
+      validation_result:readiness.standard,
+      promotion_readiness:readiness,
+      review_notes:"Automated Research Composer v1 prepared this V2 review package. Human verification is required before publication.",
+      reviewed_at:now,
+      updated_at:now,
+    });
+    if (insertReviewError) throw insertReviewError;
+
+    const {error:compositionError}=await supabase.from("research_compositions").update({
+      status:"applied",applied_at:now,updated_at:now,
+    }).eq("id",composition.id);
+    if (compositionError) throw compositionError;
+
+    const {error:draftError}=await supabase.from("baseline_drafts").update({
+      status:readiness.ready?"ready_for_review":"generated",
+      standard_valid:readiness.standard.valid,
+      standard_status:readiness.standard.status,
+      validation_result:readiness.standard,
+      updated_at:now,
+    }).eq("id",draft.id);
+    if (draftError) throw draftError;
+
+    prepared+=1;
+  }
+
+  revalidatePath("/review");
+  redirect("/review?prepared="+prepared);
 }
 
 export async function promoteReviewAction(formData:FormData) {
