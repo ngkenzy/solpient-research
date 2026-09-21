@@ -8,7 +8,7 @@ export type LocalAIProgress = {
 };
 
 type LocalEngine = Awaited<
-  ReturnType<typeof import("@mlc-ai/web-llm")["CreateMLCEngine"]>
+  ReturnType<typeof import("@mlc-ai/web-llm")["CreateWebWorkerMLCEngine"]>
 >;
 
 let enginePromise: Promise<LocalEngine> | null = null;
@@ -38,18 +38,26 @@ export async function loadLocalMoneyAI(
   if (!enginePromise) {
     enginePromise = (async () => {
       const webllm = await import("@mlc-ai/web-llm");
-      const engine = await webllm.CreateMLCEngine(LOCAL_MODEL_ID, {
-        initProgressCallback: (report) => {
-          onProgress?.({
-            progress:
-              typeof report.progress === "number"
-                ? Math.max(0, Math.min(1, report.progress))
-                : 0,
-            text: report.text || "Loading Private AI…",
-          });
+      const worker = new Worker(
+        new URL("./local-money-ai.worker.ts", import.meta.url),
+        { type: "module" },
+      );
+      const engine = await webllm.CreateWebWorkerMLCEngine(
+        worker,
+        LOCAL_MODEL_ID,
+        {
+          initProgressCallback: (report) => {
+            onProgress?.({
+              progress:
+                typeof report.progress === "number"
+                  ? Math.max(0, Math.min(1, report.progress))
+                  : 0,
+              text: report.text || "Loading Private AI…",
+            });
+          },
+          logLevel: "WARN",
         },
-        logLevel: "WARN",
-      });
+      );
       loadedEngine = engine;
       return engine;
     })().catch((error) => {
@@ -73,6 +81,45 @@ function systemPrompt() {
     "If information is missing, identify the missing input rather than guessing.",
     "Keep the answer under 180 words.",
   ].join(" ");
+}
+
+export function buildRulesMoneyExplanation(
+  question: string,
+  summary: CoachSummary,
+) {
+  const first = summary.actions[0];
+  if (!first) {
+    return "Solpient does not have enough information to build a normal allocation sequence yet. Add or review monthly income, spending, liquid cash, debt, and goals first.";
+  }
+
+  const amount = new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  }).format(first.amount);
+
+  const context =
+    summary.highestConsumerApr >= 10
+      ? " Your highest consumer debt rate is " +
+        summary.highestConsumerApr.toFixed(1) +
+        "%, which can materially affect the priority order."
+      : summary.emergencyMonths < 3
+        ? " Your liquid reserve is " +
+          summary.emergencyMonths.toFixed(1) +
+          " months, so liquidity remains important."
+        : "";
+
+  return (
+    "Your current first action is " +
+    first.title.toLowerCase() +
+    " at about " +
+    amount +
+    ". " +
+    first.reason +
+    context +
+    " The deterministic engine resolves liquidity, employer match, expensive debt, retirement, and dated goals before optional long-term investing. Your question was: " +
+    question.slice(0, 240)
+  );
 }
 
 export async function askLocalMoneyAI(
@@ -100,9 +147,9 @@ export async function askLocalMoneyAI(
     max_tokens: 320,
   });
 
-  const content = response.choices?.[0]?.message?.content;
-  if (typeof content === "string" && content.trim()) {
-    return content.trim();
+  const output = response.choices?.[0]?.message?.content;
+  if (typeof output === "string" && output.trim()) {
+    return output.trim();
   }
 
   throw new Error("The local model returned an empty response.");
