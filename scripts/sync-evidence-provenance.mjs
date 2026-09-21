@@ -229,9 +229,24 @@ for(const row of allObs){
   groups.get(key).push(row);
 }
 
-const existingFactsRaw=await fetchAll("normalized_facts",(q)=>q.select("id,fact_key,company_id,module,metric_key,economic_period_end,economic_period_type,known_at,supersedes_fact_id"));
+const existingFactsRaw=await fetchAll("normalized_facts",(q)=>q.select("id,fact_key,company_id,module,metric_key,value_numeric,unit,economic_period_end,economic_period_type,known_at,source_confidence_class,conflict_state,supersedes_fact_id,formula_identifier,derivation_basis"));
 const factByKey=new Map(existingFactsRaw.map((r)=>[r.fact_key,r]));
-const builtFacts=[],builtLinks=[];
+let factsPrepared=0;
+let observationLinksPrepared=0;
+let factBuffer=[];
+let observationLinkBuffer=[];
+
+async function flushFactBuffers(){
+  if(!factBuffer.length&&!observationLinkBuffer.length)return;
+  const {error}=await sb.rpc("ingest_evidence_batch_v1",{
+    p_sources:[],p_observations:[],p_facts:factBuffer,
+    p_fact_observations:observationLinkBuffer,p_fact_inputs:[]
+  });
+  if(error)throw error;
+  factBuffer=[];
+  observationLinkBuffer=[];
+}
+
 for(const rows of groups.values()){
   const sample=rows[0];
   const eventTimes=[...new Set(rows.map((row)=>row.known_at).filter(Boolean))].sort();
@@ -254,62 +269,174 @@ for(const rows of groups.values()){
     const existing=factByKey.get(built.fact.fact_key);
     const factId=existing?.id??built.fact.id;
     if(!existing){
-      builtFacts.push(built.fact);
+      factBuffer.push(built.fact);
       factByKey.set(built.fact.fact_key,{...built.fact,id:factId});
+      factsPrepared+=1;
     }
-    for(const link of built.observationLinks)builtLinks.push({...link,normalized_fact_id:factId});
+    for(const link of built.observationLinks){
+      observationLinkBuffer.push({...link,normalized_fact_id:factId});
+      observationLinksPrepared+=1;
+    }
     previousFactId=factId;
+
+    if(factBuffer.length>=250||observationLinkBuffer.length>=750){
+      await flushFactBuffers();
+    }
   }
 }
+await flushFactBuffers();
 
-for(let i=0;i<Math.max(builtFacts.length,builtLinks.length);i+=300){
-  const {error}=await sb.rpc("ingest_evidence_batch_v1",{
-    p_sources:[],p_observations:[],p_facts:builtFacts.slice(i,i+300),
-    p_fact_observations:builtLinks.slice(i,i+300),p_fact_inputs:[]
-  });
-  if(error)throw error;
+// Re-read facts after streaming so derived lineage and frozen legacy history use
+// exactly what is now present in the canonical ledger.
+const facts=await fetchAll("normalized_facts",(q)=>q
+  .select("id,company_id,module,metric_key,value_numeric,unit,economic_period_end,economic_period_type,known_at,source_confidence_class,conflict_state,supersedes_fact_id,formula_identifier,derivation_basis")
+  .order("known_at",{ascending:true})
+);
+
+const factsByMetric=new Map();
+const factsByCompany=new Map();
+for(const fact of facts){
+  const metricKey=[fact.company_id,fact.module,fact.metric_key].join("|");
+  const metricRows=factsByMetric.get(metricKey)??[];
+  metricRows.push(fact);
+  factsByMetric.set(metricKey,metricRows);
+
+  const companyRows=factsByCompany.get(fact.company_id)??[];
+  companyRows.push(fact);
+  factsByCompany.set(fact.company_id,companyRows);
+}
+for(const rows of factsByMetric.values()){
+  rows.sort((a,b)=>
+    String(b.economic_period_end??"").localeCompare(String(a.economic_period_end??"")) ||
+    String(b.known_at??"").localeCompare(String(a.known_at??""))
+  );
 }
 
 // Derived facts link to the latest eligible input facts known at the same time.
-const facts=await fetchAll("normalized_facts",(q)=>q.select("id,company_id,module,metric_key,economic_period_end,known_at,formula_identifier,derivation_basis").order("known_at",{ascending:true}));
-const inputLinks=[];
+// Use a metric index instead of repeatedly scanning the full fact universe.
+let derivedInputLinksPrepared=0;
+let inputLinkBuffer=[];
+async function flushInputLinks(){
+  if(!inputLinkBuffer.length)return;
+  const {error}=await sb.rpc("ingest_evidence_batch_v1",{
+    p_sources:[],p_observations:[],p_facts:[],p_fact_observations:[],p_fact_inputs:inputLinkBuffer
+  });
+  if(error)throw error;
+  inputLinkBuffer=[];
+}
+
 for(const fact of facts){
   const formula=derivedFormulaForMetric(fact.metric_key);
   if(!formula||!fact.derivation_basis)continue;
   const used=new Set();
   for(const [index,inputMetric] of formula.inputs.entries()){
-    const candidates=facts.filter((candidate)=>
-      candidate.company_id===fact.company_id &&
-      candidate.module==="universal" &&
-      candidate.metric_key===inputMetric &&
+    const universal=factsByMetric.get([fact.company_id,"universal",inputMetric].join("|"))??[];
+    const valuation=factsByMetric.get([fact.company_id,"valuation_history",inputMetric].join("|"))??[];
+    const candidates=universal.length?universal:valuation;
+    const chosen=candidates.find((candidate)=>
       candidate.id!==fact.id &&
       String(candidate.known_at)<=String(fact.known_at) &&
       (!fact.economic_period_end||!candidate.economic_period_end||String(candidate.economic_period_end)<=String(fact.economic_period_end)) &&
       !used.has(candidate.id)
-    ).sort((a,b)=>
-      String(b.economic_period_end??"").localeCompare(String(a.economic_period_end??"")) ||
-      String(b.known_at??"").localeCompare(String(a.known_at??""))
     );
-    if(candidates[0]){
-      used.add(candidates[0].id);
-      inputLinks.push({normalized_fact_id:fact.id,input_fact_id:candidates[0].id,input_role:"formula_input",input_order:index,created_at:fact.known_at});
+    if(chosen){
+      used.add(chosen.id);
+      inputLinkBuffer.push({
+        normalized_fact_id:fact.id,input_fact_id:chosen.id,
+        input_role:"formula_input",input_order:index,created_at:fact.known_at
+      });
+      derivedInputLinksPrepared+=1;
+      if(inputLinkBuffer.length>=500)await flushInputLinks();
     }
   }
 }
-for(let i=0;i<inputLinks.length;i+=400){
-  const {error}=await sb.rpc("ingest_evidence_batch_v1",{
-    p_sources:[],p_observations:[],p_facts:[],p_fact_observations:[],p_fact_inputs:inputLinks.slice(i,i+400)
-  });
-  if(error)throw error;
+await flushInputLinks();
+
+const PUBLIC_HISTORY_METRICS={
+  universal:new Set([
+    "revenue","free_cash_flow","gross_margin","operating_margin","fcf_margin",
+    "eps_diluted","fcf_per_share","shares_outstanding","dividends_paid","buybacks",
+    "stock_based_compensation","acquisitions","debt_issued","debt_repaid"
+  ]),
+  valuation_history:new Set(["pe","forward_pe","price_to_fcf","fcf_yield"]),
+  capital_allocation:new Set([
+    "dividends_paid","buybacks","stock_based_compensation","acquisitions",
+    "debt_issued","debt_repaid","ending_share_count"
+  ]),
+  peer:new Set(["revenue_growth_yoy","fcf_margin","price_to_fcf","fcf_yield"]),
+};
+function publicHistoryAllowed(fact){
+  if(fact.module==="universal")return PUBLIC_HISTORY_METRICS.universal.has(fact.metric_key);
+  if(fact.module==="valuation_history")return PUBLIC_HISTORY_METRICS.valuation_history.has(fact.metric_key);
+  if(fact.module==="capital_allocation")return PUBLIC_HISTORY_METRICS.capital_allocation.has(fact.metric_key);
+  if(String(fact.module??"").startsWith("peer:"))return PUBLIC_HISTORY_METRICS.peer.has(fact.metric_key);
+  return false;
 }
+
+// Existing Phase 1/legacy publications predate the Phase 2 freeze trigger.
+// Freeze a sanitized as-of history snapshot without fabricating a research-input manifest.
+const publishedRuns=await fetchAll("research_runs",(q)=>q
+  .select("id,company_id,data_cutoff_at,researched_at,published_at,status")
+  .eq("status","published")
+);
+let publicHistoryPrepared=0;
+for(const run of publishedRuns){
+  const cutoff=iso(run.data_cutoff_at??run.researched_at);
+  if(!cutoff)continue;
+  const eligible=(factsByCompany.get(run.company_id)??[]).filter((fact)=>
+    fact.known_at&&String(fact.known_at)<=cutoff&&
+    fact.conflict_state!=="superseded"&&publicHistoryAllowed(fact)
+  );
+  const supersededAsOf=new Set(
+    eligible.map((fact)=>fact.supersedes_fact_id).filter(Boolean)
+  );
+  const rows=eligible
+    .filter((fact)=>!supersededAsOf.has(fact.id))
+    .map((fact)=>({
+      research_run_id:run.id,
+      company_id:run.company_id,
+      module:fact.module,
+      metric_key:fact.metric_key,
+      value_numeric:fact.value_numeric??null,
+      unit:fact.unit??null,
+      economic_period_end:fact.economic_period_end??null,
+      economic_period_type:fact.economic_period_type??null,
+      known_at:fact.known_at,
+      source_confidence_class:fact.source_confidence_class??null,
+      conflict_state:fact.conflict_state??null,
+      created_at:run.published_at??run.researched_at??new Date().toISOString(),
+    }));
+  for(let i=0;i<rows.length;i+=500){
+    const chunk=rows.slice(i,i+500);
+    const {error}=await sb.from("research_public_history_items").upsert(chunk,{
+      onConflict:"research_run_id,module,metric_key,economic_period_end,economic_period_type,known_at",
+      ignoreDuplicates:true,
+    });
+    if(error)throw error;
+    publicHistoryPrepared+=chunk.length;
+  }
+}
+
+const completedAt=new Date().toISOString();
+const recordsWritten=factsPrepared+observationLinksPrepared+derivedInputLinksPrepared+publicHistoryPrepared;
+const {error:automationError}=await sb.from("automation_runs").insert({
+  pipeline:"evidence_provenance",
+  started_at:completedAt,
+  completed_at:completedAt,
+  status:"success",
+  records_written:recordsWritten,
+  message:"Canonical provenance sync completed; facts and frozen legacy history are current."
+});
+if(automationError)throw automationError;
 
 console.log(JSON.stringify({
   provenance_version:"evidence-provenance-v1",
   companies:selected.length,
   sources_prepared:sources.length,
   observations_prepared:observations.length,
-  facts_prepared:builtFacts.length,
-  observation_links_prepared:builtLinks.length,
-  derived_input_links_prepared:inputLinks.length,
+  facts_prepared:factsPrepared,
+  observation_links_prepared:observationLinksPrepared,
+  derived_input_links_prepared:derivedInputLinksPrepared,
+  public_history_rows_prepared:publicHistoryPrepared,
   ticker:onlyTicker
 },null,2));
