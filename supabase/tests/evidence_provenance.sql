@@ -246,6 +246,24 @@ begin
     raise exception 'Historical as-of lookup leaked amended value B.';
   end if;
 
+  if (
+    select value_numeric
+    from public.get_public_research_history_as_of_v1(v_run)
+    where module='universal' and metric_key='revenue'
+    order by economic_period_end desc,known_at desc
+    limit 1
+  ) <> 100 then
+    raise exception 'Public historical read model leaked a post-cutoff amendment.';
+  end if;
+
+  if not has_function_privilege(
+    'anon',
+    'public.get_public_research_history_as_of_v1(uuid)',
+    'EXECUTE'
+  ) then
+    raise exception 'Anon cannot execute the safe historical research read model.';
+  end if;
+
   if (select value_numeric from public.normalized_facts
       where company_id=v_company and metric_key='revenue'
       order by known_at desc limit 1) <> 112 then
