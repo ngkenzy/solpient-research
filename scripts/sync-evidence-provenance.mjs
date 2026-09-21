@@ -1,4 +1,5 @@
 import process from "node:process";
+// Main-push provenance workflow runs this synchronizer idempotently.
 import { randomUUID, createHash } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import {
