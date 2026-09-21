@@ -215,6 +215,7 @@ try {
         probability_brier_score: brier,
         benchmark_excess_return:
           outcome.metric_key === "relative_return_pct" ? actualValue : null,
+        methodology_version: "score-v1",
         notes: sourceNote,
       });
       if (scoreError) throw scoreError;
