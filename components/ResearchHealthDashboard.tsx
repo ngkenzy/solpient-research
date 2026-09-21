@@ -123,7 +123,7 @@ export function ResearchHealthDashboard({
           <strong>{pct(stats.avg)}</strong>
           <small>
             {latestRepairRun?.completed_at
-              ?"Last repair cycle "+new Date(latestRepairRun.completed_at).toLocaleString("en-US",{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"})
+              ?"Last repair cycle "+new Date(latestRepairRun.completed_at).toLocaleString("en-US",{month:"short",day:"numeric",hour:"numeric",minute:"2-digit",timeZone:"America/New_York"})
               :"Repair automation initialized"}
           </small>
         </div>
