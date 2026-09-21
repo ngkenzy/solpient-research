@@ -214,8 +214,9 @@ for(const company of selected){
   if(!rows.length)continue;
   const sourceIds=[...new Set(rows.map((r)=>r.source_id))];
   const sourceRows=[];
-  for(let i=0;i<sourceIds.length;i+=500){
-    const {data,error}=await sb.from("evidence_sources").select("id,source_quality_class").in("id",sourceIds.slice(i,i+500));
+  const sourceLookupBatchSize=100;
+  for(let i=0;i<sourceIds.length;i+=sourceLookupBatchSize){
+    const {data,error}=await sb.from("evidence_sources").select("id,source_quality_class").in("id",sourceIds.slice(i,i+sourceLookupBatchSize));
     if(error)throw error;sourceRows.push(...(data??[]));
   }
   const quality=new Map(sourceRows.map((r)=>[r.id,r.source_quality_class]));
