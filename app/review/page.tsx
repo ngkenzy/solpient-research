@@ -3,6 +3,8 @@ import { SolpientBrand } from "@/components/SolpientBrand";
 import { getAdminSupabase } from "@/lib/admin-supabase";
 import { requireReviewAccess } from "@/lib/review-auth";
 import { buildCompanyReviewAction, logoutReviewAction, prepareV2ReviewsAction } from "./actions";
+// @ts-expect-error Node ESM research helper
+import { BASELINE_FACTORY_VERSION } from "@/lib/baseline-factory.mjs";
 import styles from "./review.module.css";
 
 export const dynamic="force-dynamic";
@@ -11,10 +13,13 @@ export const runtime="nodejs";
 const pct=(value:unknown)=>Number.isFinite(Number(value))?Number(value).toFixed(1)+"%":"—";
 
 function stageFor(row:any) {
+  const activeDraft=row.draft&&row.draft.status!=="promoted";
+  if (activeDraft&&row.review?.promotion_readiness?.ready) return {label:"Ready to publish",tone:"ready"};
+  if (activeDraft&&row.review) return {label:"Human review",tone:"review"};
+  if (activeDraft&&row.composition) return {label:"Composer ready",tone:"composer"};
+  if (activeDraft) return {label:"Draft ready",tone:"composer"};
+  if (row.latestRun?.standard_version==="solpient-v2"&&row.draft?.generation_version!==BASELINE_FACTORY_VERSION) return {label:"Rebuild analysis",tone:"backfill"};
   if (row.latestRun?.standard_version==="solpient-v2") return {label:"Published V2",tone:"published"};
-  if (row.review?.promotion_readiness?.ready) return {label:"Ready to publish",tone:"ready"};
-  if (row.review) return {label:"Human review",tone:"review"};
-  if (row.composition) return {label:"Composer ready",tone:"composer"};
   if (row.latestRun) return {label:"V2 backfill",tone:"backfill"};
   if (!row.draft && row.coverage?.status==="sufficient") return {label:"Build draft",tone:"composer"};
   return {label:"Needs data",tone:"blocked"};
@@ -136,11 +141,13 @@ export default async function ReviewQueue({searchParams}:{searchParams:Promise<{
             <div className={styles.queueMetric}><span>Version</span><strong>{row.latestRun?"v"+row.latestRun.version:"—"}</strong></div>
             <div className={styles.stageCell}><span className={styles["stage_"+stage.tone]}>{stage.label}</span></div>
           </>;
-          if (!row.draft && row.coverage?.status==="sufficient" && !row.latestRun) {
+          const needsInitialBuild=!row.draft&&row.coverage?.status==="sufficient"&&!row.latestRun;
+          const needsEngineRebuild=row.latestRun?.standard_version==="solpient-v2"&&row.draft?.status==="promoted"&&row.draft?.generation_version!==BASELINE_FACTORY_VERSION;
+          if (needsInitialBuild||needsEngineRebuild) {
             return <form className={styles.queueRowV2} action={buildCompanyReviewAction} key={row.company.id}>
               <input type="hidden" name="company_id" value={row.company.id} />
               {content}
-              <button className={styles.buildDraftButton} type="submit">Build →</button>
+              <button className={styles.buildDraftButton} type="submit">{needsEngineRebuild?"Rebuild →":"Build →"}</button>
             </form>;
           }
           const href=row.draft?"/review/"+row.draft.id:row.latestRun?"/research/"+row.company.ticker:"/research";
