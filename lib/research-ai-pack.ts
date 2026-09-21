@@ -14,6 +14,33 @@ export type ResearchAIPack = {
     cutoffAt: string | null;
     priceAtResearch: number | null;
   };
+  systemContext: {
+    authority: "published_research";
+    ranking: {
+      rank: number | null;
+      decisionScore: number | null;
+      evidenceConfidence: number | null;
+      readinessState: string | null;
+      rankedAt: string | null;
+      methodologyVersion: string | null;
+    };
+    universeScreening: {
+      state: string | null;
+      shortlistRank: number | null;
+      proposedForDeepResearch: boolean;
+      screenScore: number | null;
+      evidenceCoveragePct: number | null;
+      observedAt: string | null;
+    };
+    candidatePipeline: {
+      stage: string | null;
+      readinessState: string | null;
+      decisionScore: number | null;
+      evidenceConfidence: number | null;
+      nextAction: string | null;
+      observedAt: string | null;
+    };
+  };
   scores: Record<string, number | null>;
   valuation: Record<string, number | null>;
   metrics: Record<string, number | null>;
@@ -82,6 +109,9 @@ export function buildResearchAIPack(input: {
   changes?: Array<Record<string, any>>;
   triggers?: Array<Record<string, any>>;
   sources?: Array<Record<string, any>>;
+  ranking?: Record<string, any> | null;
+  universeScreening?: Record<string, any> | null;
+  candidatePipeline?: Record<string, any> | null;
 }): ResearchAIPack {
   return {
     packVersion: "research-ai-pack-v1",
@@ -98,6 +128,33 @@ export function buildResearchAIPack(input: {
       researchedAt: input.run.researched_at ?? null,
       cutoffAt: input.run.data_cutoff_at ?? input.run.researched_at ?? null,
       priceAtResearch: num(input.run.price_at_research),
+    },
+    systemContext: {
+      authority: "published_research",
+      ranking: {
+        rank: num(input.ranking?.rank),
+        decisionScore: num(input.ranking?.decision_score),
+        evidenceConfidence: num(input.ranking?.evidence_confidence_score),
+        readinessState: input.ranking?.readiness_state ?? null,
+        rankedAt: input.ranking?.ranked_at ?? null,
+        methodologyVersion: input.ranking?.methodology_version ?? null,
+      },
+      universeScreening: {
+        state: input.universeScreening?.screen_state ?? null,
+        shortlistRank: num(input.universeScreening?.shortlist_rank),
+        proposedForDeepResearch: Boolean(input.universeScreening?.proposed_for_deep_research),
+        screenScore: num(input.universeScreening?.screen_score),
+        evidenceCoveragePct: num(input.universeScreening?.evidence_coverage_pct),
+        observedAt: input.universeScreening?.created_at ?? null,
+      },
+      candidatePipeline: {
+        stage: input.candidatePipeline?.stage ?? null,
+        readinessState: input.candidatePipeline?.readiness_state ?? null,
+        decisionScore: num(input.candidatePipeline?.decision_score),
+        evidenceConfidence: num(input.candidatePipeline?.evidence_confidence),
+        nextAction: input.candidatePipeline?.next_actions?.[0]?.action ?? null,
+        observedAt: input.candidatePipeline?.created_at ?? null,
+      },
     },
     scores: pickNumbers(input.scores, [
       "quality_score",
