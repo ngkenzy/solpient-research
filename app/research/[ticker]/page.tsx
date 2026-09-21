@@ -231,10 +231,21 @@ export default async function CompanyResearch({
       .maybeSingle(),
   ]);
 
-  const { data: latestMarket } = await supabase
+  const frozenAsOf = requestedVersion
+    ? String(run.data_cutoff_at ?? run.researched_at ?? "")
+    : null;
+  const frozenDate = frozenAsOf ? frozenAsOf.slice(0, 10) : null;
+
+  let marketQuery = supabase
     .from("market_snapshots")
-    .select("price,trading_date,provider")
-    .eq("symbol", company.ticker)
+    .select("price,trading_date,provider,observed_at")
+    .eq("symbol", company.ticker);
+  if (frozenAsOf && frozenDate) {
+    marketQuery = marketQuery
+      .lte("trading_date", frozenDate)
+      .lte("observed_at", frozenAsOf);
+  }
+  const { data: latestMarket } = await marketQuery
     .order("trading_date", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -366,7 +377,7 @@ export default async function CompanyResearch({
 
         <section className="headlineGrid">
           <article className="headlineMetric">
-            <span>Latest market price</span>
+            <span>{frozenAsOf ? "Market price at research cutoff" : "Latest market price"}</span>
             <strong>{formatMoney(currentPrice)}</strong>
             <small>
               {latestMarket?.trading_date
@@ -404,12 +415,14 @@ export default async function CompanyResearch({
           companyId={company.id}
           researchRunId={run.id}
           ticker={company.ticker}
+          asOf={frozenAsOf}
         />
 
         <DecisionTriggerPanel
           companyId={company.id}
           researchRunId={run.id}
           ticker={company.ticker}
+          asOf={frozenAsOf}
         />
 
         <section className="dashboardGrid">
@@ -571,7 +584,7 @@ export default async function CompanyResearch({
           currentPrice={currentPrice}
         />
 
-        <ResearchCoveragePanel companyId={company.id} />
+        <ResearchCoveragePanel companyId={company.id} asOf={frozenAsOf} />
 
         <ResearchStandardV2 researchRunId={run.id} />
 
@@ -581,17 +594,20 @@ export default async function CompanyResearch({
           companyId={company.id}
           ticker={company.ticker}
           benchmarkTicker={run.benchmark_ticker ?? "SPY"}
+          researchRunId={run.id}
+          asOf={frozenAsOf}
         />
 
         <AdvancedResearchModules
           companyId={company.id}
           researchRunId={run.id}
           ticker={company.ticker}
+          asOf={frozenAsOf}
         />
 
-        <CompanyIntelligence ticker={company.ticker} />
+        <CompanyIntelligence ticker={company.ticker} asOf={frozenAsOf} />
 
-        <PredictionHistory companyId={company.id} ticker={company.ticker} />
+        <PredictionHistory companyId={company.id} ticker={company.ticker} asOf={frozenAsOf} />
 
         <section className="dashboardGrid lowerDashboard">
           <article className="dashboardPanel changeSection">

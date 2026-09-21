@@ -1,4 +1,5 @@
 import { getSupabase } from "@/lib/supabase";
+import { getResearchTemporalContext } from "@/lib/research-temporal";
 import styles from "./ResearchStandardV2.module.css";
 
 function num(value: unknown) {
@@ -110,13 +111,8 @@ export async function ResearchStandardV2({
   const conclusion = section.final_conclusion ?? {};
   const normalized = valuationAnalysis.normalized_earnings_context ?? {};
 
-  const { data: contextPack } = await supabase
-    .from("research_context_packs")
-    .select("peer_comparison")
-    .eq("company_id", run.company_id)
-    .order("generated_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  const temporal = await getResearchTemporalContext(supabase, researchRunId);
+  const contextPack = temporal?.contextPack ?? null;
 
   const freeCashFlow = num(metrics.free_cash_flow);
   const shares = num(metrics.shares_outstanding);

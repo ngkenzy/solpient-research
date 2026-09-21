@@ -71,7 +71,7 @@ const readiness={
 const pkg=buildPublicationPackage(payload,promotedAt);
 assert.equal(pkg.research.status,"published");
 assert.equal(pkg.research.standard_version,"solpient-v2");
-assert.equal(pkg.sources[0].retrieved_at,promotedAt);
+assert.equal(pkg.sources[0].retrieved_at,payload.research.data_cutoff_at);
 assert.equal("prediction" in pkg,false);
 assert.equal("id" in pkg.financial_metrics,false);
 assert.equal("research_run_id" in pkg.financial_metrics,false);

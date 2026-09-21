@@ -43,19 +43,23 @@ export async function CompanyChangePanel({
   companyId,
   researchRunId,
   ticker,
+  asOf=null,
 }:{
   companyId:string;
   researchRunId:string;
   ticker:string;
+  asOf?:string|null;
 }) {
   const supabase=getSupabase();
   if(!supabase)return null;
 
-  const {data:events}=await supabase
+  let eventQuery=supabase
     .from("company_change_events")
     .select("*")
     .eq("company_id",companyId)
-    .eq("research_run_id",researchRunId)
+    .eq("research_run_id",researchRunId);
+  if(asOf)eventQuery=eventQuery.lte("created_at",asOf);
+  const {data:events}=await eventQuery
     .order("occurred_at",{ascending:false})
     .order("created_at",{ascending:false})
     .limit(16);

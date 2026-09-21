@@ -49,7 +49,8 @@ export async function ValuationBridge({
   const metrics=metricsR.data??{};
   const analysis=(v2R.data as any)?.valuation_analysis??{};
   const persisted=analysis?.valuation_bridge??null;
-  const cutoff=String(runR.data?.data_cutoff_at??runR.data?.researched_at??"").slice(0,10);
+  const cutoffIso=String(runR.data?.data_cutoff_at??runR.data?.researched_at??"");
+  const cutoff=cutoffIso.slice(0,10);
 
   const formula=typeof persisted?.formula==="string"?persisted.formula:"median_of_applicable_anchors";
   const formulaExplanation=typeof persisted?.explanation==="string"
@@ -68,11 +69,12 @@ export async function ValuationBridge({
     }
     let peerQuery=supabase
       .from("peer_metric_snapshots")
-      .select("peer_ticker,as_of_date,value_numeric")
+      .select("peer_ticker,as_of_date,value_numeric,observed_at")
       .eq("company_id",companyId)
       .eq("metric_key","price_to_fcf")
       .order("as_of_date",{ascending:false});
     if(cutoff)peerQuery=peerQuery.lte("as_of_date",cutoff);
+    if(cutoffIso)peerQuery=peerQuery.lte("observed_at",cutoffIso);
     const peerR=await peerQuery.limit(200);
     const latestByPeer=new Map<string,number>();
     for(const row of peerR.data??[]){

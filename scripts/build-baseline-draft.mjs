@@ -73,6 +73,15 @@ const result = buildBaselineDraft({
 });
 
 if (contextResult.data) {
+  const contextKnownAt = contextResult.data.knowledge_cutoff_at ?? contextResult.data.generated_at;
+  if (contextKnownAt) {
+    const currentCutoff = new Date(result.sourceCutoffAt).getTime();
+    const contextCutoff = new Date(contextKnownAt).getTime();
+    if (Number.isFinite(contextCutoff) && (!Number.isFinite(currentCutoff) || contextCutoff > currentCutoff)) {
+      result.sourceCutoffAt = new Date(contextCutoff).toISOString();
+      result.payload.research.data_cutoff_at = result.sourceCutoffAt;
+    }
+  }
   result.payload.factory.research_context = {
     context_pack_id: contextResult.data.id,
     context_version: contextResult.data.context_version,

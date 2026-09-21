@@ -32,19 +32,25 @@ export async function DecisionTriggerPanel({
   companyId,
   researchRunId,
   ticker,
+  asOf=null,
 }:{
   companyId:string;
   researchRunId:string;
   ticker:string;
+  asOf?:string|null;
 }) {
   const supabase=getSupabase();
   if(!supabase)return null;
 
-  const {data}=await supabase
+  let triggerQuery=supabase
     .from("decision_triggers")
     .select("*")
     .eq("company_id",companyId)
-    .eq("research_run_id",researchRunId)
+    .eq("research_run_id",researchRunId);
+  if(asOf)triggerQuery=triggerQuery
+    .lte("created_at",asOf)
+    .lte("last_evaluated_at",asOf);
+  const {data}=await triggerQuery
     .order("trigger_group")
     .order("severity",{ascending:false})
     .order("label");
