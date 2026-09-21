@@ -22,6 +22,8 @@ const result=composeResearchV1({company:{ticker:"TEST",description:"Test busines
 assert.equal(result.composer.status,"private_draft");
 assert.equal(result.composer.publication_allowed,false);
 assert.ok(result.review_patch.valuation_analysis.methods.length>=5);
+assert.equal(result.review_patch.valuation_analysis.valuation_bridge.formula,"median_of_applicable_anchors");
+assert.ok(result.review_patch.valuation_analysis.valuation_bridge.components.base.result>0);
 assert.equal(result.review_patch.expected_return_scenarios.length,9);
 assert.ok(result.review_patch.risk_register.length>=3);
 const merged=applyReviewPatch(baseline,result.review_patch);
