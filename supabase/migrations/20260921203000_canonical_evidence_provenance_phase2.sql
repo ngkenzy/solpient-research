@@ -93,6 +93,8 @@ create table if not exists public.normalized_facts (
   calculated_at timestamptz,
   confidence_metadata jsonb not null default '{}'::jsonb,
   derivation_metadata jsonb not null default '{}'::jsonb,
+  supersedes_fact_id uuid references public.normalized_facts(id) on delete restrict,
+  supersession_reason text,
   visibility text not null default 'internal',
   created_at timestamptz not null default now(),
   constraint normalized_facts_confidence_check check (
@@ -121,7 +123,7 @@ create table if not exists public.normalized_fact_observations (
   created_at timestamptz not null default now(),
   primary key(normalized_fact_id,observation_id),
   constraint normalized_fact_observations_role_check check (
-    observation_role in ('selected','supporting','conflicting')
+    observation_role in ('selected','supporting','conflicting','superseded')
   )
 );
 
@@ -285,6 +287,10 @@ create index if not exists normalized_facts_period_known_idx
   on public.normalized_facts(company_id,metric_key,economic_period_end desc,known_at desc);
 create index if not exists normalized_facts_selected_observation_idx
   on public.normalized_facts(selected_observation_id);
+create index if not exists normalized_facts_supersedes_idx
+  on public.normalized_facts(supersedes_fact_id);
+create unique index if not exists normalized_facts_supersedes_once_idx
+  on public.normalized_facts(supersedes_fact_id) where supersedes_fact_id is not null;
 create index if not exists normalized_fact_observations_observation_idx
   on public.normalized_fact_observations(observation_id);
 create index if not exists normalized_fact_inputs_input_idx
