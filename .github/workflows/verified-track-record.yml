@@ -1,0 +1,61 @@
+name: Verified Track Record Calibration
+
+on:
+  pull_request:
+    paths:
+      - "lib/track-record-calibration.mjs"
+      - "scripts/test-track-record-calibration.mjs"
+      - "scripts/materialize-track-record.mjs"
+      - "supabase/migrations/20260921220000_verified_track_record_calibration.sql"
+      - "supabase/tests/track_record_calibration.sql"
+      - "app/review/track-record/page.tsx"
+      - "docs/VERIFIED_TRACK_RECORD.md"
+      - ".github/workflows/verified-track-record.yml"
+  push:
+    branches: [main]
+    paths:
+      - "lib/track-record-calibration.mjs"
+      - "scripts/materialize-track-record.mjs"
+      - "supabase/migrations/20260921220000_verified_track_record_calibration.sql"
+      - ".github/workflows/verified-track-record.yml"
+  workflow_dispatch:
+  schedule:
+    - cron: "5 14 * * 1-5"
+
+concurrency:
+  group: solpient-verified-track-record
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Test calibration methodology
+        run: node scripts/test-track-record-calibration.mjs
+      - name: Syntax check materializer
+        run: node --check scripts/materialize-track-record.mjs
+
+  materialize:
+    if: github.event_name != 'pull_request'
+    needs: verify
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+      - name: Materialize verified track record
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: node scripts/materialize-track-record.mjs
