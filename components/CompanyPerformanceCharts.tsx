@@ -217,10 +217,12 @@ function InteractiveBarChart({
   rows,
   keys,
   labelKey = "year",
+  showAllValues = false,
 }: {
   rows: Array<Record<string, any>>;
   keys: Array<{ key: string; label: string }>;
   labelKey?: string;
+  showAllValues?: boolean;
 }) {
   const [selectedIndex, setSelectedIndex] = useState(Math.max(0, rows.length - 1));
   const activeKeys = keys.filter((item) =>
@@ -237,7 +239,7 @@ function InteractiveBarChart({
   }
 
   return (
-    <div className="interactiveBarChart">
+    <div className={showAllValues ? "interactiveBarChart showAllBarValues" : "interactiveBarChart"}>
       <div
         className="performanceBars"
         style={{ gridTemplateColumns: `repeat(${rows.length}, minmax(0,1fr))` }}
@@ -618,6 +620,7 @@ export function CompanyPerformanceCharts({
             rows={capital as any}
             keys={capitalKeys}
             labelKey="period"
+            showAllValues
           />
           <p className="performanceFootnote">
             Periods remain quarterly when the source database contains quarterly observations; null categories are omitted rather than displayed as false zeros.
