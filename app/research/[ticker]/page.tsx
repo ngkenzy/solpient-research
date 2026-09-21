@@ -7,6 +7,7 @@ import { ResearchControls } from "@/components/ResearchControls";
 import { PredictionHistory } from "@/components/PredictionHistory";
 import { SolpientBrand } from "@/components/SolpientBrand";
 import { ResearchStandardV1 } from "@/components/ResearchStandardV1";
+import { ResearchStandardV2 } from "@/components/ResearchStandardV2";
 
 export const dynamic = "force-dynamic";
 
@@ -42,6 +43,13 @@ function asNumber(value: unknown) {
 
 function clamp(value: number, min = 0, max = 100) {
   return Math.min(max, Math.max(min, value));
+}
+
+function formatResearchDate(value: string | null | undefined) {
+  if (!value) return "—";
+  return new Date(value).toLocaleDateString("en-US", {
+    timeZone: "America/New_York",
+  });
 }
 
 function changeValue(change: {
@@ -192,6 +200,7 @@ export default async function CompanyResearch({
     sourcesResult,
     historyResult,
     changesResult,
+    v2Result,
   ] = await Promise.all([
     supabase.from("scores").select("*").eq("research_run_id", run.id).maybeSingle(),
     supabase.from("valuations").select("*").eq("research_run_id", run.id).maybeSingle(),
@@ -210,6 +219,11 @@ export default async function CompanyResearch({
       .eq("current_run_id", run.id)
       .order("category")
       .order("created_at"),
+    supabase
+      .from("research_v2_sections")
+      .select("*")
+      .eq("research_run_id", run.id)
+      .maybeSingle(),
   ]);
 
   const { data: latestMarket } = await supabase
@@ -227,6 +241,9 @@ export default async function CompanyResearch({
   const sources = sourcesResult.data ?? [];
   const history = historyResult.data ?? [];
   const changes = changesResult.data ?? [];
+  const v2 = v2Result.data ?? null;
+  const normalizedEarnings = v2?.valuation_analysis?.normalized_earnings_context ?? {};
+  const adjustedEpsMultiple = asNumber(normalizedEarnings?.price_to_adjusted_eps_guidance);
   const isLatest = history[0]?.version === run.version;
 
   const researchPrice = asNumber(run.price_at_research);
@@ -271,6 +288,9 @@ export default async function CompanyResearch({
   const strengthened = thesis.filter((item) => item.status === "strengthened");
   const weakened = thesis.filter((item) => item.status === "weakened");
   const unchanged = thesis.filter((item) => item.status === "unchanged");
+  const monitoring = thesis.filter(
+    (item) => item.status === "monitor" || item.status === "unknown",
+  );
 
   const scoreRows = [
     ["Business quality", asNumber(scores?.quality_score)],
@@ -329,7 +349,7 @@ export default async function CompanyResearch({
           <aside className="versionPanel">
             <span>RESEARCH VERSION</span>
             <strong>v{run.version}</strong>
-            <small>{new Date(run.researched_at).toLocaleDateString("en-US")}</small>
+            <small>{formatResearchDate(run.researched_at)}</small>
             <div className="versionStatus">Published</div>
             {!isLatest ? (
               <Link className="latestLink" href={`/research/${company.ticker}`}>
@@ -346,7 +366,7 @@ export default async function CompanyResearch({
             <small>
               {latestMarket?.trading_date
                 ? `As of ${new Date(latestMarket.trading_date + "T00:00:00Z").toLocaleDateString("en-US", { timeZone: "UTC" })} · research price ${formatMoney(researchPrice)}`
-                : `Research price · ${new Date(run.researched_at).toLocaleDateString("en-US")}`}
+                : `Research price · ${formatResearchDate(run.researched_at)}`}
             </small>
           </article>
 
@@ -362,7 +382,7 @@ export default async function CompanyResearch({
               {valuationGapLabel}
             </strong>
             <small>
-              {upside == null ? "Compared with base fair value" : `${upside >= 0 ? "+" : ""}${upside.toFixed(1)}% upside/downside to base`}
+              {upside == null ? "Compared with base fair value" : `${upside >= 0 ? "+" : ""}${upside.toFixed(1)}% price upside to base`}
             </small>
           </article>
 
@@ -440,8 +460,19 @@ export default async function CompanyResearch({
             <p>{run.summary ?? "Research summary pending."}</p>
             <div className="takeawayStats">
               <div>
-                <span>Forward P/E</span>
-                <strong>{formatNumber(metrics?.forward_pe, "×")}</strong>
+                <span>
+                  {metrics?.forward_pe != null
+                    ? "Forward P/E"
+                    : adjustedEpsMultiple != null
+                      ? "Price / adjusted EPS guidance"
+                      : "Forward P/E"}
+                </span>
+                <strong>
+                  {formatNumber(
+                    asNumber(metrics?.forward_pe) ?? adjustedEpsMultiple,
+                    "×",
+                  )}
+                </strong>
               </div>
               <div>
                 <span>Market cap</span>
@@ -496,6 +527,10 @@ export default async function CompanyResearch({
                 <strong>{weakened.length}</strong>
                 <span>Weakened</span>
               </div>
+              <div className="signalCount neutralSignal">
+                <strong>{monitoring.length}</strong>
+                <span>Monitoring</span>
+              </div>
             </div>
 
             <div className="thesisCompactList">
@@ -511,6 +546,8 @@ export default async function CompanyResearch({
             </div>
           </article>
         </section>
+
+        <ResearchStandardV2 researchRunId={run.id} />
 
         <ResearchStandardV1 researchRunId={run.id} />
 
@@ -578,7 +615,7 @@ export default async function CompanyResearch({
                 >
                   <div>
                     <strong>Version {item.version}</strong>
-                    <small>{new Date(item.researched_at).toLocaleDateString("en-US")}</small>
+                    <small>{formatResearchDate(item.researched_at)}</small>
                   </div>
                   <span>{formatMoney(item.price_at_research)}</span>
                 </Link>
@@ -626,7 +663,21 @@ export default async function CompanyResearch({
           </div>
 
           <p className="researchSummary">{run.summary ?? "Summary pending."}</p>
-          <div className="fullReport">{run.full_report ?? "Full report pending."}</div>
+          <div className="fullReport">
+            {run.full_report ? (
+              run.full_report
+            ) : v2?.final_conclusion ? (
+              <>
+                <p>{v2.final_conclusion.great_business}</p>
+                <p>{v2.final_conclusion.valuation}</p>
+                <p>{v2.final_conclusion.realistic_return}</p>
+                <p>{v2.final_conclusion.impairment_risks}</p>
+                <p>{v2.final_conclusion.index_case}</p>
+              </>
+            ) : (
+              "Full report pending."
+            )}
+          </div>
         </section>
       </main>
 
