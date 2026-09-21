@@ -1,0 +1,29 @@
+name: SEC-first Universe Feed V1
+
+on:
+  pull_request:
+    paths:
+      - "lib/universe-feed-sec.mjs"
+      - "scripts/build-sec-universe-fundamentals.mjs"
+      - "scripts/enrich-sec-universe-market.mjs"
+      - "scripts/test-sec-universe-feed.mjs"
+      - "docs/SEC_FIRST_UNIVERSE_FEED.md"
+      - ".github/workflows/sec-universe-feed.yml"
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Test SEC-first feed against live screen contract
+        run: node scripts/test-sec-universe-feed.mjs
+      - name: Syntax check bulk builders
+        run: |
+          node --check scripts/build-sec-universe-fundamentals.mjs
+          node --check scripts/enrich-sec-universe-market.mjs
