@@ -11,6 +11,10 @@ if(!url||!secret)throw new Error("Missing SUPABASE_URL and server secret.");
 const sb=createClient(url,secret,{auth:{persistSession:false,autoRefreshToken:false}});
 
 const asOfDate=process.env.CONTEXT_AS_OF_DATE??new Date().toISOString().slice(0,10);
+const requestedCutoff=process.env.CONTEXT_KNOWLEDGE_CUTOFF_AT??(asOfDate+"T23:59:59.999Z");
+const cutoffDate=new Date(requestedCutoff);
+const now=new Date();
+const knowledgeCutoffAt=(Number.isFinite(cutoffDate.getTime())?(cutoffDate>now?now:cutoffDate):now).toISOString();
 const outputFlag=process.argv.indexOf("--output");
 const outputPath=outputFlag>=0?process.argv[outputFlag+1]:null;
 const onlyTicker=process.env.COVERAGE_TICKER?String(process.env.COVERAGE_TICKER).toUpperCase():null;
@@ -35,8 +39,8 @@ async function upsertRows(table,rows,onConflict){
 
 for(const company of selected){
   const [fundR,marketR]=await Promise.all([
-    sb.from("fundamental_snapshots").select("*").eq("company_id",company.id).order("period_end",{ascending:false}).limit(160),
-    sb.from("market_snapshots").select("*").eq("company_id",company.id).order("trading_date",{ascending:false}).limit(3200),
+    sb.from("fundamental_snapshots").select("*").eq("company_id",company.id).lte("observed_at",knowledgeCutoffAt).order("period_end",{ascending:false}).limit(160),
+    sb.from("market_snapshots").select("*").eq("company_id",company.id).lte("trading_date",asOfDate).lte("observed_at",knowledgeCutoffAt).order("trading_date",{ascending:false}).limit(3200),
   ]);
   if(fundR.error)throw fundR.error;
   if(marketR.error)throw marketR.error;
@@ -65,14 +69,23 @@ const summary=[];
 
 for(const company of selected){
   const result=results.get(company.ticker);
-  const peerContext=buildPeerContext({company,trackedCompanies:tracked,latestByTicker,asOfDate});
+  const peerContext=buildPeerContext({company,trackedCompanies:tracked,latestByTicker,asOfDate,knowledgeCutoffAt});
   await upsertRows("peer_metric_snapshots",peerContext.snapshotRows,"company_id,peer_ticker,metric_key,as_of_date");
 
-  const pack=buildContextPack({company,result,peerContext,asOfDate});
-  const {data:stored,error}=await sb.from("research_context_packs").upsert({
-    ...pack,updated_at:new Date().toISOString()
-  },{onConflict:"company_id,context_version,as_of_date"}).select("id").single();
-  if(error)throw error;
+  const pack=buildContextPack({company,result,peerContext,asOfDate,knowledgeCutoffAt});
+  let contextVersion=pack.context_version;
+  let stored=null;
+  let storeError=null;
+  ({data:stored,error:storeError}=await sb.from("research_context_packs").upsert({
+    ...pack,context_version:contextVersion,updated_at:new Date().toISOString()
+  },{onConflict:"company_id,context_version,as_of_date"}).select("id").single());
+  if(storeError&&String(storeError.message??"").includes("context pack used by published research")){
+    contextVersion=CONTEXT_ENGINE_VERSION+"-"+new Date().toISOString().replace(/[^0-9]/g,"").slice(0,14);
+    ({data:stored,error:storeError}=await sb.from("research_context_packs").insert({
+      ...pack,context_version:contextVersion,updated_at:new Date().toISOString()
+    }).select("id").single());
+  }
+  if(storeError)throw storeError;
 
   const {error:freshnessError}=await sb.from("research_freshness").upsert({
     company_id:company.id,peers_updated_at:new Date().toISOString(),
@@ -81,7 +94,7 @@ for(const company of selected){
   if(freshnessError)throw freshnessError;
 
   summary.push({
-    ticker:company.ticker,context_pack_id:stored.id,context_version:CONTEXT_ENGINE_VERSION,
+    ticker:company.ticker,context_pack_id:stored.id,context_version:contextVersion,
     full_fiscal_years:result.coverage.full_year_count,historical_metric_rows:result.history.length,
     valuation_history_rows:result.valuations.length,configured_peers:peerContext.peerSet.length,
     peers_with_local_data:peerContext.peerComparison.filter(p=>p.data_status==="available").length,
@@ -89,7 +102,7 @@ for(const company of selected){
   });
 }
 
-const artifact={as_of_date:asOfDate,context_version:CONTEXT_ENGINE_VERSION,companies:summary.length,summary};
+const artifact={as_of_date:asOfDate,knowledge_cutoff_at:knowledgeCutoffAt,context_version:CONTEXT_ENGINE_VERSION,companies:summary.length,summary};
 if(outputPath){
   const absolute=path.resolve(outputPath);await fs.mkdir(path.dirname(absolute),{recursive:true});
   await fs.writeFile(absolute,JSON.stringify(artifact,null,2)+"\n","utf8");
