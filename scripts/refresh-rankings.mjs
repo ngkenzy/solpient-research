@@ -1,5 +1,8 @@
 import process from "node:process";
 import { createClient } from "@supabase/supabase-js";
+import { canonicalSha256, CANONICALIZATION_VERSION } from "../lib/integrity-hash.mjs";
+
+export const RANKING_METHODOLOGY_VERSION = "ranking-v1-overall-thesis-valuation";
 
 const supabaseUrl = process.env.SUPABASE_URL;
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -205,17 +208,23 @@ try {
   for (let index = 0; index < ranked.length; index += 1) {
     const current = ranked[index];
     const rank = index + 1;
+    const rankingSnapshot = {
+      company_id: current.company.id,
+      research_run_id: current.run.id,
+      ranked_at: rankedAt,
+      rank,
+      overall_score: current.overall,
+      price: current.price,
+      base_fair_value: current.base,
+      methodology_version: RANKING_METHODOLOGY_VERSION,
+      integrity_version: "historical-integrity-v1",
+      hash_algorithm: "sha256",
+      canonicalization_version: CANONICALIZATION_VERSION,
+    };
+    const snapshot_hash = canonicalSha256(rankingSnapshot);
     const { data: history, error: historyError } = await supabase
       .from("ranking_history")
-      .insert({
-        company_id: current.company.id,
-        research_run_id: current.run.id,
-        ranked_at: rankedAt,
-        rank,
-        overall_score: current.overall,
-        price: current.price,
-        base_fair_value: current.base,
-      })
+      .insert({ ...rankingSnapshot, snapshot_hash })
       .select("id")
       .single();
     if (historyError) throw historyError;

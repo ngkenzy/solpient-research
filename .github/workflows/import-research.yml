@@ -1,21 +1,10 @@
-name: Import research to Supabase
+name: Legacy research validation
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - "data/research/**/*.json"
-      - "scripts/import-research.mjs"
-      - "scripts/test-research-changes.mjs"
-      - "scripts/test-research-standard.mjs"
-      - "scripts/validate-research-standard.mjs"
-      - "lib/research-changes.mjs"
-      - "lib/research-standard-v1.mjs"
-      - "supabase/migrations/**"
   workflow_dispatch:
 
 jobs:
-  import:
+  validate:
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -36,8 +25,9 @@ jobs:
         run: |
           npm run test:changes
           npm run test:standard
+          npm run test:standard:v2
 
-      - name: Import research files
+      - name: Validate legacy research files without publishing
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
@@ -48,11 +38,7 @@ jobs:
             done
           fi
 
-
-      - name: Refresh evidence and rankings
-        env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      - name: Explain publication boundary
         run: |
-          node scripts/sync-intelligence-events.mjs
-          node scripts/refresh-rankings.mjs
+          echo "Legacy JSON import is validation-only."
+          echo "Normal publication must use Evidence -> Draft -> Context -> Composition -> Human Review -> Validation -> publish_reviewed_research_v2()."

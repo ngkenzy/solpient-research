@@ -52,7 +52,9 @@
     "changes:capture": "node scripts/build-company-change-events.mjs",
     "changes:backfill": "node scripts/backfill-research-change-events.mjs",
     "test:decision-triggers": "node scripts/test-decision-trigger-engine.mjs",
-    "decision:triggers": "node scripts/build-decision-triggers.mjs"
+    "decision:triggers": "node scripts/build-decision-triggers.mjs",
+    "test:integrity": "node scripts/test-integrity-hash.mjs",
+    "test:publication-integrity": "node scripts/test-publication-integrity.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.4",
