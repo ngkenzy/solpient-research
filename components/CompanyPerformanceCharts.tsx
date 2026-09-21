@@ -280,7 +280,11 @@ function InteractiveBarChart({
         {activeKeys.map((item) => (
           <div key={item.key}>
             <span>{item.label}</span>
-            <strong>{moneyCompact(Number(selected?.[item.key] ?? 0))}</strong>
+            <strong>
+              {selected?.[item.key] == null
+                ? "—"
+                : moneyCompact(Number(selected[item.key]))}
+            </strong>
           </div>
         ))}
       </div>
