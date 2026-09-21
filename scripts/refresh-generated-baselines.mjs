@@ -44,6 +44,15 @@ for(const company of companiesR.data??[]){
   });
 
   if(contextR.data){
+    const contextKnownAt=contextR.data.knowledge_cutoff_at??contextR.data.generated_at;
+    if(contextKnownAt){
+      const currentCutoff=new Date(result.sourceCutoffAt).getTime();
+      const contextCutoff=new Date(contextKnownAt).getTime();
+      if(Number.isFinite(contextCutoff)&&(!Number.isFinite(currentCutoff)||contextCutoff>currentCutoff)){
+        result.sourceCutoffAt=new Date(contextCutoff).toISOString();
+        result.payload.research.data_cutoff_at=result.sourceCutoffAt;
+      }
+    }
     result.payload.factory.research_context={
       context_pack_id:contextR.data.id,context_version:contextR.data.context_version,
       as_of_date:contextR.data.as_of_date,history_coverage:contextR.data.history_coverage,
