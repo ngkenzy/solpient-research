@@ -12,6 +12,7 @@ const sb=createClient(url,secret,{auth:{persistSession:false,autoRefreshToken:fa
 const asOfDate=process.env.COVERAGE_AS_OF_DATE??new Date().toISOString().slice(0,10);
 const outputFlag=process.argv.indexOf("--output");
 const outputPath=outputFlag>=0?process.argv[outputFlag+1]:null;
+const onlyTicker=process.env.COVERAGE_TICKER?String(process.env.COVERAGE_TICKER).toUpperCase():null;
 
 const {data:companies,error:companyError}=await sb
   .from("companies")
@@ -21,7 +22,7 @@ if(companyError)throw companyError;
 
 const summary=[];
 
-for(const company of companies??[]){
+for(const company of (companies??[]).filter(c=>!onlyTicker||c.ticker===onlyTicker)){
   const [fundR,marketLatestR,marketHistoryCountR,contextR,filingR]=await Promise.all([
     sb.from("fundamental_snapshots").select("*").eq("company_id",company.id).order("period_end",{ascending:false}).limit(160),
     sb.from("market_snapshots").select("trading_date,price,market_cap,observed_at,source_url,provider").eq("company_id",company.id).order("trading_date",{ascending:false}).limit(1).maybeSingle(),
