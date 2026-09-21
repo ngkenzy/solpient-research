@@ -63,7 +63,6 @@ for(const [companyId,report] of latestCoverage){
     const existing=existingByKey.get(key);
     let status=repair.automation_mode==="manual"?"needs_review":repair.automation_mode==="scheduled"?"monitoring":"pending";
     if(existing?.status==="running")status="running";
-    if(existing?.status==="verifying")status="verifying";
     if(repair.automation_mode==="auto"&&Number(existing?.attempt_count??0)>=3)status="blocked";
     const priority=clamp((100-readiness)*0.7+repair.weight);
     upserts.push({
