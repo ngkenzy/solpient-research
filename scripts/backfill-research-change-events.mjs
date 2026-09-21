@@ -115,7 +115,7 @@ for(const company of companies??[]){
       const decisionImpact=event.decision_impact;
       const {error:intelligenceError}=await sb.from("intelligence_events").upsert({
         company_id:company.id,
-        source_kind:"company_change",
+        source_kind:"research_change",
         source_id:event.id,
         event_type:event.category,
         occurred_at:event.occurred_at,
