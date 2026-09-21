@@ -26,6 +26,7 @@ declare
   v_realized uuid;
   v_realized_correction uuid;
   v_score uuid;
+  v_score_v2 uuid;
   v_ranking uuid;
   v_ranking_correction uuid;
   v_result jsonb;
@@ -292,7 +293,7 @@ begin
     prediction_outcome_id,observed_at,actual_value,actual_text,source_note,
     supersedes_id,correction_reason
   ) values (
-    v_prediction_outcome,v_now + interval '1 second',1100,'Corrected observed','Corrected source',
+    v_prediction_outcome,v_now,1100,'Corrected observed','Corrected source',
     v_realized,'Corrected source mapping'
   ) returning id into v_realized_correction;
 
@@ -313,6 +314,20 @@ begin
   exception when others then v_failed := true;
   end;
   if not v_failed then raise exception 'Prediction score rewrite was not blocked.'; end if;
+
+  -- Re-scoring under a new methodology appends a second score instead of mutating score-v1.
+  insert into public.prediction_scores(
+    prediction_outcome_id,realized_outcome_id,absolute_error,methodology_version,notes
+  ) values (
+    v_prediction_outcome,v_realized_correction,1,'score-v2','Re-scored under a new methodology'
+  ) returning id into v_score_v2;
+
+  if v_score_v2 is null
+     or (select count(*) from public.prediction_scores
+         where prediction_outcome_id=v_prediction_outcome
+           and realized_outcome_id=v_realized_correction) <> 2 then
+    raise exception 'Methodology-versioned rescoring did not preserve the original score.';
+  end if;
 
   -- Ranking history is append-only and corrections preserve the original row.
   insert into public.ranking_history(
