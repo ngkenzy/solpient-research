@@ -15,9 +15,11 @@ import {
 const catalog=JSON.parse(fs.readFileSync(new URL("../methodologies/catalog.json",import.meta.url),"utf8"));
 const validation=validateCatalog(catalog.methodologies);
 assert.equal(validation.valid,true,validation.errors.join("\n"));
-assert.equal(validation.manifests.length,6);
+assert.equal(validation.manifests.length,8);
 assert.ok(validation.manifests.some(m=>m.version==="decision-ranking-v1"));
 assert.ok(validation.manifests.some(m=>m.version==="context-v2-provenance"));
+assert.ok(validation.manifests.some(m=>m.version==="evidence-provenance-v1"));
+assert.ok(validation.manifests.some(m=>m.version==="canonical-fact-v1"));
 
 const decision=validation.manifests.find(m=>m.version==="decision-ranking-v1");
 const decisionCheck=validateManifest(decision);
