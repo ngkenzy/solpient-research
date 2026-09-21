@@ -2,7 +2,7 @@ import Link from "next/link";
 import { SolpientBrand } from "@/components/SolpientBrand";
 import { getAdminSupabase } from "@/lib/admin-supabase";
 import { requireReviewAccess } from "@/lib/review-auth";
-import { logoutReviewAction, prepareV2ReviewsAction } from "./actions";
+import { buildCompanyReviewAction, logoutReviewAction, prepareV2ReviewsAction } from "./actions";
 import styles from "./review.module.css";
 
 export const dynamic="force-dynamic";
@@ -16,6 +16,7 @@ function stageFor(row:any) {
   if (row.review) return {label:"Human review",tone:"review"};
   if (row.composition) return {label:"Composer ready",tone:"composer"};
   if (row.latestRun) return {label:"V2 backfill",tone:"backfill"};
+  if (!row.draft && row.coverage?.status==="sufficient") return {label:"Build draft",tone:"composer"};
   return {label:"Needs data",tone:"blocked"};
 }
 
@@ -83,7 +84,7 @@ export default async function ReviewQueue({searchParams}:{searchParams:Promise<{
     <main className={styles.shell}>
       <section className={styles.hero}>
         <div>
-          <span className={styles.kicker}>22-COMPANY RESEARCH OPERATIONS</span>
+          <span className={styles.kicker}>RESEARCH OPERATIONS</span>
           <h1>Research Standard V2</h1>
           <p>Move the full universe from normalized evidence to reviewed, versioned research. Composer automation can prepare private drafts; only a human-reviewed package can be published.</p>
         </div>
@@ -116,25 +117,35 @@ export default async function ReviewQueue({searchParams}:{searchParams:Promise<{
       </section>
 
       <section className={styles.queueHeader}>
-        <div><span className={styles.kicker}>UNIVERSE STATUS</span><h2>22-company completion queue</h2></div>
+        <div><span className={styles.kicker}>UNIVERSE STATUS</span><h2>Company completion queue</h2></div>
         <span>{ready+inReview+composerReady} active V2 draft{ready+inReview+composerReady===1?"":"s"}</span>
       </section>
 
       <section className={styles.queue}>
         {rows.map((row:any)=>{
           const stage=stageFor(row);
-          const href=row.draft?"/review/"+row.draft.id:row.latestRun?"/research/"+row.company.ticker:"/research";
           const composed=row.composition?.validation_result?.completenessPct;
-          return <Link className={styles.queueRowV2} href={href} key={row.company.id}>
+          const content=<>
             <div className={styles.companyMark}>{row.company.ticker.slice(0,2)}</div>
             <div className={styles.companyCopy}>
               <strong>{row.company.ticker} · {row.company.company_name}</strong>
-              <span>{row.draft?.industry_module?.replaceAll("_"," ") ?? (row.latestRun?"legacy published research":"research setup pending")}</span>
+              <span>{row.draft?.industry_module?.replaceAll("_"," ") ?? (row.latestRun?"legacy published research":row.coverage?.status==="sufficient"?"data ready; draft not built":"research setup pending")}</span>
             </div>
             <div className={styles.queueMetric}><span>Data coverage</span><strong>{pct(row.coverage?.overall_pct)}</strong></div>
             <div className={styles.queueMetric}><span>V2 draft</span><strong>{composed!=null?pct(composed):row.latestRun?.standard_version==="solpient-v2"?pct(row.latestRun.completeness_pct):"—"}</strong></div>
             <div className={styles.queueMetric}><span>Version</span><strong>{row.latestRun?"v"+row.latestRun.version:"—"}</strong></div>
             <div className={styles.stageCell}><span className={styles["stage_"+stage.tone]}>{stage.label}</span></div>
+          </>;
+          if (!row.draft && row.coverage?.status==="sufficient" && !row.latestRun) {
+            return <form className={styles.queueRowV2} action={buildCompanyReviewAction} key={row.company.id}>
+              <input type="hidden" name="company_id" value={row.company.id} />
+              {content}
+              <button className={styles.buildDraftButton} type="submit">Build →</button>
+            </form>;
+          }
+          const href=row.draft?"/review/"+row.draft.id:row.latestRun?"/research/"+row.company.ticker:"/research";
+          return <Link className={styles.queueRowV2} href={href} key={row.company.id}>
+            {content}
             <span className={styles.openArrow}>→</span>
           </Link>;
         })}
