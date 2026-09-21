@@ -228,27 +228,37 @@ for(const row of allObs){
   groups.get(key).push(row);
 }
 
-const existingFactsRaw=await fetchAll("normalized_facts",(q)=>q.select("id,fact_key,company_id,module,metric_key,economic_period_end,known_at"));
+const existingFactsRaw=await fetchAll("normalized_facts",(q)=>q.select("id,fact_key,company_id,module,metric_key,economic_period_end,economic_period_type,known_at,supersedes_fact_id"));
 const factByKey=new Map(existingFactsRaw.map((r)=>[r.fact_key,r]));
 const builtFacts=[],builtLinks=[];
 for(const rows of groups.values()){
-  const sample=rows[0],built=buildNormalizedFact({
-    companyId:sample.company_id,module:sample.module,metricKey:sample.metric_key,unit:sample.unit,
-    economicPeriodStart:sample.economic_period_start,economicPeriodEnd:sample.economic_period_end,
-    economicPeriodType:sample.economic_period_type,observations:rows,
-    derivationBasis:sample.basis==="derived"?"Canonicalized from Solpient/provider projection.":null,
-    formulaIdentifier:derivedFormulaForMetric(sample.metric_key)?.formula_identifier??null,
-    calculationEngineVersion:sample.basis==="derived"?"evidence-provenance-v1":null,
-    calculatedAt:sample.basis==="derived"?rows.map((r)=>r.known_at).sort().at(-1):null
-  });
-  if(!built)continue;
-  const existing=factByKey.get(built.fact.fact_key);
-  const factId=existing?.id??built.fact.id;
-  if(!existing){
-    builtFacts.push(built.fact);
-    factByKey.set(built.fact.fact_key,{...built.fact,id:factId});
+  const sample=rows[0];
+  const eventTimes=[...new Set(rows.map((row)=>row.known_at).filter(Boolean))].sort();
+  let previousFactId=null;
+
+  for(const eventTime of eventTimes){
+    const eligible=rows.filter((row)=>String(row.known_at)<=String(eventTime));
+    const built=buildNormalizedFact({
+      companyId:sample.company_id,module:sample.module,metricKey:sample.metric_key,unit:sample.unit,
+      economicPeriodStart:sample.economic_period_start,economicPeriodEnd:sample.economic_period_end,
+      economicPeriodType:sample.economic_period_type,observations:eligible,
+      derivationBasis:sample.basis==="derived"?"Canonicalized from Solpient/provider projection.":null,
+      formulaIdentifier:derivedFormulaForMetric(sample.metric_key)?.formula_identifier??null,
+      calculationEngineVersion:sample.basis==="derived"?"evidence-provenance-v1":null,
+      calculatedAt:sample.basis==="derived"?eventTime:null,
+      supersedesFactId:previousFactId,
+      supersessionReason:previousFactId?"New source evidence became known at "+eventTime+".":null,
+    });
+    if(!built)continue;
+    const existing=factByKey.get(built.fact.fact_key);
+    const factId=existing?.id??built.fact.id;
+    if(!existing){
+      builtFacts.push(built.fact);
+      factByKey.set(built.fact.fact_key,{...built.fact,id:factId});
+    }
+    for(const link of built.observationLinks)builtLinks.push({...link,normalized_fact_id:factId});
+    previousFactId=factId;
   }
-  for(const link of built.observationLinks)builtLinks.push({...link,normalized_fact_id:factId});
 }
 
 for(let i=0;i<Math.max(builtFacts.length,builtLinks.length);i+=300){
