@@ -48,7 +48,7 @@ try{
   if(!latestRanking?.ranked_at)throw new Error("No Phase 3 decision-ranking snapshot is available.");
 
   const rankedAt=latestRanking.ranked_at;
-  const [rankingR,companiesR,coverageR,jobsR,returnsR]=await Promise.all([
+  const [rankingR,companiesR,coverageR,jobsR,returnsR,researchRunsR]=await Promise.all([
     sb.from("ranking_history")
       .select("id,company_id,research_run_id,ranked_at,rank,decision_score,business_quality_score,business_quality_coverage_pct,investment_opportunity_score,opportunity_coverage_pct,evidence_confidence_score,readiness_state,price,base_fair_value,score_inputs")
       .eq("methodology_version","decision-ranking-v1")
@@ -64,8 +64,11 @@ try{
       .select("research_run_id,scenario,horizon_years,expected_cagr,created_at")
       .eq("scenario","base").eq("horizon_years",5)
       .order("created_at",{ascending:false}),
+    sb.from("research_runs")
+      .select("id,researched_at,status")
+      .eq("status","published"),
   ]);
-  for(const r of [rankingR,companiesR,coverageR,jobsR,returnsR])if(r.error)throw r.error;
+  for(const r of [rankingR,companiesR,coverageR,jobsR,returnsR,researchRunsR])if(r.error)throw r.error;
 
   const companyById=new Map((companiesR.data??[]).map(row=>[row.id,row]));
   const coverageByCompany=new Map();
@@ -73,6 +76,7 @@ try{
   const jobsByKey=new Map((jobsR.data??[]).map(row=>[[row.company_id,row.layer,row.field].join("|"),row]));
   const returnByRun=new Map();
   for(const row of returnsR.data??[])if(!returnByRun.has(row.research_run_id))returnByRun.set(row.research_run_id,row);
+  const researchRunById=new Map((researchRunsR.data??[]).map(row=>[row.id,row]));
 
   const plans=[];
   const items=[];
@@ -99,7 +103,7 @@ try{
       price:n(ranking.price),
       baseValue:n(ranking.base_fair_value),
       base5yCagr:n(baseReturn?.expected_cagr ?? scoreInputs.raw_inputs?.base5yCagr),
-      researchedAt:scoreInputs.raw_inputs?.researchedAt??null,
+      researchedAt:researchRunById.get(ranking.research_run_id)?.researched_at??null,
       coverage,
       coverageDetails:coverage.coverage_details??{},
     };
