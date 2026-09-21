@@ -103,6 +103,20 @@ assert.deepEqual(derived.fact.derivation_metadata.input_fact_ids,[
   "00000000-0000-0000-0000-000000000022",
 ]);
 
+const derivedRepeat=buildNormalizedFact({
+  companyId:"00000000-0000-0000-0000-000000000099",
+  metricKey:"fcf_margin",unit:"percent",economicPeriodEnd:"2025-12-31",
+  economicPeriodType:"fiscal_year",observations:[derivedObs],
+  derivationBasis:"Free cash flow / revenue.",
+  formulaIdentifier:derivedFormulaForMetric("fcf_margin").formula_identifier,
+  calculationEngineVersion:"test-v1",
+  calculatedAt:"2026-02-19T12:05:00.000Z",
+  inputFactIds:["00000000-0000-0000-0000-000000000021","00000000-0000-0000-0000-000000000022"],
+});
+assert.equal(derivedRepeat.fact.fact_key,derived.fact.fact_key);
+assert.equal(derivedRepeat.fact.id,derived.fact.id);
+assert.match(derived.fact.id,/^[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+
 assert.equal(assertManifestCutoff([
   {metric_key:"revenue",known_at:"2026-09-01T11:00:00.000Z"},
 ],"2026-09-01T12:00:00.000Z"),true);
