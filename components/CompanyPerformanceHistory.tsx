@@ -20,17 +20,23 @@ async function fetchMarketHistory(
   supabase: any,
   symbol: string,
   companyId?: string | null,
+  asOf?: string | null,
 ) {
   const pageSize = 1000;
   const rows: any[] = [];
   for (let page = 0; page < 4; page++) {
     let query = supabase
       .from("market_snapshots")
-      .select("trading_date,price")
+      .select("trading_date,price,observed_at")
       .eq("symbol", symbol)
       .order("trading_date", { ascending: true })
       .range(page * pageSize, page * pageSize + pageSize - 1);
     if (companyId) query = query.eq("company_id", companyId);
+    if (asOf) {
+      query = query
+        .lte("trading_date", asOf.slice(0, 10))
+        .lte("observed_at", asOf);
+    }
     const { data, error } = await query;
     if (error) break;
     const batch = data ?? [];
@@ -44,13 +50,62 @@ export async function CompanyPerformanceHistory({
   companyId,
   ticker,
   benchmarkTicker = "SPY",
+  researchRunId = null,
+  asOf = null,
 }: {
   companyId: string;
   ticker: string;
   benchmarkTicker?: string;
+  researchRunId?: string | null;
+  asOf?: string | null;
 }) {
   const supabase = getSupabase();
   if (!supabase) return null;
+
+  const cutoffDate = asOf ? asOf.slice(0, 10) : null;
+
+  let metricsQuery = supabase
+    .from("company_metric_history")
+    .select("metric_key,period_end,fiscal_year,period_type,value_numeric,unit,observed_at")
+    .eq("company_id", companyId)
+    .eq("period_type", "fiscal_year")
+    .in("metric_key", [
+      "revenue",
+      "free_cash_flow",
+      "gross_margin",
+      "operating_margin",
+      "fcf_margin",
+      "eps_diluted",
+      "fcf_per_share",
+      "shares_outstanding",
+    ]);
+  let valuationQuery = supabase
+    .from("valuation_history")
+    .select("trading_date,price_to_fcf,fcf_yield,pe,forward_pe,observed_at")
+    .eq("company_id", companyId);
+  let capitalQuery = supabase
+    .from("company_metric_history")
+    .select("module,metric_key,period_end,fiscal_year,period_type,value_numeric,observed_at")
+    .eq("company_id", companyId)
+    .in("metric_key", ["dividends_paid","buybacks","stock_based_compensation","acquisitions","debt_issued","debt_repaid"]);
+  let peerQuery = supabase
+    .from("peer_metric_snapshots")
+    .select("peer_ticker,metric_key,as_of_date,value_numeric,observed_at")
+    .eq("company_id", companyId)
+    .in("metric_key", ["revenue_growth_yoy","fcf_margin","price_to_fcf","fcf_yield"]);
+
+  if (asOf) {
+    metricsQuery = metricsQuery.lte("observed_at", asOf);
+    valuationQuery = valuationQuery.lte("observed_at", asOf);
+    capitalQuery = capitalQuery.lte("observed_at", asOf);
+    peerQuery = peerQuery.lte("observed_at", asOf);
+  }
+  if (cutoffDate) {
+    metricsQuery = metricsQuery.lte("period_end", cutoffDate);
+    valuationQuery = valuationQuery.lte("trading_date", cutoffDate);
+    capitalQuery = capitalQuery.lte("period_end", cutoffDate);
+    peerQuery = peerQuery.lte("as_of_date", cutoffDate);
+  }
 
   const [
     marketRows,
@@ -61,50 +116,22 @@ export async function CompanyPerformanceHistory({
     peerMetricResult,
     runResult,
   ] = await Promise.all([
-    fetchMarketHistory(supabase, ticker, companyId),
-    fetchMarketHistory(supabase, benchmarkTicker),
-    supabase
-      .from("company_metric_history")
-      .select("metric_key,period_end,fiscal_year,period_type,value_numeric,unit")
-      .eq("company_id", companyId)
-      .eq("period_type", "fiscal_year")
-      .in("metric_key", [
-        "revenue",
-        "free_cash_flow",
-        "gross_margin",
-        "operating_margin",
-        "fcf_margin",
-        "eps_diluted",
-        "fcf_per_share",
-        "shares_outstanding",
-      ])
-      .order("fiscal_year", { ascending: true }),
-    supabase
-      .from("valuation_history")
-      .select("trading_date,price_to_fcf,fcf_yield,pe,forward_pe")
-      .eq("company_id", companyId)
-      .order("trading_date", { ascending: true })
-      .limit(2000),
-    supabase
-      .from("company_metric_history")
-      .select("module,metric_key,period_end,fiscal_year,period_type,value_numeric")
-      .eq("company_id", companyId)
-      .in("metric_key", ["dividends_paid","buybacks","stock_based_compensation","acquisitions","debt_issued","debt_repaid"])
-      .order("period_end", { ascending: true }),
-    supabase
-      .from("peer_metric_snapshots")
-      .select("peer_ticker,metric_key,as_of_date,value_numeric")
-      .eq("company_id", companyId)
-      .in("metric_key", ["revenue_growth_yoy","fcf_margin","price_to_fcf","fcf_yield"])
-      .order("as_of_date", { ascending: false }),
-    supabase
-      .from("research_runs")
-      .select("id")
-      .eq("company_id", companyId)
-      .eq("status", "published")
-      .order("version", { ascending: false })
-      .limit(1)
-      .maybeSingle(),
+    fetchMarketHistory(supabase, ticker, companyId, asOf),
+    fetchMarketHistory(supabase, benchmarkTicker, null, asOf),
+    metricsQuery.order("fiscal_year", { ascending: true }),
+    valuationQuery.order("trading_date", { ascending: true }).limit(2000),
+    capitalQuery.order("period_end", { ascending: true }),
+    peerQuery.order("as_of_date", { ascending: false }),
+    researchRunId
+      ? supabase.from("research_runs").select("id").eq("id", researchRunId).maybeSingle()
+      : supabase
+          .from("research_runs")
+          .select("id")
+          .eq("company_id", companyId)
+          .eq("status", "published")
+          .order("version", { ascending: false })
+          .limit(1)
+          .maybeSingle(),
   ]);
 
   const market = monthlyLast(
