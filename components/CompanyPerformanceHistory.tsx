@@ -115,6 +115,7 @@ export async function CompanyPerformanceHistory({
     capitalResult,
     peerMetricResult,
     runResult,
+    historicalFactsResult,
   ] = await Promise.all([
     fetchMarketHistory(supabase, ticker, companyId, asOf),
     fetchMarketHistory(supabase, benchmarkTicker, null, asOf),
@@ -132,6 +133,11 @@ export async function CompanyPerformanceHistory({
           .order("version", { ascending: false })
           .limit(1)
           .maybeSingle(),
+    asOf && researchRunId
+      ? supabase.rpc("get_public_research_history_as_of_v1", {
+          p_research_run_id: researchRunId,
+        })
+      : Promise.resolve({ data: null, error: null }),
   ]);
 
   const market = monthlyLast(
@@ -146,8 +152,33 @@ export async function CompanyPerformanceHistory({
       .filter((row: any) => row.price != null),
   ).map((row: any) => ({ date: row.date, price: row.price }));
 
+  const historicalMode = Boolean(asOf && researchRunId);
+  const canonicalFacts = historicalMode && !historicalFactsResult.error
+    ? (historicalFactsResult.data ?? [])
+    : [];
+
+  // Historical research must not depend on mutable/current projection rows.
+  // In historical mode we fail closed to the canonical bitemporal read model.
+  const canonicalAnnualRows = canonicalFacts
+    .filter((row: any) =>
+      row.module === "universal" &&
+      row.economic_period_type === "fiscal_year" &&
+      row.economic_period_end
+    )
+    .map((row: any) => ({
+      metric_key: row.metric_key,
+      period_end: row.economic_period_end,
+      fiscal_year: Number(String(row.economic_period_end).slice(0, 4)),
+      period_type: "fiscal_year",
+      value_numeric: row.value_numeric,
+      unit: row.unit,
+      observed_at: row.known_at,
+    }));
+
+  const metricRows = historicalMode ? canonicalAnnualRows : (metricsResult.data ?? []);
+
   const annualMap = new Map<number, Record<string, number | null>>();
-  for (const row of metricsResult.data ?? []) {
+  for (const row of metricRows) {
     const year = Number(row.fiscal_year);
     if (!Number.isInteger(year)) continue;
     const bucket = annualMap.get(year) ?? {};
@@ -170,8 +201,23 @@ export async function CompanyPerformanceHistory({
     .filter((row) => (row.revenue ?? 0) > 0)
     .slice(-6);
 
+  const canonicalValuationByDate = new Map<string, any>();
+  for (const row of canonicalFacts.filter((item: any) => item.module === "valuation_history")) {
+    const date = row.economic_period_end;
+    if (!date) continue;
+    const bucket = canonicalValuationByDate.get(date) ?? { trading_date: date };
+    bucket[row.metric_key] = n(row.value_numeric);
+    canonicalValuationByDate.set(date, bucket);
+  }
+
+  const valuationRows = historicalMode
+    ? [...canonicalValuationByDate.values()].sort((a, b) =>
+        String(a.trading_date).localeCompare(String(b.trading_date)),
+      )
+    : (valuationResult.data ?? []);
+
   const valuation = monthlyLast(
-    (valuationResult.data ?? []).map((row: any) => ({
+    valuationRows.map((row: any) => ({
       ...row,
       price_to_fcf: n(row.price_to_fcf),
       fcf_yield: n(row.fcf_yield),
@@ -197,7 +243,24 @@ export async function CompanyPerformanceHistory({
   const annualCapital = new Map<number, Record<string, number | null>>();
   const quarterlyCapital = new Map<number, Record<string, number>>();
 
-  for (const row of capitalResult.data ?? []) {
+  const capitalRows = historicalMode
+    ? canonicalFacts
+        .filter((row: any) =>
+          row.module === "universal" &&
+          ["dividends_paid","buybacks","stock_based_compensation","acquisitions","debt_issued","debt_repaid"].includes(row.metric_key) &&
+          row.economic_period_end
+        )
+        .map((row: any) => ({
+          metric_key: row.metric_key,
+          period_end: row.economic_period_end,
+          fiscal_year: Number(String(row.economic_period_end).slice(0, 4)),
+          period_type: row.economic_period_type,
+          value_numeric: row.value_numeric,
+          observed_at: row.known_at,
+        }))
+    : (capitalResult.data ?? []);
+
+  for (const row of capitalRows) {
     const year = Number(row.fiscal_year);
     const key = metricToCapitalKey[row.metric_key];
     const value = n(row.value_numeric);
@@ -252,8 +315,23 @@ export async function CompanyPerformanceHistory({
     };
   });
 
+  const canonicalPeerRows = canonicalFacts
+    .filter((row: any) => String(row.module ?? "").startsWith("peer:"))
+    .map((row: any) => ({
+      peer_ticker: String(row.module).slice(5),
+      metric_key: row.metric_key,
+      as_of_date: row.economic_period_end,
+      value_numeric: row.value_numeric,
+      observed_at: row.known_at,
+    }))
+    .sort((a: any, b: any) =>
+      String(b.as_of_date ?? "").localeCompare(String(a.as_of_date ?? "")),
+    );
+
+  const peerRows = historicalMode ? canonicalPeerRows : (peerMetricResult.data ?? []);
+
   const peerMap = new Map<string, any>();
-  for (const row of peerMetricResult.data ?? []) {
+  for (const row of peerRows) {
     const peer = peerMap.get(row.peer_ticker) ?? {
       ticker: row.peer_ticker,
       revenueGrowth: null,
@@ -298,6 +376,7 @@ export async function CompanyPerformanceHistory({
           <h2>Performance over time</h2>
           <p className="historicalHint">
             Price performance, business economics, valuation, capital allocation, and peer context from the stored point-in-time research database.
+            {historicalMode ? " Historical research is reconstructed only from facts known by that research cutoff." : ""}
           </p>
         </div>
         <div className="historicalSummaryStats">
