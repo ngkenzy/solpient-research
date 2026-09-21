@@ -151,7 +151,7 @@ Typical blockers include:
 - Business Quality component coverage below 55%
 - Investment Opportunity unavailable
 - Opportunity component coverage below 60%
-- Evidence Confidence below 55%
+- Evidence Confidence below 60%
 - Current price unavailable
 - Base fair value unavailable
 - Research structure below 80%
