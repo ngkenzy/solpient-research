@@ -54,7 +54,9 @@
     "test:decision-triggers": "node scripts/test-decision-trigger-engine.mjs",
     "decision:triggers": "node scripts/build-decision-triggers.mjs",
     "test:integrity": "node scripts/test-integrity-hash.mjs",
-    "test:publication-integrity": "node scripts/test-publication-integrity.mjs"
+    "test:publication-integrity": "node scripts/test-publication-integrity.mjs",
+    "sync:provenance": "node scripts/sync-evidence-provenance.mjs",
+    "test:provenance": "node scripts/test-evidence-provenance.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.4",
