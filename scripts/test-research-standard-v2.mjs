@@ -9,7 +9,7 @@ pharma.research.industry_modules=["biopharma"];
 pharma.competitive_position={peers:[{ticker:"MRK"},{ticker:"BMY"}],peer_data_count:2};
 pharma.historical_valuation["3y"]={status:"available",explanation:"Three-year context.",coverage_years:2.8};
 pharma.metric_observations=pharma.metric_observations.filter(r=>r.module==="universal");
-for(const metric_key of["rd_to_revenue","fcf_conversion","payout_ratio","net_debt_to_fcf","share_count_change_yoy","adjusted_eps_guidance_midpoint","top_product_revenue_concentration","patent_expiry_revenue_exposure","pipeline_revenue_replacement"]){
+for(const metric_key of["rd_to_revenue","fcf_conversion","payout_ratio","net_debt_to_fcf","share_count_change_yoy","adjusted_eps_guidance_midpoint","top_product_revenue_concentration","patent_expiry_revenue_exposure","pipeline_replacement_evidence"]){
   pharma.metric_observations.push({module:"biopharma",metric_key,label:metric_key,status:"available",basis:"reported",value_numeric:1});
 }
 const pharmaOk=validateResearchStandardV2(pharma);assert.equal(pharmaOk.decisionGradeReady,true,pharmaOk.decisionGradeBlockers?.join("\n"));
