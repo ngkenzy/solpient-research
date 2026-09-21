@@ -292,7 +292,7 @@ for(const fact of facts){
     );
     if(candidates[0]){
       used.add(candidates[0].id);
-      inputLinks.push({normalized_fact_id:fact.id,input_fact_id:candidates[0].id,input_role:"formula_input",input_order:index});
+      inputLinks.push({normalized_fact_id:fact.id,input_fact_id:candidates[0].id,input_role:"formula_input",input_order:index,created_at:fact.known_at});
     }
   }
 }
