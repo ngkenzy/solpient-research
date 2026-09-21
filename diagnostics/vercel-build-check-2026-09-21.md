@@ -1,0 +1,1 @@
+Diagnostic branch created to reproduce the current main production build after the Vercel failure reported on 2026-09-21. This file is not intended for production.
