@@ -73,7 +73,8 @@ begin
     )),
     'risk_register',jsonb_build_array(jsonb_build_object(
       'risk_key','growth','category','investment','title','Growth risk',
-      'probability','medium','severity','high','thesis_breaker','Growth breaks'
+      'probability','medium','severity','high','thesis_breaker','Growth breaks',
+      'source_urls',jsonb_build_array()
     )),
     'expected_return_scenarios',jsonb_build_array(jsonb_build_object(
       'scenario','base','horizon_years',5,'expected_cagr',8,
