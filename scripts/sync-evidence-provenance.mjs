@@ -1,4 +1,5 @@
 import process from "node:process";
+import { spawnSync } from "node:child_process";
 // Main-push provenance workflow runs this synchronizer idempotently.
 import { randomUUID, createHash } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
@@ -84,6 +85,26 @@ function pushMetric({sources,observations,companyId,provider,sourceType,title,ur
 
 const {data:companies,error:companyError}=await sb.from("companies").select("id,ticker").order("ticker");
 if(companyError)throw companyError;
+
+if(!onlyTicker&&process.env.PROVENANCE_CHILD!=="1"){
+  for(const company of companies??[]){
+    const child=spawnSync(process.execPath,[process.argv[1],"--ticker="+company.ticker],{
+      stdio:"inherit",
+      env:{...process.env,COVERAGE_TICKER:company.ticker,PROVENANCE_CHILD:"1"},
+    });
+    if(child.error)throw child.error;
+    if(child.status!==0){
+      throw new Error("Canonical provenance sync failed for "+company.ticker+" with exit code "+String(child.status)+".");
+    }
+  }
+  console.log(JSON.stringify({
+    provenance_version:"evidence-provenance-v1",
+    orchestration:"sequential_company_runs",
+    companies:(companies??[]).length,
+  },null,2));
+  process.exit(0);
+}
+
 const selected=(companies??[]).filter((c)=>!onlyTicker||c.ticker===onlyTicker);
 const selectedIds=new Set(selected.map((c)=>c.id));
 const sourceMap=new Map(),observationMap=new Map();
