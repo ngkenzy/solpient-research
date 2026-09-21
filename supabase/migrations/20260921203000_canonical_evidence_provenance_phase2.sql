@@ -365,8 +365,11 @@ create or replace function private.guard_published_context_pack()
 returns trigger language plpgsql set search_path='' as $$
 begin
   if exists (
-    select 1 from public.research_runs rr
-    where rr.source_context_pack_id=old.id and rr.status='published'
+    select 1
+    from public.research_runs rr
+    left join public.research_compositions rc on rc.id=rr.source_composition_id
+    where rr.status='published'
+      and (rr.source_context_pack_id=old.id or rc.context_pack_id=old.id)
   ) then
     raise exception 'A context pack used by published research is immutable; create a new context pack.';
   end if;
