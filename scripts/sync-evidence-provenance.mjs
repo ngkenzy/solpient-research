@@ -47,6 +47,7 @@ async function fetchAll(table,configure){
 function sourceRecord({companyId,provider,sourceType,title,url:sourceUrl,accessionNumber=null,formType=null,publicationAt=null,retrievedAt,documentIdentifier=null,sourceVersion=null,basis="reported",metadata={}}){
   const url=sanitizeSourceUrl(sourceUrl);
   const source_key=hash(JSON.stringify({
+    origin:"canonical_sync_v1",
     companyId,provider,sourceType,title,url,accessionNumber,formType,publicationAt,retrievedAt,documentIdentifier,sourceVersion
   }));
   return {
@@ -227,9 +228,8 @@ for(const row of allObs){
   groups.get(key).push(row);
 }
 
-const {data:existingFactsRaw,error:existingFactsError}=await sb.from("normalized_facts").select("id,fact_key,company_id,module,metric_key,economic_period_end,known_at");
-if(existingFactsError)throw existingFactsError;
-const factByKey=new Map((existingFactsRaw??[]).map((r)=>[r.fact_key,r]));
+const existingFactsRaw=await fetchAll("normalized_facts",(q)=>q.select("id,fact_key,company_id,module,metric_key,economic_period_end,known_at"));
+const factByKey=new Map(existingFactsRaw.map((r)=>[r.fact_key,r]));
 const builtFacts=[],builtLinks=[];
 for(const rows of groups.values()){
   const sample=rows[0],built=buildNormalizedFact({
@@ -260,9 +260,8 @@ for(let i=0;i<Math.max(builtFacts.length,builtLinks.length);i+=300){
 }
 
 // Derived facts link to the latest eligible input facts known at the same time.
-const {data:allFacts,error:allFactsError}=await sb.from("normalized_facts").select("id,company_id,module,metric_key,economic_period_end,known_at,formula_identifier,derivation_basis").order("known_at",{ascending:true});
-if(allFactsError)throw allFactsError;
-const facts=allFacts??[],inputLinks=[];
+const facts=await fetchAll("normalized_facts",(q)=>q.select("id,company_id,module,metric_key,economic_period_end,known_at,formula_identifier,derivation_basis").order("known_at",{ascending:true}));
+const inputLinks=[];
 for(const fact of facts){
   const formula=derivedFormulaForMetric(fact.metric_key);
   if(!formula||!fact.derivation_basis)continue;
