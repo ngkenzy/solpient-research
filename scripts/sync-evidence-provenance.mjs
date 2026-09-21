@@ -249,7 +249,12 @@ for(let i=0;i<Math.max(sources.length,observations.length);i+=200){
 // Re-read canonical observations so conflict detection includes all historical provider versions.
 const allObs=[];
 for(const company of selected){
-  const rows=await fetchAll("evidence_observations",(q)=>q.eq("company_id",company.id).order("known_at",{ascending:true}));
+  const rows=await fetchAll("evidence_observations",(q)=>q
+    .select("id,source_id,company_id,module,metric_key,raw_value_numeric,raw_value_text,unit,economic_period_start,economic_period_end,economic_period_type,known_at,provider,basis")
+    .eq("company_id",company.id)
+    .order("known_at",{ascending:true})
+    .order("id",{ascending:true})
+  );
   if(!rows.length)continue;
   const sourceRows=await fetchAll("evidence_sources",(q)=>q
     .select("id,source_quality_class")
@@ -320,7 +325,7 @@ for(const rows of groups.values()){
     }
     previousFactId=factId;
 
-    if(factBuffer.length>=100||observationLinkBuffer.length>=300){
+    if(factBuffer.length>=50||observationLinkBuffer.length>=150){
       await flushFactBuffers();
     }
   }
@@ -332,7 +337,8 @@ await flushFactBuffers();
 const facts=await fetchAll("normalized_facts",(q)=>{
   q=q
     .select("id,company_id,module,metric_key,value_numeric,unit,economic_period_end,economic_period_type,known_at,source_confidence_class,conflict_state,supersedes_fact_id,formula_identifier,derivation_basis")
-    .order("known_at",{ascending:true});
+    .order("known_at",{ascending:true})
+    .order("id",{ascending:true});
   return selected.length===1?q.eq("company_id",selected[0].id):q;
 });
 
@@ -404,7 +410,7 @@ for(const fact of facts){
         });
         existingInputLinkKeys.add(linkKey);
         derivedInputLinksPrepared+=1;
-        if(inputLinkBuffer.length>=250)await flushInputLinks();
+        if(inputLinkBuffer.length>=100)await flushInputLinks();
       }
     }
   }
