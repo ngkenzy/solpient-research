@@ -193,16 +193,26 @@ export async function CompanyPerformanceHistory({
   ])].sort((a, b) => a - b);
 
   const latestCapitalYear = capitalYears.at(-1);
-  const capital = capitalYears.map((year) => {
+  const completeCapitalYears = capitalYears.filter((year) => {
+    const annualValues = annualCapital.get(year) ?? {};
+    const quarterValues = quarterlyCapital.get(year) ?? {};
+    const hasAnnualCashReturn = annualValues.dividends != null || annualValues.buybacks != null;
+    const hasCurrentYtdCashReturn =
+      year === latestCapitalYear &&
+      (quarterValues.dividends != null || quarterValues.buybacks != null);
+    return hasAnnualCashReturn || hasCurrentYtdCashReturn;
+  });
+
+  const capital = completeCapitalYears.map((year) => {
     const annualValues = annualCapital.get(year) ?? {};
     const quarterValues = quarterlyCapital.get(year) ?? {};
     const merged: Record<string, number | null> = {};
     for (const key of Object.values(metricToCapitalKey)) {
       merged[key] = annualValues[key] ?? quarterValues[key] ?? null;
     }
-    const hasAnnual = Object.keys(annualValues).length > 0;
+    const hasAnnualCashReturn = annualValues.dividends != null || annualValues.buybacks != null;
     return {
-      period: hasAnnual ? "FY" + year : year === latestCapitalYear ? year + " YTD" : year + " tracked",
+      period: hasAnnualCashReturn ? "FY" + year : year + " YTD",
       periodEnd: null,
       year,
       dividends: merged.dividends ?? null,
