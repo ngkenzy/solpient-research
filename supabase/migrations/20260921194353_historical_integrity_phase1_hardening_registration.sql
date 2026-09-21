@@ -1,0 +1,3 @@
+-- Registration marker only.
+-- The historical_integrity_phase1_hardening DDL was already applied by migration 20260921193559.
+-- This version exists to mirror the live Supabase migration history after concurrent registration.
