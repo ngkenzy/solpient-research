@@ -812,3 +812,73 @@ comment on table public.research_input_manifests is
   'Immutable manifest of the exact fact/context inputs frozen with a published research version.';
 comment on column public.research_runs.source_context_pack_id is
   'Exact context pack frozen for this publication. Legacy rows may be null and must use conservative as-of fallback.';
+
+
+-- ---------------------------------------------------------------------------
+-- Safe public historical research read model.
+-- Exposes only whitelisted normalized values as they were known by a published
+-- research run's frozen cutoff. Raw evidence/provider payloads remain private.
+-- ---------------------------------------------------------------------------
+
+create or replace function public.get_public_research_history_as_of_v1(
+  p_research_run_id uuid
+) returns table(
+  module text,
+  metric_key text,
+  value_numeric numeric,
+  unit text,
+  economic_period_end date,
+  economic_period_type text,
+  known_at timestamptz,
+  source_confidence_class text,
+  conflict_state text
+)
+language sql
+stable
+security definer
+set search_path=''
+as $$
+  with target as (
+    select rr.company_id,coalesce(rr.data_cutoff_at,rr.researched_at) as cutoff_at
+    from public.research_runs rr
+    where rr.id=p_research_run_id and rr.status='published'
+  )
+  select
+    nf.module,nf.metric_key,nf.value_numeric,nf.unit,nf.economic_period_end,
+    nf.economic_period_type,nf.known_at,nf.source_confidence_class,nf.conflict_state
+  from target t
+  join public.normalized_facts nf on nf.company_id=t.company_id
+  where nf.known_at<=t.cutoff_at
+    and nf.conflict_state<>'superseded'
+    and (
+      (nf.module='universal' and nf.metric_key in (
+        'revenue','free_cash_flow','gross_margin','operating_margin','fcf_margin',
+        'eps_diluted','fcf_per_share','shares_outstanding','dividends_paid','buybacks',
+        'stock_based_compensation','acquisitions','debt_issued','debt_repaid'
+      ))
+      or (nf.module='valuation_history' and nf.metric_key in (
+        'pe','forward_pe','price_to_fcf','fcf_yield'
+      ))
+      or (nf.module='capital_allocation' and nf.metric_key in (
+        'dividends_paid','buybacks','stock_based_compensation','acquisitions',
+        'debt_issued','debt_repaid','ending_share_count'
+      ))
+      or (nf.module like 'peer:%' and nf.metric_key in (
+        'revenue_growth_yoy','fcf_margin','price_to_fcf','fcf_yield'
+      ))
+    )
+    and not exists (
+      select 1
+      from public.normalized_facts newer
+      where newer.supersedes_fact_id=nf.id
+        and newer.known_at<=t.cutoff_at
+    )
+  order by nf.module,nf.metric_key,nf.economic_period_end,nf.known_at;
+$$;
+
+revoke all on function public.get_public_research_history_as_of_v1(uuid) from public;
+grant execute on function public.get_public_research_history_as_of_v1(uuid)
+  to anon,authenticated,service_role;
+
+comment on function public.get_public_research_history_as_of_v1(uuid) is
+  'Safe whitelisted bitemporal read model for a published research run. Raw evidence remains private.';
