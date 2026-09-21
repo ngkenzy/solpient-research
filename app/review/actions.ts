@@ -10,6 +10,12 @@ import { applyReviewPatch, mergeReviewPatches, validatePromotionReadiness } from
 import { promoteReviewedBaseline } from "@/lib/promote-research.mjs";
 // @ts-expect-error Node ESM research helper
 import { buildEnrichmentReviewPatch, mergeReviewPatches as mergeEnrichmentReviewPatches } from "@/lib/evidence-enrichment.mjs";
+// @ts-expect-error Node ESM research helper
+import { buildBaselineDraft, BASELINE_FACTORY_VERSION } from "@/lib/baseline-factory.mjs";
+// @ts-expect-error Node ESM research helper
+import { composeResearchV1, RESEARCH_COMPOSER_VERSION } from "@/lib/research-composer.mjs";
+// @ts-expect-error Node ESM research helper
+import { validateResearchStandard } from "@/lib/research-standard.mjs";
 
 export async function unlockReviewAction(formData:FormData) {
   const ok=await unlockReviewAccess(String(formData.get("key") ?? ""));
@@ -148,6 +154,121 @@ export async function applyComposerAction(formData:FormData) {
   revalidatePath("/review");
   revalidatePath("/review/"+draftId);
   redirect("/review/"+draftId+"?composed=1");
+}
+
+export async function buildCompanyReviewAction(formData:FormData) {
+  await requireReviewAccess();
+  const supabase=getAdminSupabase();
+  if (!supabase) redirect("/review/login?setup=1");
+
+  const companyId=String(formData.get("company_id") ?? "");
+  if (!companyId) redirect("/review?error=missing-company");
+
+  const [companyResult,marketResult,fundamentalResult,filingResult,contextResult,valuationResult]=await Promise.all([
+    supabase.from("companies").select("*").eq("id",companyId).single(),
+    supabase.from("market_snapshots").select("*").eq("company_id",companyId).order("trading_date",{ascending:false}).limit(1).maybeSingle(),
+    supabase.from("fundamental_snapshots").select("*").eq("company_id",companyId).order("period_end",{ascending:false}).limit(160),
+    supabase.from("filing_events").select("id,provider,form_type,filed_at,accepted_at,accession_number,filing_url,period_end,title").eq("company_id",companyId).order("filed_at",{ascending:false}).limit(25),
+    supabase.from("research_context_packs").select("*").eq("company_id",companyId).order("as_of_date",{ascending:false}).limit(1).maybeSingle(),
+    supabase.from("valuation_history").select("*").eq("company_id",companyId).order("trading_date",{ascending:false}).limit(3200),
+  ]);
+  for (const result of [companyResult,marketResult,fundamentalResult,filingResult,contextResult,valuationResult]) {
+    if (result.error) throw result.error;
+  }
+
+  const company=companyResult.data;
+  if (!company) redirect("/review?error=company-not-found");
+
+  const baseline=buildBaselineDraft({
+    company,
+    market:marketResult.data ?? null,
+    fundamentals:fundamentalResult.data ?? [],
+    filings:filingResult.data ?? [],
+  });
+
+  if (contextResult.data) {
+    baseline.payload.factory.research_context={
+      context_pack_id:contextResult.data.id,
+      context_version:contextResult.data.context_version,
+      as_of_date:contextResult.data.as_of_date,
+      history_coverage:contextResult.data.history_coverage,
+      trends:contextResult.data.trends,
+      latest_metrics:contextResult.data.latest_metrics,
+      peer_set:contextResult.data.peer_set,
+      peer_comparison:contextResult.data.peer_comparison,
+      capital_allocation:contextResult.data.capital_allocation,
+      limitations:contextResult.data.limitations,
+      summary:contextResult.data.summary,
+    };
+  }
+
+  const now=new Date().toISOString();
+  const {data:draft,error:draftError}=await supabase.from("baseline_drafts").upsert({
+    company_id:company.id,
+    generation_version:BASELINE_FACTORY_VERSION,
+    generated_at:baseline.payload.factory.generated_at,
+    source_cutoff_at:baseline.sourceCutoffAt,
+    industry_module:baseline.industryModule,
+    status:"generated",
+    evidence_completeness_pct:baseline.evidenceCompletenessPct,
+    standard_valid:baseline.validation.valid,
+    standard_status:baseline.validation.status,
+    validation_result:baseline.validation,
+    evidence_summary:{...baseline.evidenceSummary,context_pack_id:contextResult.data?.id ?? null,context_version:contextResult.data?.context_version ?? null},
+    draft_payload:baseline.payload,
+    updated_at:now,
+  },{onConflict:"company_id,generation_version,source_cutoff_at"}).select("*").single();
+  if (draftError || !draft) throw draftError ?? new Error("Draft creation failed.");
+
+  const composition=composeResearchV1({
+    company,
+    baselinePayload:draft.draft_payload,
+    contextPack:contextResult.data ?? {},
+    valuationHistory:valuationResult.data ?? [],
+    asOfDate:now.slice(0,10),
+  });
+  const merged=applyReviewPatch(draft.draft_payload,composition.review_patch);
+  const validation=validateResearchStandard(merged);
+  const readiness=validatePromotionReadiness(merged);
+
+  const {data:storedComposition,error:compositionError}=await supabase.from("research_compositions").upsert({
+    draft_id:draft.id,
+    company_id:company.id,
+    engine_version:RESEARCH_COMPOSER_VERSION,
+    context_pack_id:contextResult.data?.id ?? null,
+    status:"applied",
+    composition_payload:composition,
+    validation_result:validation,
+    generated_at:now,
+    applied_at:now,
+    updated_at:now,
+  },{onConflict:"draft_id,engine_version"}).select("id").single();
+  if (compositionError) throw compositionError;
+
+  const {error:reviewError}=await supabase.from("baseline_reviews").upsert({
+    draft_id:draft.id,
+    status:readiness.ready?"ready":"editing",
+    review_payload:composition.review_patch,
+    validation_result:readiness.standard,
+    promotion_readiness:readiness,
+    review_notes:"Research package generated from the tracked evidence set. Human verification is required before publication.",
+    reviewed_at:now,
+    updated_at:now,
+  },{onConflict:"draft_id"});
+  if (reviewError) throw reviewError;
+
+  const {error:draftUpdateError}=await supabase.from("baseline_drafts").update({
+    status:readiness.ready?"ready_for_review":"generated",
+    standard_valid:readiness.standard.valid,
+    standard_status:readiness.standard.status,
+    validation_result:readiness.standard,
+    updated_at:now,
+  }).eq("id",draft.id);
+  if (draftUpdateError) throw draftUpdateError;
+
+  revalidatePath("/review");
+  revalidatePath("/review/"+draft.id);
+  redirect("/review/"+draft.id+"?built=1&composition="+storedComposition.id);
 }
 
 export async function prepareV2ReviewsAction() {
