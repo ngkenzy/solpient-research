@@ -4522,3 +4522,352 @@ h2 { letter-spacing: -.02em; }
     min-width: 0;
   }
 }
+
+
+/* Generic company market + fundamental performance */
+.companyPerformanceSection {
+  margin: 30px 0;
+  padding: 22px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 92% 8%, rgba(215,181,109,.055), transparent 26%),
+    linear-gradient(180deg, #101318, #0e1115);
+}
+
+.performanceGrid {
+  margin-top: 16px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0,1fr));
+  gap: 12px;
+}
+
+.performancePanel {
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 15px;
+  background: #111419;
+}
+
+.performanceWide {
+  grid-column: span 2;
+}
+
+.performancePanelHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+
+.performancePanelHeader h3 {
+  margin: 4px 0 0;
+  font-size: 15px;
+}
+
+.performancePanelHeader small {
+  color: var(--muted);
+  font-size: 8px;
+}
+
+.performanceRanges {
+  display: flex;
+  gap: 5px;
+}
+
+.performanceRanges button {
+  min-width: 38px;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #0f1216;
+  color: var(--muted);
+  font: inherit;
+  font-size: 8px;
+  cursor: pointer;
+}
+
+.performanceRanges button.active,
+.performanceRanges button:hover {
+  border-color: rgba(215,181,109,.38);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.performanceStats {
+  margin: 0 0 12px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0,1fr));
+  gap: 6px;
+}
+
+.performanceStats > div {
+  min-width: 0;
+  padding: 9px 10px;
+  border: 1px solid rgba(255,255,255,.05);
+  border-radius: 10px;
+  background: #0f1216;
+  display: grid;
+  gap: 3px;
+}
+
+.performanceStats span {
+  color: var(--muted);
+  font-size: 7px;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+
+.performanceStats strong {
+  font-size: 11px;
+}
+
+.compactStats {
+  grid-template-columns: repeat(2, minmax(0,1fr));
+}
+
+.performanceLineWrap {
+  display: grid;
+  grid-template-columns: 46px minmax(0,1fr);
+  gap: 7px;
+}
+
+.performanceYAxis {
+  height: 240px;
+  padding: 3px 0 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-end;
+}
+
+.performanceYAxis span,
+.performanceXAxis span {
+  color: #78818d;
+  font-size: 7px;
+  white-space: nowrap;
+}
+
+.performanceSvg {
+  min-width: 0;
+}
+
+.performanceSvg svg {
+  width: 100%;
+  height: 240px;
+  overflow: visible;
+}
+
+.performanceGrid {
+  fill: none;
+  stroke: rgba(255,255,255,.06);
+  stroke-width: .35;
+  vector-effect: non-scaling-stroke;
+}
+
+.performanceLine {
+  fill: none;
+  stroke-width: 1.45;
+  vector-effect: non-scaling-stroke;
+}
+
+.performanceLine1 { stroke: #d7b56d; }
+.performanceLine2 { stroke: #6f9fe8; }
+.performanceLine3 { stroke: #74dca0; }
+
+.performanceXAxis {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 3px;
+}
+
+.performanceLegend {
+  display: flex;
+  gap: 13px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.performanceLegend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #919aa6;
+  font-size: 8px;
+}
+
+.performanceLegendSwatch {
+  width: 11px;
+  height: 3px;
+  border-radius: 999px;
+}
+
+.swatch1 { background: #d7b56d; }
+.swatch2 { background: #6f9fe8; }
+.swatch3 { background: #74dca0; }
+.swatch4 { background: #d38181; }
+
+.performanceBars {
+  height: 240px;
+  padding: 12px 4px 0;
+  display: grid;
+  grid-template-columns: repeat(var(--bar-columns, 6), minmax(0,1fr));
+  gap: 8px;
+  align-items: end;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+  background:
+    linear-gradient(to bottom,
+      transparent 24%,
+      rgba(255,255,255,.035) 25%,
+      transparent 26%,
+      transparent 49%,
+      rgba(255,255,255,.035) 50%,
+      transparent 51%,
+      transparent 74%,
+      rgba(255,255,255,.035) 75%,
+      transparent 76%);
+}
+
+.performanceBarGroup {
+  height: 100%;
+  min-width: 0;
+  display: grid;
+  grid-template-rows: minmax(0,1fr) 22px;
+  align-items: end;
+}
+
+.performanceBarColumns {
+  height: 100%;
+  display: flex;
+  align-items: end;
+  justify-content: center;
+  gap: 3px;
+}
+
+.performanceBarColumn {
+  width: 18%;
+  height: 100%;
+  display: flex;
+  align-items: end;
+}
+
+.performanceBar {
+  width: 100%;
+  min-height: 2px;
+  border-radius: 3px 3px 0 0;
+}
+
+.performanceBar1 { background: #d7b56d; }
+.performanceBar2 { background: #6f9fe8; }
+.performanceBar3 { background: #74dca0; }
+.performanceBar4 { background: #d38181; }
+
+.performanceBarGroup > span {
+  padding-top: 6px;
+  color: #78818d;
+  font-size: 7px;
+  text-align: center;
+}
+
+.performanceFootnote {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 8px;
+  line-height: 1.5;
+}
+
+.performanceEmpty {
+  min-height: 180px;
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.peerPanel {
+  margin-top: 12px;
+}
+
+.peerTable {
+  margin-top: 10px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.peerTableHeader,
+.peerTableRow {
+  display: grid;
+  grid-template-columns: 1.15fr repeat(4, minmax(0,1fr));
+  gap: 1px;
+  background: var(--line);
+}
+
+.peerTableHeader span,
+.peerTableRow > * {
+  min-width: 0;
+  padding: 9px 10px;
+  background: #111419;
+}
+
+.peerTableHeader span {
+  color: var(--muted);
+  font-size: 7px;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+
+.peerTableRow strong,
+.peerTableRow span {
+  font-size: 9px;
+}
+
+@media (max-width: 900px) {
+  .performanceGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .performanceWide {
+    grid-column: auto;
+  }
+
+  .performanceStats {
+    grid-template-columns: repeat(2, minmax(0,1fr));
+  }
+
+  .peerTable {
+    overflow-x: auto;
+  }
+
+  .peerTableHeader,
+  .peerTableRow {
+    min-width: 620px;
+  }
+}
+
+@media (max-width: 620px) {
+  .companyPerformanceSection {
+    padding: 16px;
+  }
+
+  .performancePanelHeader {
+    flex-direction: column;
+  }
+
+  .performanceStats {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .performanceLineWrap {
+    grid-template-columns: 38px minmax(0,1fr);
+  }
+
+  .performanceYAxis,
+  .performanceSvg svg,
+  .performanceBars {
+    height: 200px;
+  }
+}
