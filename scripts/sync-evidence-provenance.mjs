@@ -10,7 +10,7 @@ import {
 import { sanitizeSourceUrl } from "../lib/baseline-factory.mjs";
 
 const url=process.env.SUPABASE_URL;
-const secret=process.env.SUPABASE_SECRET_KEY??process.env.SUPABASE_SERVICE_ROLE_KEY;
+const secret=process.env.SUPABASE_SECRET_KEY?.trim()||process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
 if(!url||!secret)throw new Error("Missing SUPABASE_URL and server secret.");
 const sb=createClient(url,secret,{auth:{persistSession:false,autoRefreshToken:false}});
 const onlyTicker=(process.env.COVERAGE_TICKER??process.argv.find((x)=>x.startsWith("--ticker="))?.split("=")[1]??"").toUpperCase()||null;
@@ -292,7 +292,7 @@ for(const fact of facts){
     );
     if(candidates[0]){
       used.add(candidates[0].id);
-      inputLinks.push({normalized_fact_id:fact.id,input_fact_id:candidates[0].id,input_role:"formula_input",input_order:index});
+      inputLinks.push({normalized_fact_id:fact.id,input_fact_id:candidates[0].id,input_role:"formula_input",input_order:index,created_at:fact.known_at});
     }
   }
 }
