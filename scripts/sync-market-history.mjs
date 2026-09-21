@@ -58,6 +58,31 @@ const {data:companies,error:companyError}=await sb.from("companies").select("id,
 if(companyError)throw companyError;
 const summary=[];
 
+async function syncBenchmark(symbol="SPY",range="10y"){
+  try{
+    const {endpoint,result}=await yahooHistory(symbol,range);
+    const timestamps=result.timestamp??[],quotes=result.indicators?.quote?.[0]??{},closes=quotes.close??[],volumes=quotes.volume??[];
+    const rows=[];
+    for(let i=0;i<timestamps.length;i++){
+      const price=n(closes[i]);if(price==null)continue;
+      const tradingDate=new Date(Number(timestamps[i])*1000).toISOString().slice(0,10);
+      rows.push({
+        company_id:null,symbol,observed_at:new Date().toISOString(),
+        trading_date:tradingDate,price,previous_close:i>0?n(closes[i-1]):null,
+        volume:n(volumes[i]),market_cap:null,provider:"yahoo-chart-history",
+        source_url:endpoint,raw_payload:{currency:result.meta?.currency??null,exchangeName:result.meta?.exchangeName??null,range,benchmark:true,temporary_source:true}
+      });
+    }
+    await insertBatches(rows);
+    summary.push({ticker:symbol,status:"success",range,rows:rows.length,benchmark:true});
+    console.log("Benchmark history",symbol,range,"rows="+rows.length);
+  }catch(error){
+    const message=error instanceof Error?error.message:String(error);
+    summary.push({ticker:symbol,status:"failed",rows:0,error:message,benchmark:true});
+    console.warn("Benchmark history failed",symbol,message);
+  }
+}
+
 for(const company of (companies??[]).filter(c=>!onlyTicker||c.ticker===onlyTicker)){
   const [{count,error:countError},{data:fundamentals,error:fundError}]=await Promise.all([
     sb.from("market_snapshots").select("id",{count:"exact",head:true}).eq("company_id",company.id),
@@ -91,6 +116,8 @@ for(const company of (companies??[]).filter(c=>!onlyTicker||c.ticker===onlyTicke
   }
   await sleep(120);
 }
+
+if(!onlyTicker) await syncBenchmark("SPY","10y");
 
 const artifact={generated_at:new Date().toISOString(),provider:"yahoo-chart-history",temporary_source:true,summary};
 if(outputPath){
