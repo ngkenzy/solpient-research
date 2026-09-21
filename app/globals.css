@@ -5178,3 +5178,254 @@ h2 { letter-spacing: -.02em; }
     border-width: 1px;
   }
 }
+
+
+/* Interactive chart inspectors + peer bars */
+.performanceChartGrid {
+  fill: none;
+  stroke: rgba(255,255,255,.06);
+  stroke-width: .35;
+  vector-effect: non-scaling-stroke;
+}
+
+.performancePoint {
+  vector-effect: non-scaling-stroke;
+  transition: r .12s ease, opacity .12s ease;
+}
+
+.performancePoint.point1 { fill: #d7b56d; }
+.performancePoint.point2 { fill: #6f9fe8; }
+.performancePoint.point3 { fill: #74dca0; }
+.performancePoint.active {
+  stroke: #f6f8fb;
+  stroke-width: .55;
+}
+
+.performanceCrosshair {
+  stroke: rgba(215,181,109,.5);
+  stroke-width: .45;
+  stroke-dasharray: 1.5 1.5;
+  vector-effect: non-scaling-stroke;
+  pointer-events: none;
+}
+
+.performanceSvg svg {
+  cursor: crosshair;
+  touch-action: pan-y;
+}
+
+.chartInspector,
+.barInspector,
+.peerInspector {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px,1fr));
+  gap: 6px;
+}
+
+.chartInspector > div,
+.barInspector > div,
+.peerInspector {
+  min-width: 0;
+}
+
+.chartInspector > div,
+.barInspector > div {
+  padding: 9px 10px;
+  border: 1px solid rgba(255,255,255,.055);
+  border-radius: 10px;
+  background: #0f1216;
+  display: grid;
+  gap: 3px;
+}
+
+.chartInspector span,
+.barInspector span,
+.chartInspector small {
+  color: var(--muted);
+  font-size: 7px;
+}
+
+.chartInspector strong,
+.barInspector strong {
+  font-size: 10px;
+  overflow-wrap: anywhere;
+}
+
+.chartInspectorDate {
+  border-color: rgba(215,181,109,.18) !important;
+  background: rgba(215,181,109,.035) !important;
+}
+
+.performanceBarGroup {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.performanceBarGroup.active,
+.performanceBarGroup:hover,
+.performanceBarGroup:focus-visible {
+  background: rgba(215,181,109,.04);
+  outline: none;
+}
+
+.performanceBarColumns {
+  position: relative;
+}
+
+.performanceBarColumn {
+  position: relative;
+}
+
+.performanceBarValue {
+  position: absolute;
+  left: 50%;
+  bottom: calc(var(--bar-height, 0%) + 3px);
+  transform: translateX(-50%);
+  color: #cbd2db;
+  font-size: 7px;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.performanceBarColumn .performanceBarValue {
+  bottom: auto;
+  top: -12px;
+}
+
+.interactiveBarChart .performanceBars {
+  padding-top: 28px;
+}
+
+.barInspector {
+  grid-template-columns: repeat(auto-fit,minmax(110px,1fr));
+}
+
+.peerChartPanel {
+  overflow: hidden;
+}
+
+.peerMetricSelector {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  justify-content: flex-end;
+}
+
+.peerMetricSelector button {
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #0f1216;
+  color: var(--muted);
+  font: inherit;
+  font-size: 8px;
+  cursor: pointer;
+}
+
+.peerMetricSelector button:hover,
+.peerMetricSelector button.active {
+  color: var(--accent);
+  border-color: rgba(215,181,109,.38);
+  background: var(--accent-soft);
+}
+
+.peerBarChart {
+  display: grid;
+  gap: 7px;
+}
+
+.peerBarRow {
+  display: grid;
+  grid-template-columns: 54px minmax(0,1fr) 68px;
+  gap: 10px;
+  align-items: center;
+  padding: 8px 9px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.peerBarRow:hover,
+.peerBarRow.active {
+  border-color: rgba(215,181,109,.16);
+  background: rgba(215,181,109,.035);
+}
+
+.peerBarRow strong,
+.peerBarRow span {
+  font-size: 9px;
+}
+
+.peerBarRow span {
+  text-align: right;
+  color: #cbd2db;
+}
+
+.peerBarRow > div {
+  height: 9px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255,255,255,.055);
+}
+
+.peerBarRow > div i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #8d7549, #d7b56d);
+}
+
+.peerInspector {
+  padding: 11px 12px;
+  border: 1px solid rgba(255,255,255,.055);
+  border-radius: 11px;
+  background: #0f1216;
+  grid-template-columns: auto repeat(4,minmax(0,1fr));
+  align-items: center;
+}
+
+.peerInspector strong {
+  color: var(--accent);
+  font-size: 11px;
+}
+
+.peerInspector span {
+  color: #99a2ad;
+  font-size: 8px;
+  text-align: center;
+}
+
+@media (max-width: 720px) {
+  .peerMetricSelector {
+    justify-content: flex-start;
+  }
+
+  .peerInspector {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .peerInspector strong {
+    grid-column: 1 / -1;
+  }
+
+  .peerBarRow {
+    grid-template-columns: 48px minmax(0,1fr) 58px;
+  }
+
+  .performanceBarValue {
+    display: none;
+  }
+
+  .chartInspector,
+  .barInspector {
+    grid-template-columns: repeat(2,minmax(0,1fr));
+  }
+}
