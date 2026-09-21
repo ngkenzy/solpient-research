@@ -198,7 +198,7 @@ export async function CompanyPerformanceHistory({
   if (runResult.data?.id) {
     const { data } = await supabase
       .from("financial_metrics")
-      .select("revenue_growth,fcf_margin")
+      .select("revenue_growth_1y,fcf_margin")
       .eq("research_run_id", runResult.data.id)
       .maybeSingle();
     selfMetrics = data;
@@ -208,7 +208,7 @@ export async function CompanyPerformanceHistory({
   const peers = [
     {
       ticker,
-      revenueGrowth: n(selfMetrics?.revenue_growth),
+      revenueGrowth: n(selfMetrics?.revenue_growth_1y),
       fcfMargin: n(selfMetrics?.fcf_margin),
       priceToFcf: latestValuation?.priceToFcf ?? null,
       fcfYield: latestValuation?.fcfYield ?? null,
