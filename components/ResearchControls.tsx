@@ -13,6 +13,7 @@ type AlertPrefs = {
   congress: boolean;
   insiders: boolean;
   research: boolean;
+  decision: boolean;
 };
 
 const WATCHLIST_KEY = "solpient.watchlist";
@@ -39,6 +40,7 @@ const defaultPrefs: AlertPrefs = {
   congress: true,
   insiders: true,
   research: true,
+  decision: true,
 };
 
 export function ResearchControls({ ticker, name }: { ticker: string; name: string }) {
@@ -110,6 +112,7 @@ export function ResearchControls({ ticker, name }: { ticker: string; name: strin
               ["congress", "Political trades", "Newly disclosed political purchases and sales"],
               ["insiders", "Insiders", "Open-market Form 4 purchases and sales"],
               ["research", "Research", "New SOLPIENT research versions and thesis changes"],
+              ["decision", "Decision triggers", "Margin-of-safety, required-return, and thesis-review conditions"],
             ].map(([key, label, detail]) => {
               const prefKey = key as keyof AlertPrefs;
               return (
