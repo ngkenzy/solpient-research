@@ -1,0 +1,32 @@
+name: Valuation Engine V3 Core
+
+on:
+  pull_request:
+    paths:
+      - "lib/valuation-engine-v3.mjs"
+      - "scripts/test-valuation-engine-v3.mjs"
+      - "docs/VALUATION_ENGINE_V3.md"
+      - ".github/workflows/valuation-engine-v3.yml"
+  push:
+    branches: [main]
+    paths:
+      - "lib/valuation-engine-v3.mjs"
+      - "scripts/test-valuation-engine-v3.mjs"
+      - "docs/VALUATION_ENGINE_V3.md"
+      - ".github/workflows/valuation-engine-v3.yml"
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Test Valuation Engine V3
+        run: node scripts/test-valuation-engine-v3.mjs
+      - name: Syntax check
+        run: node --check lib/valuation-engine-v3.mjs
