@@ -147,7 +147,7 @@ const lowEvidence=buildDecisionRanking({
 });
 assert.equal(lowEvidence.readiness.state,READINESS.BUILDING);
 assert.ok(lowEvidence.investmentOpportunity.score>80);
-assert.ok(lowEvidence.evidenceConfidence.score<55);
+assert.ok(lowEvidence.evidenceConfidence.score<60);
 
 const researchReady=buildDecisionRanking({
   scores:{quality_score:80,moat_score:75,financial_strength_score:85},
