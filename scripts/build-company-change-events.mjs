@@ -179,7 +179,7 @@ for(const company of (companies??[]).filter(c=>!onlyTicker||c.ticker===onlyTicke
     for(const event of stored.filter(e=>["high","material"].includes(e.materiality))){
       const intelligence={
         company_id:company.id,
-        source_kind:"company_change",
+        source_kind:"research_change",
         source_id:event.id,
         event_type:event.category,
         occurred_at:event.occurred_at,
