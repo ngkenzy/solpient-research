@@ -248,20 +248,20 @@ begin
 
   if (
     select value_numeric
-    from public.get_public_research_history_as_of_v1(v_run)
-    where module='universal' and metric_key='revenue'
+    from public.research_public_history_items
+    where research_run_id=v_run and module='universal' and metric_key='revenue'
     order by economic_period_end desc,known_at desc
     limit 1
   ) <> 100 then
-    raise exception 'Public historical read model leaked a post-cutoff amendment.';
+    raise exception 'Frozen public historical read model leaked a post-cutoff amendment.';
   end if;
 
-  if not has_function_privilege(
+  if not has_table_privilege(
     'anon',
-    'public.get_public_research_history_as_of_v1(uuid)',
-    'EXECUTE'
+    'public.research_public_history_items',
+    'SELECT'
   ) then
-    raise exception 'Anon cannot execute the safe historical research read model.';
+    raise exception 'Anon cannot read the frozen public historical research model.';
   end if;
 
   if (select value_numeric from public.normalized_facts
