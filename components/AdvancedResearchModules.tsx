@@ -36,36 +36,58 @@ export async function AdvancedResearchModules({
   companyId,
   researchRunId,
   ticker,
+  asOf = null,
 }: {
   companyId: string;
   researchRunId: string;
   ticker: string;
+  asOf?: string | null;
 }) {
   const supabase = getSupabase();
   if (!supabase) return null;
 
+  const cutoffDate = asOf ? asOf.slice(0, 10) : null;
+
+  let moduleQuery = supabase
+    .from("company_metric_history")
+    .select("module,metric_key,label,period_end,fiscal_year,period_type,value_numeric,value_text,unit,source_title,source_url,observed_at")
+    .eq("company_id", companyId)
+    .in("module", [
+      "product_mix",
+      "segment_mix",
+      "geography_mix",
+      "biopharma_pipeline",
+      "biopharma_timeline",
+      "earnings_surprise",
+      "capital_safety",
+    ]);
+  let consensusQuery = supabase
+    .from("consensus_snapshots")
+    .select("observed_at,provider,revenue_next_fy,eps_next_fy,revenue_growth_next_fy,eps_growth_next_fy,analyst_count,raw_payload")
+    .eq("company_id", companyId);
+  let annualFcfQuery = supabase
+    .from("company_metric_history")
+    .select("fiscal_year,value_numeric,period_end,observed_at")
+    .eq("company_id", companyId)
+    .eq("module", "universal")
+    .eq("metric_key", "free_cash_flow")
+    .eq("period_type", "fiscal_year")
+    .gt("value_numeric", 0);
+
+  if (asOf) {
+    moduleQuery = moduleQuery.lte("observed_at", asOf);
+    consensusQuery = consensusQuery.lte("observed_at", asOf);
+    annualFcfQuery = annualFcfQuery.lte("observed_at", asOf);
+  }
+  if (cutoffDate) {
+    moduleQuery = moduleQuery.lte("period_end", cutoffDate);
+    annualFcfQuery = annualFcfQuery.lte("period_end", cutoffDate);
+  }
+
   const [moduleResult, consensusResult, metricsResult, v2Result, annualFcfResult] =
     await Promise.all([
-      supabase
-        .from("company_metric_history")
-        .select("module,metric_key,label,period_end,fiscal_year,period_type,value_numeric,value_text,unit,source_title,source_url")
-        .eq("company_id", companyId)
-        .in("module", [
-          "product_mix",
-          "segment_mix",
-          "geography_mix",
-          "biopharma_pipeline",
-          "biopharma_timeline",
-          "earnings_surprise",
-          "capital_safety",
-        ])
-        .order("period_end", { ascending: true }),
-      supabase
-        .from("consensus_snapshots")
-        .select("observed_at,provider,revenue_next_fy,eps_next_fy,revenue_growth_next_fy,eps_growth_next_fy,analyst_count,raw_payload")
-        .eq("company_id", companyId)
-        .order("observed_at", { ascending: true })
-        .limit(36),
+      moduleQuery.order("period_end", { ascending: true }),
+      consensusQuery.order("observed_at", { ascending: true }).limit(36),
       supabase
         .from("financial_metrics")
         .select("cash,total_debt,free_cash_flow")
@@ -76,14 +98,7 @@ export async function AdvancedResearchModules({
         .select("valuation_analysis")
         .eq("research_run_id", researchRunId)
         .maybeSingle(),
-      supabase
-        .from("company_metric_history")
-        .select("fiscal_year,value_numeric")
-        .eq("company_id", companyId)
-        .eq("module", "universal")
-        .eq("metric_key", "free_cash_flow")
-        .eq("period_type", "fiscal_year")
-        .gt("value_numeric", 0)
+      annualFcfQuery
         .order("fiscal_year", { ascending: false })
         .limit(1)
         .maybeSingle(),
