@@ -1,6 +1,14 @@
 name: Decision Readiness Repair Planner
 
 on:
+  pull_request:
+    paths:
+      - "lib/decision-readiness-repair-engine.mjs"
+      - "scripts/build-decision-readiness-repair-plans.mjs"
+      - "scripts/test-decision-readiness-repair-engine.mjs"
+      - "supabase/migrations/20260921210500_decision_readiness_repair_engine.sql"
+      - ".github/workflows/decision-readiness-repair.yml"
+      - "app/review/readiness-repair/page.tsx"
   workflow_dispatch:
   schedule:
     - cron: "5 13 * * 1-5"
