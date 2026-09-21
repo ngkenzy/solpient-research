@@ -543,6 +543,137 @@ after insert on public.research_runs
 for each row execute function private.freeze_research_input_manifest();
 
 -- ---------------------------------------------------------------------------
+-- Fundamental projection capture.
+-- The projection table may upsert a provider/period row; the canonical ledger does not.
+-- ---------------------------------------------------------------------------
+
+create or replace function private.capture_fundamental_snapshot_row(
+  p_row public.fundamental_snapshots,
+  p_known_at timestamptz
+) returns void
+language plpgsql set search_path='' as $
+declare
+  v_source_key text;
+  v_source_id uuid;
+  v_quality text;
+  v_metric record;
+  v_observation_key text;
+begin
+  if p_row.id is null or p_row.company_id is null then return; end if;
+  p_known_at:=coalesce(p_known_at,p_row.observed_at,p_row.created_at,clock_timestamp());
+  v_quality:=case
+    when lower(coalesce(p_row.provider,'')) like '%sec%'
+      or lower(coalesce(p_row.source_url,'')) like '%sec.gov%' then 'primary_regulatory'
+    else 'structured_provider'
+  end;
+
+  v_source_key:=pg_catalog.encode(extensions.digest(pg_catalog.convert_to(
+    pg_catalog.jsonb_build_object(
+      'origin','fundamental_snapshot_trigger_v1',
+      'company_id',p_row.company_id,'provider',p_row.provider,'form',p_row.form,
+      'period_end',p_row.period_end,'fiscal_year',p_row.fiscal_year,
+      'fiscal_period',p_row.fiscal_period,'source_url',p_row.source_url,
+      'filed_at',p_row.filed_at,'known_at',p_known_at
+    )::text,'UTF8'),'sha256'),'hex');
+
+  insert into public.evidence_sources(
+    company_id,source_key,provider,source_type,title,source_url,form_type,
+    publication_at,retrieved_at,document_identifier,source_version,
+    source_quality_class,visibility,metadata,created_at
+  ) values (
+    p_row.company_id,v_source_key,coalesce(p_row.provider,'unknown'),
+    coalesce(p_row.form,'Fundamental snapshot'),
+    concat_ws(' · ',upper(coalesce(p_row.provider,'provider')),p_row.form,p_row.fiscal_period,p_row.fiscal_year),
+    p_row.source_url,p_row.form,
+    case when p_row.filed_at is null then null else p_row.filed_at::timestamptz end,
+    p_known_at,coalesce(p_row.source_url,p_row.id::text),p_known_at::text,
+    v_quality,'internal',
+    pg_catalog.jsonb_build_object('projection_table','fundamental_snapshots','projection_id',p_row.id),
+    p_known_at
+  )
+  on conflict(source_key) do nothing;
+
+  select id into v_source_id from public.evidence_sources where source_key=v_source_key;
+  if v_source_id is null then raise exception 'Could not resolve canonical evidence source for fundamental snapshot.'; end if;
+
+  for v_metric in
+    select * from (values
+      ('revenue',p_row.revenue,'USD'),
+      ('net_income',p_row.net_income,'USD'),
+      ('operating_cash_flow',p_row.operating_cash_flow,'USD'),
+      ('capital_expenditure',p_row.capital_expenditure,'USD'),
+      ('free_cash_flow',p_row.free_cash_flow,'USD'),
+      ('shares_outstanding',p_row.shares_outstanding,'shares'),
+      ('eps_diluted',p_row.eps_diluted,'USD/share')
+    ) as x(metric_key,value_numeric,unit)
+  loop
+    if v_metric.value_numeric is null then continue; end if;
+    v_observation_key:=pg_catalog.encode(extensions.digest(pg_catalog.convert_to(
+      pg_catalog.jsonb_build_object(
+        'source_key',v_source_key,'metric_key',v_metric.metric_key,
+        'value',v_metric.value_numeric,'unit',v_metric.unit,
+        'period_end',p_row.period_end,'period_type',p_row.fiscal_period,
+        'known_at',p_known_at
+      )::text,'UTF8'),'sha256'),'hex');
+
+    insert into public.evidence_observations(
+      source_id,company_id,observation_key,module,metric_key,raw_value_numeric,unit,
+      economic_period_end,economic_period_type,observation_at,known_at,provider,basis,
+      source_locator,raw_payload,visibility,created_at
+    ) values (
+      v_source_id,p_row.company_id,v_observation_key,'universal',v_metric.metric_key,
+      v_metric.value_numeric,v_metric.unit,p_row.period_end,
+      lower(coalesce(p_row.fiscal_period,p_row.form,'period')),
+      p_known_at,p_known_at,coalesce(p_row.provider,'unknown'),'reported',
+      pg_catalog.jsonb_build_object('source_url',p_row.source_url,'form',p_row.form),
+      pg_catalog.jsonb_build_object('fundamental_snapshot_id',p_row.id),
+      'internal',p_known_at
+    )
+    on conflict(observation_key) do nothing;
+  end loop;
+end $;
+
+create or replace function private.capture_fundamental_snapshot_provenance()
+returns trigger language plpgsql set search_path='' as $
+declare
+  v_changed boolean;
+begin
+  if tg_op='INSERT' then
+    perform private.capture_fundamental_snapshot_row(new,coalesce(new.observed_at,new.created_at,clock_timestamp()));
+    return new;
+  end if;
+
+  -- Ensure the pre-update provider state exists even if Phase 2 was installed immediately
+  -- before the first correction.
+  perform private.capture_fundamental_snapshot_row(old,coalesce(old.observed_at,old.created_at,clock_timestamp()));
+
+  v_changed:=(
+    pg_catalog.jsonb_build_object(
+      'revenue',new.revenue,'net_income',new.net_income,'operating_cash_flow',new.operating_cash_flow,
+      'capital_expenditure',new.capital_expenditure,'free_cash_flow',new.free_cash_flow,
+      'shares_outstanding',new.shares_outstanding,'eps_diluted',new.eps_diluted,
+      'raw_payload',new.raw_payload,'source_url',new.source_url,'filed_at',new.filed_at
+    )
+    is distinct from
+    pg_catalog.jsonb_build_object(
+      'revenue',old.revenue,'net_income',old.net_income,'operating_cash_flow',old.operating_cash_flow,
+      'capital_expenditure',old.capital_expenditure,'free_cash_flow',old.free_cash_flow,
+      'shares_outstanding',old.shares_outstanding,'eps_diluted',old.eps_diluted,
+      'raw_payload',old.raw_payload,'source_url',old.source_url,'filed_at',old.filed_at
+    )
+  );
+  if v_changed then
+    perform private.capture_fundamental_snapshot_row(new,clock_timestamp());
+  end if;
+  return new;
+end $;
+
+drop trigger if exists fundamental_snapshots_provenance_capture on public.fundamental_snapshots;
+create trigger fundamental_snapshots_provenance_capture
+after insert or update on public.fundamental_snapshots
+for each row execute function private.capture_fundamental_snapshot_provenance();
+
+-- ---------------------------------------------------------------------------
 -- Canonical evidence batch ingestion. Service role only, append-only.
 -- ---------------------------------------------------------------------------
 
