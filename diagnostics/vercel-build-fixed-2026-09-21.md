@@ -1,0 +1,1 @@
+Diagnostic branch to verify the chart event typing fix compiles in the production build. Do not merge.
