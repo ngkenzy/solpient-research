@@ -4,7 +4,7 @@ import path from "node:path";
 import process from "node:process";
 import { createClient } from "@supabase/supabase-js";
 import { buildResearchChanges } from "../lib/research-changes.mjs";
-import { validateResearchStandard } from "../lib/research-standard-v1.mjs";
+import { validateResearchStandard } from "../lib/research-standard.mjs";
 
 const filePath = process.argv[2];
 
@@ -35,10 +35,26 @@ for (const field of ["ticker", "company_name", "research"]) {
 const standardValidation = validateResearchStandard(payload);
 if (standardValidation.applies && !standardValidation.valid) {
   throw new Error(
-    "Research Standard v1 validation failed: " +
+    "Research Standard validation failed: " +
       standardValidation.notes.join(" ")
   );
 }
+
+const legacyMigrationMode =
+  process.argv.includes("--legacy-direct-publish") &&
+  process.env.SOLPIENT_LEGACY_MIGRATION_MODE === "enabled";
+
+if (!legacyMigrationMode) {
+  console.log(
+    `Validated legacy research file ${ingestionKey}. Direct publication is quarantined; use the reviewed V2 workbench and transactional publication RPC.`
+  );
+  process.exit(0);
+}
+
+console.warn(
+  "LEGACY MIGRATION MODE: direct publication code is retained only for historical migration diagnostics. " +
+  "The database historical-integrity guard rejects normal published inserts outside the authoritative reviewed V2 RPC."
+);
 
 const supabase = createClient(supabaseUrl, serviceRoleKey, {
   auth: { persistSession: false, autoRefreshToken: false },
