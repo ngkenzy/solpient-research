@@ -816,11 +816,11 @@ comment on column public.research_runs.source_context_pack_id is
 
 -- ---------------------------------------------------------------------------
 -- Safe public historical research read model.
--- Exposes only whitelisted normalized values as they were known by a published
--- research run's frozen cutoff. Raw evidence/provider payloads remain private.
+-- Privileged fact access stays in the non-exposed private schema. The public
+-- RPC is SECURITY INVOKER and delegates only to the whitelisted private reader.
 -- ---------------------------------------------------------------------------
 
-create or replace function public.get_public_research_history_as_of_v1(
+create or replace function private.get_public_research_history_as_of_v1(
   p_research_run_id uuid
 ) returns table(
   module text,
@@ -874,6 +874,32 @@ as $$
         and newer.known_at<=t.cutoff_at
     )
   order by nf.module,nf.metric_key,nf.economic_period_end,nf.known_at;
+$$;
+
+revoke all on function private.get_public_research_history_as_of_v1(uuid) from public;
+grant usage on schema private to anon,authenticated,service_role;
+grant execute on function private.get_public_research_history_as_of_v1(uuid)
+  to anon,authenticated,service_role;
+
+create or replace function public.get_public_research_history_as_of_v1(
+  p_research_run_id uuid
+) returns table(
+  module text,
+  metric_key text,
+  value_numeric numeric,
+  unit text,
+  economic_period_end date,
+  economic_period_type text,
+  known_at timestamptz,
+  source_confidence_class text,
+  conflict_state text
+)
+language sql
+stable
+security invoker
+set search_path=''
+as $$
+  select * from private.get_public_research_history_as_of_v1(p_research_run_id);
 $$;
 
 revoke all on function public.get_public_research_history_as_of_v1(uuid) from public;
