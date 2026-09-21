@@ -338,7 +338,7 @@ exception
     where id = v_run_id;
     raise;
 end;
-$function$
+$function$;
 
 
 revoke update on table public.prediction_scores from service_role;
