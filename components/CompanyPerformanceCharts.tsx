@@ -23,7 +23,7 @@ type ValuationPoint = {
 };
 type CapitalPoint = {
   period: string;
-  periodEnd: string;
+  periodEnd: string | null;
   year: number;
   dividends: number | null;
   buybacks: number | null;
