@@ -617,36 +617,39 @@ export function buildCoachSummary(analysis: MoneyAnalysis): CoachSummary {
 }
 
 export function migrateV1Profile(profile: FinancialProfile): MoneyState {
-  const state: MoneyState = {
+  const accounts: MoneyAccount[] = [];
+  const debts: DebtAccount[] = [];
+
+  if (profile.cashSavings > 0) {
+    accounts.push({ id: "migrated-cash", name: "Cash & savings", type: "savings", balance: safe(profile.cashSavings) });
+  }
+  if (profile.retirementBalance > 0) {
+    accounts.push({ id: "migrated-retirement", name: "Retirement", type: "retirement", balance: safe(profile.retirementBalance) });
+  }
+  if (profile.brokerageBalance > 0) {
+    accounts.push({ id: "migrated-brokerage", name: "Brokerage", type: "brokerage", balance: safe(profile.brokerageBalance) });
+  }
+  if (profile.otherAssets > 0) {
+    accounts.push({ id: "migrated-other", name: "Other assets", type: "other", balance: safe(profile.otherAssets) });
+  }
+
+  if (profile.creditCardBalance > 0) {
+    debts.push({ id: "migrated-card", name: "Credit card", type: "credit_card", balance: safe(profile.creditCardBalance), apr: safe(profile.creditCardApr), minimumPayment: 0 });
+  }
+  if (profile.autoLoanBalance > 0) {
+    debts.push({ id: "migrated-auto", name: "Auto loan", type: "auto", balance: safe(profile.autoLoanBalance), apr: safe(profile.autoLoanApr), minimumPayment: 0 });
+  }
+  if (profile.studentLoanBalance > 0) {
+    debts.push({ id: "migrated-student", name: "Student loan", type: "student", balance: safe(profile.studentLoanBalance), apr: safe(profile.studentLoanApr), minimumPayment: 0 });
+  }
+  if (profile.mortgageBalance > 0) {
+    debts.push({ id: "migrated-mortgage", name: "Mortgage", type: "mortgage", balance: safe(profile.mortgageBalance), apr: safe(profile.mortgageApr), minimumPayment: 0 });
+  }
+
+  return {
     ...emptyMoneyState,
-    accounts: [
-      profile.cashSavings > 0
-        ? { id: "migrated-cash", name: "Cash & savings", type: "savings" as const, balance: safe(profile.cashSavings) }
-        : null,
-      profile.retirementBalance > 0
-        ? { id: "migrated-retirement", name: "Retirement", type: "retirement" as const, balance: safe(profile.retirementBalance) }
-        : null,
-      profile.brokerageBalance > 0
-        ? { id: "migrated-brokerage", name: "Brokerage", type: "brokerage" as const, balance: safe(profile.brokerageBalance) }
-        : null,
-      profile.otherAssets > 0
-        ? { id: "migrated-other", name: "Other assets", type: "other" as const, balance: safe(profile.otherAssets) }
-        : null,
-    ].filter((item): item is MoneyAccount => item !== null),
-    debts: [
-      profile.creditCardBalance > 0
-        ? { id: "migrated-card", name: "Credit card", type: "credit_card" as const, balance: safe(profile.creditCardBalance), apr: safe(profile.creditCardApr), minimumPayment: 0 }
-        : null,
-      profile.autoLoanBalance > 0
-        ? { id: "migrated-auto", name: "Auto loan", type: "auto" as const, balance: safe(profile.autoLoanBalance), apr: safe(profile.autoLoanApr), minimumPayment: 0 }
-        : null,
-      profile.studentLoanBalance > 0
-        ? { id: "migrated-student", name: "Student loan", type: "student" as const, balance: safe(profile.studentLoanBalance), apr: safe(profile.studentLoanApr), minimumPayment: 0 }
-        : null,
-      profile.mortgageBalance > 0
-        ? { id: "migrated-mortgage", name: "Mortgage", type: "mortgage" as const, balance: safe(profile.mortgageBalance), apr: safe(profile.mortgageApr), minimumPayment: 0 }
-        : null,
-    ].filter((item): item is DebtAccount => item !== null),
+    accounts,
+    debts,
     settings: {
       monthlyIncomeOverride: safe(profile.monthlyIncome),
       monthlyExpensesOverride: safe(profile.monthlyExpenses),
@@ -655,5 +658,4 @@ export function migrateV1Profile(profile: FinancialProfile): MoneyState {
       emergencyTargetMonths: safe(profile.emergencyTargetMonths) || 4,
     },
   };
-  return state;
 }
