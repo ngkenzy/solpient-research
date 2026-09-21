@@ -62,7 +62,7 @@ const verifiedRows=[
     prediction_outcome_id:"o1",
     company_id:"c1",model_version:"m1",horizon_months:12,outcome_type:"fundamental",metric_key:"revenue",
     predicted_value:100,actual_value:110,predicted_low:90,predicted_high:115,
-    snapshot_confidence:70,direction_correct:true,
+    snapshot_confidence:70,
   },
   {
     ...base,
@@ -95,8 +95,8 @@ assert.equal(summary.methodology_version,TRACK_RECORD_METHODOLOGY_VERSION);
 assert.equal(summary.verified_sample_size,4);
 assert.equal(summary.sample_grade,"insufficient");
 assert.equal(summary.numeric.sample_size,2);
-assert.equal(summary.direction.sample_size,4);
-assert.equal(summary.direction.accuracy,75);
+assert.equal(summary.direction.sample_size,3);
+assert.ok(Math.abs(summary.direction.accuracy-66.67)<0.01);
 assert.equal(summary.probability.sample_size,2);
 assert.ok(summary.probability.brier_score>0);
 assert.equal(summary.benchmark_relative.sample_size,1);
