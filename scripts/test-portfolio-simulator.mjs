@@ -27,7 +27,7 @@ const portfolio={
     {
       ticker:"CCC",company_name:"Gamma",group:"Healthcare",market_value:20_000,
       readiness_state:"building",decision_score:58,business_quality_score:70,
-      investment_opportunity_score:50,evidence_confidence_score:55,
+      investment_opportunity_score:50,evidence_confidence_score:55,base_5y_cagr:5,
       current_price:40,bear_value:25,base_value:45,bull_value:65
     }
   ]
@@ -42,10 +42,10 @@ assert.equal(analysis.position_count,3);
 assert.equal(analysis.positions[0].ticker,"AAA");
 assert.equal(analysis.positions[0].weight_pct,40);
 assert.equal(analysis.groups[0].group,"Software");
-assert.equal(analysis.groups[0].weight_pct,70);
-assert.equal(analysis.readiness.decision_ready.weight_pct,40);
-assert.equal(analysis.readiness.building.weight_pct,20);
-assert.equal(analysis.weighted_metrics.base_5y_cagr.coverage_pct,77.8);
+assert.equal(analysis.groups[0].weight_pct,77.78);
+assert.equal(analysis.readiness.decision_ready.weight_pct,44.44);
+assert.equal(analysis.readiness.building.weight_pct,22.22);
+assert.equal(analysis.weighted_metrics.base_5y_cagr.coverage_pct,100);
 assert.ok(analysis.portfolio_base_5y_cagr>8);
 assert.equal(analysis.fair_value_marks.base.coverage_pct,100);
 assert.ok(analysis.fair_value_marks.base.change_pct>10);
