@@ -1,6 +1,10 @@
 name: SOLPIENT Evidence Provenance
 
 on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/evidence-provenance.yml"
   workflow_dispatch:
     inputs:
       ticker:
@@ -19,8 +23,8 @@ on:
       - ".github/workflows/evidence-provenance.yml"
 
 concurrency:
-  group: solpient-evidence-provenance
-  cancel-in-progress: true
+  group: solpient-evidence-provenance-ops-full-v4
+  cancel-in-progress: false
 
 jobs:
   sync:
