@@ -27,6 +27,7 @@ export async function DecisionTriggerFeed(){
     .from("decision_triggers")
     .select("id,company_id,research_run_id,trigger_key,trigger_group,label,metric_key,comparator,threshold_value,threshold_unit,current_value,current_text,decision_effect,severity,evaluation_status,rationale,last_evaluated_at,companies(ticker,company_name)")
     .in("evaluation_status",["triggered","needs_review"])
+    .neq("trigger_group","data_quality")
     .order("severity",{ascending:false})
     .order("updated_at",{ascending:false})
     .limit(40);
