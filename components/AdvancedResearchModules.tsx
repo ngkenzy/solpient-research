@@ -110,6 +110,10 @@ export async function AdvancedResearchModules({
     (sum: number, row: any) => sum + Number(row.value_numeric ?? 0),
     0,
   );
+  const totalCompanyRevenue = segments.reduce(
+    (sum: number, row: any) => sum + Number(row.value_numeric ?? 0),
+    0,
+  );
   const maxProduct = Math.max(...products.map((row: any) => Number(row.value_numeric ?? 0)), 1);
   const maxSegment = Math.max(...segments.map((row: any) => Number(row.value_numeric ?? 0)), 1);
   const totalGeography = geography.reduce(
@@ -198,8 +202,8 @@ export async function AdvancedResearchModules({
                       <strong>{row.label}</strong>
                       <span>
                         {money(value)}
-                        {totalProductRevenue > 0
-                          ? " · " + ((value / totalProductRevenue) * 100).toFixed(1) + "% of top-product revenue"
+                        {(totalCompanyRevenue || totalProductRevenue) > 0
+                          ? " · " + ((value / (totalCompanyRevenue || totalProductRevenue)) * 100).toFixed(1) + "% of revenue"
                           : ""}
                       </span>
                     </div>
