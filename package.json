@@ -45,7 +45,9 @@
     "test:quiver-political": "node scripts/test-quiver-political-intelligence.mjs",
     "sync:marketbeat-capital": "node scripts/sync-marketbeat-capital-intelligence.mjs",
     "test:marketbeat-capital": "node scripts/test-marketbeat-capital-intelligence.mjs",
-    "bootstrap:company": "node scripts/bootstrap-company.mjs"
+    "bootstrap:company": "node scripts/bootstrap-company.mjs",
+    "repair:queue": "node scripts/build-research-repair-queue.mjs",
+    "repair:process": "node scripts/process-research-repairs.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.4",
