@@ -128,7 +128,7 @@ export default async function ReviewDraft({params,searchParams}:{params:Promise<
       </section>
 
       <section className={styles.publishPanel}><div><span className={styles.kicker}>IMMUTABLE PROMOTION</span><h2>Publish reviewed research</h2><p>Promotion creates the next research version, writes the evidence/valuation/thesis tables, records material changes, and permanently links this draft to the published run.</p></div>
-        {draft.status==="promoted"?<Link className={styles.publishedLink} href={"/research/"+company?.ticker}>Already promoted →</Link>:<form action={promoteReviewAction}><input type="hidden" name="draft_id" value={id}/><button type="submit" disabled={!readiness.ready}>Publish research version</button></form>}
+        {draft.status==="promoted"?<Link className={styles.publishedLink} href={"/research/"+company?.ticker}>Already promoted →</Link>:<form action={promoteReviewAction}><input type="hidden" name="draft_id" value={id}/><button type="submit">Publish research version</button>{!readiness.ready?<small>Server validation will re-check readiness before publication.</small>:null}</form>}
       </section>
     </main>
   </>;
