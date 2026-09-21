@@ -230,7 +230,7 @@ try {
       .limit(10000),
     supabase
       .from("ranking_history")
-      .select("id,company_id,ranked_at,rank,overall_score,decision_score,business_quality_score,investment_opportunity_score,evidence_confidence_score,readiness_state,price,base_fair_value")
+      .select("id,company_id,research_run_id,ranked_at,rank,overall_score,decision_score,business_quality_score,business_quality_coverage_pct,investment_opportunity_score,opportunity_coverage_pct,evidence_confidence_score,evidence_component_coverage_pct,readiness_state,readiness_tier,price,base_fair_value,methodology_version")
       .order("ranked_at", { ascending: false })
       .limit(3000),
     supabase
@@ -330,6 +330,70 @@ try {
   }
 
   ranked.sort(sortDecisionRankings);
+
+  const currentState = ranked.map((item,index)=>({
+    company_id:item.company.id,
+    research_run_id:item.run.id,
+    rank:index+1,
+    overall_score:n(item.score.overall_score),
+    price:item.price,
+    base_fair_value:item.base,
+    business_quality_score:item.decision.businessQuality.score,
+    business_quality_coverage_pct:item.decision.businessQuality.coveragePct,
+    investment_opportunity_score:item.decision.investmentOpportunity.score,
+    opportunity_coverage_pct:item.decision.investmentOpportunity.coveragePct,
+    evidence_confidence_score:item.decision.evidenceConfidence.score,
+    evidence_component_coverage_pct:item.decision.evidenceConfidence.coveragePct,
+    decision_score:item.decision.decisionScore,
+    readiness_state:item.decision.readiness.state,
+    readiness_tier:item.decision.readiness.tier,
+  }));
+  const currentFingerprint = canonicalSha256(currentState);
+
+  const phase3History=(historyResult.data??[]).filter((row)=>row.methodology_version===RANKING_METHODOLOGY_VERSION);
+  const previousRankedAt=phase3History[0]?.ranked_at??null;
+  const previousState=previousRankedAt
+    ? phase3History
+        .filter((row)=>row.ranked_at===previousRankedAt)
+        .sort((a,b)=>Number(a.rank)-Number(b.rank))
+        .map((row)=>({
+          company_id:row.company_id,
+          research_run_id:row.research_run_id,
+          rank:Number(row.rank),
+          overall_score:n(row.overall_score),
+          price:n(row.price),
+          base_fair_value:n(row.base_fair_value),
+          business_quality_score:n(row.business_quality_score),
+          business_quality_coverage_pct:n(row.business_quality_coverage_pct),
+          investment_opportunity_score:n(row.investment_opportunity_score),
+          opportunity_coverage_pct:n(row.opportunity_coverage_pct),
+          evidence_confidence_score:n(row.evidence_confidence_score),
+          evidence_component_coverage_pct:n(row.evidence_component_coverage_pct),
+          decision_score:n(row.decision_score),
+          readiness_state:row.readiness_state,
+          readiness_tier:n(row.readiness_tier),
+        }))
+    : [];
+  const previousFingerprint=previousState.length?canonicalSha256(previousState):null;
+
+  if(previousFingerprint&&previousFingerprint===currentFingerprint){
+    await finishRun(runId,"success",0,"Phase 3 ranking unchanged; no duplicate snapshot written.",{
+      methodology_version:RANKING_METHODOLOGY_VERSION,
+      readiness_methodology_version:READINESS_METHODOLOGY_VERSION,
+      duplicate_of_ranked_at:previousRankedAt,
+      state_fingerprint:currentFingerprint,
+      companies:ranked.length,
+    });
+    console.log(JSON.stringify({
+      skipped:true,
+      reason:"ranking_state_unchanged",
+      duplicate_of_ranked_at:previousRankedAt,
+      state_fingerprint:currentFingerprint,
+      companies:ranked.length,
+    },null,2));
+    process.exit(0);
+  }
+
   const rankedAt = new Date().toISOString();
 
   for (let index = 0; index < ranked.length; index += 1) {
@@ -443,6 +507,7 @@ try {
     methodology_version: RANKING_METHODOLOGY_VERSION,
     readiness_methodology_version: READINESS_METHODOLOGY_VERSION,
     readiness_counts: counts,
+    state_fingerprint: currentFingerprint,
   });
   console.log(JSON.stringify({
     ranked_at: rankedAt,
