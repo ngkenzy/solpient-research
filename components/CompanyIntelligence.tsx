@@ -48,6 +48,30 @@ function activityIdentity(row: any) {
   ].join("|");
 }
 
+function normalizedAction(value?: string | null) {
+  const action = String(value ?? "").trim().toLowerCase();
+  if (["purchase", "buy", "bought", "acquire", "acquired", "p"].includes(action)) return "Buy";
+  if (["sale", "sell", "sold", "dispose", "disposed", "s"].includes(action)) return "Sell";
+  return value?.trim() || "Reported";
+}
+
+function activityTone(action?: string | null, change?: number | null) {
+  const normalized = normalizedAction(action);
+  if (normalized === "Buy" || (change != null && change > 0)) return "positive";
+  if (normalized === "Sell" || (change != null && change < 0)) return "negative";
+  return "neutral";
+}
+
+function institutionalLabel(row: any) {
+  const change = asNumber(row.change_pct);
+  const action = String(row.action ?? "").toLowerCase();
+  if (action.includes("new")) return "New position";
+  if (action.includes("sold") || action.includes("exit")) return "Sold out";
+  if (change != null && change > 0) return "Increased +" + change.toFixed(0) + "%";
+  if (change != null && change < 0) return "Reduced " + Math.abs(change).toFixed(0) + "%";
+  return row.action ?? "Position reported";
+}
+
 function date(value?: string | null) {
   if (!value) return "Date unavailable";
   return new Date(value + (value.includes("T") ? "" : "T00:00:00Z")).toLocaleDateString("en-US", {
@@ -142,6 +166,21 @@ export async function CompanyIntelligence({ ticker }: { ticker: string }) {
     .filter((row) => ["healthy", "degraded", "blocked", "stale"].includes(row.status))
     .slice(0, 4);
 
+  const institutionalIncreasing = institutional.filter((row) => {
+    const change = asNumber(row.change_pct);
+    const action = String(row.action ?? "").toLowerCase();
+    return (change != null && change > 0) || action.includes("new") || action.includes("increase");
+  }).length;
+  const institutionalReducing = institutional.filter((row) => {
+    const change = asNumber(row.change_pct);
+    const action = String(row.action ?? "").toLowerCase();
+    return (change != null && change < 0) || action.includes("sold") || action.includes("reduce") || action.includes("exit");
+  }).length;
+  const politicalBuys = political.filter((row) => normalizedAction(row.action) === "Buy").length;
+  const politicalSells = political.filter((row) => normalizedAction(row.action) === "Sell").length;
+  const insiderBuys = insiders.filter((row) => normalizedAction(row.action) === "Buy").length;
+  const insiderSells = insiders.filter((row) => normalizedAction(row.action) === "Sell").length;
+
   return (
     <section className="intelligenceSection" id="intelligence">
       <div className="intelligenceHeading">
@@ -169,12 +208,21 @@ export async function CompanyIntelligence({ ticker }: { ticker: string }) {
         </div>
       ) : null}
 
+      <div className="intelligenceNote">
+        <span>Buy / sell ledger</span>
+        <p>
+          Institutions: {institutionalIncreasing} increasing · {institutionalReducing} reducing
+          {" · "}Politicians: {politicalBuys} buys · {politicalSells} sells
+          {" · "}Insiders: {insiderBuys} buys · {insiderSells} sells
+        </p>
+      </div>
+
       <div className="intelligenceGrid">
         <article className="intelligenceCard">
           <div className="intelligenceCardHeader">
             <div>
               <span>INSTITUTIONAL</span>
-              <h3>Notable investors · latest disclosed position</h3>
+              <h3>Who is increasing or reducing</h3>
             </div>
             <strong>{institutional.length}</strong>
           </div>
@@ -198,8 +246,8 @@ export async function CompanyIntelligence({ ticker }: { ticker: string }) {
                     <strong>{integer(asNumber(holding.shares))} sh</strong>
                     <span>{compact(asNumber(holding.value))}</span>
                   </div>
-                  <div className={"activityBadge " + (change == null ? "neutral" : change >= 0 ? "positive" : "negative")}>
-                    {change == null ? holding.action : (change >= 0 ? "+" : "") + change.toFixed(0) + "%"}
+                  <div className={"activityBadge " + activityTone(holding.action, change)}>
+                    {institutionalLabel(holding)}
                   </div>
                 </a>
               );
@@ -216,7 +264,7 @@ export async function CompanyIntelligence({ ticker }: { ticker: string }) {
           <div className="intelligenceCardHeader">
             <div>
               <span>POLITICAL DISCLOSURES</span>
-              <h3>Reported transactions</h3>
+              <h3>Politicians buying / selling</h3>
             </div>
             <strong>{political.length}</strong>
           </div>
@@ -238,8 +286,8 @@ export async function CompanyIntelligence({ ticker }: { ticker: string }) {
                   <strong>{trade.amount_range ?? "Range unavailable"}</strong>
                   <span>Traded {date(trade.transaction_date)}</span>
                 </div>
-                <div className={"activityBadge " + (trade.action === "Purchase" ? "positive" : trade.action === "Sale" ? "negative" : "neutral")}>
-                  {trade.action}
+                <div className={"activityBadge " + activityTone(trade.action)}>
+                  {normalizedAction(trade.action)}
                 </div>
                 <small className="filingDate">Filed {date(trade.disclosure_date)}</small>
               </a>
@@ -255,7 +303,7 @@ export async function CompanyIntelligence({ ticker }: { ticker: string }) {
           <div className="intelligenceCardHeader">
             <div>
               <span>INSIDER ACTIVITY</span>
-              <h3>Reported insider transactions</h3>
+              <h3>Executives & directors buying / selling</h3>
             </div>
             <strong>{insiders.length}</strong>
           </div>
@@ -280,8 +328,8 @@ export async function CompanyIntelligence({ ticker }: { ticker: string }) {
                     <strong>{integer(shares)} sh{price != null ? " · $" + price.toFixed(2) : ""}</strong>
                     <span>{compact(asNumber(trade.value))} · {date(trade.transaction_date)}</span>
                   </div>
-                  <div className={"activityBadge " + (trade.action === "Buy" ? "positive" : trade.action === "Sell" ? "negative" : "neutral")}>
-                    {trade.action}
+                  <div className={"activityBadge " + activityTone(trade.action)}>
+                    {normalizedAction(trade.action)}
                   </div>
                 </a>
               );
