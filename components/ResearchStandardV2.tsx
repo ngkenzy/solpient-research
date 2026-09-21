@@ -103,6 +103,9 @@ export async function ResearchStandardV2({
   const dashboard = section.decision_dashboard ?? {};
   const valuationAnalysis = section.valuation_analysis ?? {};
   const historical = section.historical_valuation ?? {};
+  const financialQuality = section.financial_quality ?? {};
+  const fundamentalScorecard = Array.isArray(section.fundamental_scorecard) ? section.fundamental_scorecard : [];
+  const competitivePosition = section.competitive_position ?? {};
   const lenses = section.investment_lenses ?? {};
   const conclusion = section.final_conclusion ?? {};
   const normalized = valuationAnalysis.normalized_earnings_context ?? {};
@@ -232,6 +235,97 @@ export async function ResearchStandardV2({
           <p className={styles.note}>
             Biggest unknown: {text(dashboard.biggest_unknown, "Not yet isolated.")}
           </p>
+        </article>
+      </div>
+
+      <div className={styles.summaryGrid}>
+        <article className={styles.card}>
+          <span className={styles.kicker}>BUSINESS ANATOMY</span>
+          <h3>How the company earns and defends returns</h3>
+          <div className={styles.detailGrid}>
+            <div><span>Revenue model</span><p>{text(business.revenue_model)}</p></div>
+            <div><span>Market position</span><p>{text(business.market_position)}</p></div>
+            <div><span>Pricing power</span><p>{text(business.pricing_power)}</p></div>
+            <div><span>Growth runway</span><p>{text(business.growth_runway)}</p></div>
+            <div><span>Customer concentration</span><p>{text(business.customer_concentration)}</p></div>
+            <div><span>Geographic exposure</span><p>{text(business.geographic_exposure)}</p></div>
+            <div><span>Management quality</span><p>{text(business.management_quality)}</p></div>
+            <div><span>Capital allocation</span><p>{text(business.capital_allocation_assessment)}</p></div>
+          </div>
+        </article>
+
+        <article className={styles.card}>
+          <span className={styles.kicker}>FINANCIAL QUALITY</span>
+          <h3>What the historical economics show</h3>
+          <p>{text(financialQuality.narrative)}</p>
+          <div className={styles.trendColumns}>
+            <div>
+              <span>Improving</span>
+              {(financialQuality.improving_trends ?? []).length ? (
+                <ul>{financialQuality.improving_trends.map((item: string) => <li key={item}>{item}</li>)}</ul>
+              ) : <p>No improving trend flagged.</p>}
+            </div>
+            <div>
+              <span>Deteriorating</span>
+              {(financialQuality.deteriorating_trends ?? []).length ? (
+                <ul>{financialQuality.deteriorating_trends.map((item: string) => <li key={item}>{item}</li>)}</ul>
+              ) : <p>No deteriorating trend flagged.</p>}
+            </div>
+          </div>
+          {financialQuality.history_limitation ? (
+            <p className={styles.note}>{financialQuality.history_limitation}</p>
+          ) : null}
+        </article>
+      </div>
+
+      <article className={styles.wideCard}>
+        <div className={styles.cardHeading}>
+          <div>
+            <span className={styles.kicker}>FUNDAMENTAL SCORECARD</span>
+            <h3>Decision-relevant metrics</h3>
+          </div>
+          <small>{fundamentalScorecard.length} reviewed metrics</small>
+        </div>
+        <div className={styles.scorecardGrid}>
+          {fundamentalScorecard.map((row: any) => (
+            <div key={row.metric}>
+              <span>{row.metric}</span>
+              <strong>
+                {typeof row.current_value === "number"
+                  ? row.current_value.toLocaleString("en-US", { maximumFractionDigits: 2 })
+                  : String(row.current_value ?? "—")}
+              </strong>
+              <p>{text(row.assessment, "Assessment pending.")}</p>
+            </div>
+          ))}
+        </div>
+      </article>
+
+      <div className={styles.summaryGrid}>
+        <article className={styles.card}>
+          <span className={styles.kicker}>COMPETITIVE POSITION</span>
+          <h3>Relative standing</h3>
+          <p>{text(competitivePosition.relative_assessment)}</p>
+          <div className={styles.peerTags}>
+            {(competitivePosition.peers ?? []).map((peer: string) => <span key={peer}>{peer}</span>)}
+          </div>
+        </article>
+
+        <article className={styles.card}>
+          <span className={styles.kicker}>HISTORICAL VALUATION</span>
+          <h3>How today's multiple compares</h3>
+          <div className={styles.historyValuationGrid}>
+            {["3y", "5y", "10y"].map((period) => {
+              const row = historical?.[period] ?? {};
+              return (
+                <div key={period}>
+                  <span>{period.toUpperCase()}</span>
+                  <strong>{row.status === "available" ? multiple(row.median_multiple) : "Unavailable"}</strong>
+                  <small>{row.coverage_years ? Number(row.coverage_years).toFixed(1) + " years coverage" : text(row.explanation, "No stored history.")}</small>
+                </div>
+              );
+            })}
+          </div>
         </article>
       </div>
 
