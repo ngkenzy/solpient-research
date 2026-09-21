@@ -609,7 +609,7 @@ create or replace function private.capture_fundamental_snapshot_row(
   p_row public.fundamental_snapshots,
   p_known_at timestamptz
 ) returns void
-language plpgsql set search_path='' as $
+language plpgsql set search_path='' as $$
 declare
   v_source_key text;
   v_source_id uuid;
@@ -689,10 +689,10 @@ begin
     )
     on conflict(observation_key) do nothing;
   end loop;
-end $;
+end $$;
 
 create or replace function private.capture_fundamental_snapshot_provenance()
-returns trigger language plpgsql set search_path='' as $
+returns trigger language plpgsql set search_path='' as $$
 declare
   v_changed boolean;
 begin
@@ -724,7 +724,7 @@ begin
     perform private.capture_fundamental_snapshot_row(new,clock_timestamp());
   end if;
   return new;
-end $;
+end $$;
 
 drop trigger if exists fundamental_snapshots_provenance_capture on public.fundamental_snapshots;
 create trigger fundamental_snapshots_provenance_capture
