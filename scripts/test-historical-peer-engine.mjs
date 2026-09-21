@@ -52,7 +52,7 @@ assert.ok(peerContext.peerSet.length>=3);
 assert.ok(peerContext.peerComparison.some(p=>p.data_status==="available"));
 assert.ok(peerContext.snapshotRows.length>0);
 const pack=buildContextPack({company,result,peerContext,asOfDate:"2026-09-20"});
-assert.equal(pack.context_version,"context-v1");
+assert.equal(pack.context_version,"context-v2-provenance");
 assert.equal(pack.summary.full_fiscal_years,2);
 assert.equal(latestMetricMap(result).revenue>0,true);
 console.log("Historical + peer context engine tests passed.");
