@@ -85,7 +85,7 @@ assert.equal(integrityA.supersedes_id,payload.research.supersedes_id);
 assert.equal(integrityA.correction_reason,payload.research.correction_reason);
 
 const changed=structuredClone(pkg);
-changed.valuations.base_value=121;
+changed.valuation_analysis.assumptions.discount_rate=11;
 const integrityChanged=buildPublicationIntegrity({draft,review,composition,packagePayload:changed,readiness});
 assert.notEqual(integrityA.published_output_hash,integrityChanged.published_output_hash);
 assert.notEqual(integrityA.valuation_inputs_hash,integrityChanged.valuation_inputs_hash);
