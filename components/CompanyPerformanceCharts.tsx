@@ -503,8 +503,8 @@ export function CompanyPerformanceCharts({
     { key: "buybacks", label: "Buybacks" },
     { key: "sbc", label: "Stock comp." },
     { key: "acquisitions", label: "Acquisitions" },
-    { key: "debtRepaid", label: "Debt repaid" },
-    { key: "debtIssued", label: "Debt issued" },
+    { key: "debtRepaid", label: "LT debt repaid" },
+    { key: "debtIssued", label: "LT debt issued" },
   ];
 
   return (
@@ -614,7 +614,7 @@ export function CompanyPerformanceCharts({
               <span className="panelKicker">CAPITAL ALLOCATION</span>
               <h3>Cash allocation and dilution cost by reported period</h3>
             </div>
-            <small>USD · hover/click a period</small>
+            <small>{capital.filter((row) => row.period.startsWith("FY")).length} full fiscal years · USD</small>
           </div>
           <InteractiveBarChart
             rows={capital as any}
@@ -623,7 +623,7 @@ export function CompanyPerformanceCharts({
             showAllValues
           />
           <p className="performanceFootnote">
-            Periods remain quarterly when the source database contains quarterly observations; null categories are omitted rather than displayed as false zeros.
+            Full-year values come from reported SEC cash-flow items when available; the latest incomplete year is shown YTD. LT debt means long-term debt issuance/repayment. SBC is shown as a dilution cost, not a cash outflow.
           </p>
         </article>
       ) : null}
