@@ -13,6 +13,8 @@ create table if not exists public.company_state_snapshots (
 
 alter table public.company_state_snapshots
   drop constraint if exists company_state_snapshots_company_id_state_version_snapshot_date_key;
+alter table public.company_state_snapshots
+  drop constraint if exists company_state_snapshots_company_id_state_version_snapshot_d_key;
 
 create unique index if not exists company_state_snapshots_company_version_hash_key
   on public.company_state_snapshots(company_id,state_version,state_hash);
