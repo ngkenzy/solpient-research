@@ -15,14 +15,20 @@ function labelGap(item:any){
   return labels[item?.field]??String(item?.field??"Coverage gap").replaceAll("_"," ");
 }
 
-export async function ResearchCoveragePanel({companyId}:{companyId:string}) {
+export async function ResearchCoveragePanel({companyId,asOf=null}:{companyId:string;asOf?:string|null}) {
   const supabase=getSupabase();
   if(!supabase)return null;
 
-  const {data}=await supabase
+  let coverageQuery=supabase
     .from("data_coverage_reports")
     .select("*")
-    .eq("company_id",companyId)
+    .eq("company_id",companyId);
+  if(asOf){
+    coverageQuery=coverageQuery
+      .lte("as_of_date",asOf.slice(0,10))
+      .lte("generated_at",asOf);
+  }
+  const {data}=await coverageQuery
     .order("as_of_date",{ascending:false})
     .order("generated_at",{ascending:false})
     .limit(10);
