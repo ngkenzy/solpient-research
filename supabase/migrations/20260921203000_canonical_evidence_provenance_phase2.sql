@@ -134,6 +134,23 @@ create table if not exists public.normalized_fact_inputs (
   primary key(normalized_fact_id,input_fact_id,input_role)
 );
 
+create table if not exists public.evidence_resolution_decisions (
+  id uuid primary key default gen_random_uuid(),
+  company_id uuid not null references public.companies(id) on delete restrict,
+  module text not null default 'universal',
+  metric_key text not null,
+  economic_period_start date,
+  economic_period_end date,
+  economic_period_type text,
+  selected_observation_id uuid not null references public.evidence_observations(id) on delete restrict,
+  decision_reason text not null,
+  methodology_version text not null default 'source-resolution-v1',
+  decided_at timestamptz not null default now(),
+  supersedes_id uuid references public.evidence_resolution_decisions(id) on delete restrict,
+  created_at timestamptz not null default now(),
+  constraint evidence_resolution_decisions_reason_check check (length(btrim(decision_reason)) >= 8)
+);
+
 -- ---------------------------------------------------------------------------
 -- Frozen research-input manifest
 -- ---------------------------------------------------------------------------
@@ -272,6 +289,10 @@ create index if not exists normalized_fact_observations_observation_idx
   on public.normalized_fact_observations(observation_id);
 create index if not exists normalized_fact_inputs_input_idx
   on public.normalized_fact_inputs(input_fact_id);
+create index if not exists evidence_resolution_decisions_lookup_idx
+  on public.evidence_resolution_decisions(company_id,module,metric_key,economic_period_end,decided_at desc);
+create unique index if not exists evidence_resolution_decisions_supersedes_once_idx
+  on public.evidence_resolution_decisions(supersedes_id) where supersedes_id is not null;
 create index if not exists research_input_manifest_items_manifest_metric_idx
   on public.research_input_manifest_items(manifest_id,module,metric_key);
 create index if not exists research_input_manifest_items_fact_idx
@@ -290,6 +311,7 @@ alter table public.evidence_observations enable row level security;
 alter table public.normalized_facts enable row level security;
 alter table public.normalized_fact_observations enable row level security;
 alter table public.normalized_fact_inputs enable row level security;
+alter table public.evidence_resolution_decisions enable row level security;
 alter table public.research_input_manifest_staging enable row level security;
 alter table public.research_input_manifests enable row level security;
 alter table public.research_input_manifest_items enable row level security;
@@ -300,6 +322,7 @@ revoke all on table
   public.normalized_facts,
   public.normalized_fact_observations,
   public.normalized_fact_inputs,
+  public.evidence_resolution_decisions,
   public.research_input_manifest_staging,
   public.research_input_manifests,
   public.research_input_manifest_items
@@ -311,10 +334,38 @@ grant all on table
   public.normalized_facts,
   public.normalized_fact_observations,
   public.normalized_fact_inputs,
+  public.evidence_resolution_decisions,
   public.research_input_manifest_staging,
   public.research_input_manifests,
   public.research_input_manifest_items
 to service_role;
+
+-- Frozen published manifests are safe public provenance read models.
+-- Raw sources/observations/facts and internal resolution notes remain service-role only.
+grant select on table public.research_input_manifests,public.research_input_manifest_items
+to anon,authenticated;
+
+drop policy if exists "public read published research input manifests" on public.research_input_manifests;
+create policy "public read published research input manifests"
+on public.research_input_manifests for select to anon,authenticated
+using (
+  exists (
+    select 1 from public.research_runs rr
+    where rr.id=research_run_id and rr.status='published'
+  )
+);
+
+drop policy if exists "public read published research input manifest items" on public.research_input_manifest_items;
+create policy "public read published research input manifest items"
+on public.research_input_manifest_items for select to anon,authenticated
+using (
+  exists (
+    select 1
+    from public.research_input_manifests rim
+    join public.research_runs rr on rr.id=rim.research_run_id
+    where rim.id=manifest_id and rr.status='published'
+  )
+);
 
 -- ---------------------------------------------------------------------------
 -- Append-only provenance history
@@ -329,6 +380,7 @@ begin
     'normalized_facts',
     'normalized_fact_observations',
     'normalized_fact_inputs',
+    'evidence_resolution_decisions',
     'research_input_manifests',
     'research_input_manifest_items'
   ]
