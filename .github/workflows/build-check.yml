@@ -45,6 +45,11 @@ jobs:
           npm run test:quiver-political
           npm run test:marketbeat-capital
 
+      - name: Check repair center scripts
+        run: |
+          node --check scripts/build-research-repair-queue.mjs
+          node --check scripts/process-research-repairs.mjs
+
       - name: Build Next.js
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
