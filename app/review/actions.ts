@@ -16,6 +16,8 @@ import { buildBaselineDraft, BASELINE_FACTORY_VERSION } from "@/lib/baseline-fac
 import { composeResearchV1, RESEARCH_COMPOSER_VERSION } from "@/lib/research-composer.mjs";
 // @ts-expect-error Node ESM research helper
 import { validateResearchStandard } from "@/lib/research-standard.mjs";
+// @ts-expect-error Node ESM research helper
+import { buildCompanyHistory } from "@/lib/historical-peer-engine.mjs";
 
 export async function unlockReviewAction(formData:FormData) {
   const ok=await unlockReviewAccess(String(formData.get("key") ?? ""));
@@ -164,20 +166,34 @@ export async function buildCompanyReviewAction(formData:FormData) {
   const companyId=String(formData.get("company_id") ?? "");
   if (!companyId) redirect("/review?error=missing-company");
 
-  const [companyResult,marketResult,fundamentalResult,filingResult,contextResult,valuationResult]=await Promise.all([
+  const [companyResult,marketResult,marketHistoryResult,fundamentalResult,filingResult,contextResult]=await Promise.all([
     supabase.from("companies").select("*").eq("id",companyId).single(),
     supabase.from("market_snapshots").select("*").eq("company_id",companyId).order("trading_date",{ascending:false}).limit(1).maybeSingle(),
+    supabase.from("market_snapshots").select("*").eq("company_id",companyId).order("trading_date",{ascending:false}).limit(3200),
     supabase.from("fundamental_snapshots").select("*").eq("company_id",companyId).order("period_end",{ascending:false}).limit(160),
     supabase.from("filing_events").select("id,provider,form_type,filed_at,accepted_at,accession_number,filing_url,period_end,title").eq("company_id",companyId).order("filed_at",{ascending:false}).limit(25),
     supabase.from("research_context_packs").select("*").eq("company_id",companyId).order("as_of_date",{ascending:false}).limit(1).maybeSingle(),
-    supabase.from("valuation_history").select("*").eq("company_id",companyId).order("trading_date",{ascending:false}).limit(3200),
   ]);
-  for (const result of [companyResult,marketResult,fundamentalResult,filingResult,contextResult,valuationResult]) {
+  for (const result of [companyResult,marketResult,marketHistoryResult,fundamentalResult,filingResult,contextResult]) {
     if (result.error) throw result.error;
   }
 
   const company=companyResult.data;
   if (!company) redirect("/review?error=company-not-found");
+
+  const history=buildCompanyHistory({
+    company,
+    fundamentals:fundamentalResult.data ?? [],
+    markets:marketHistoryResult.data ?? [],
+  });
+  if (history.valuations.length) {
+    for (let i=0;i<history.valuations.length;i+=400) {
+      const {error}=await supabase.from("valuation_history").upsert(history.valuations.slice(i,i+400),{
+        onConflict:"company_id,trading_date,provider"
+      });
+      if (error) throw error;
+    }
+  }
 
   const baseline=buildBaselineDraft({
     company,
@@ -224,7 +240,7 @@ export async function buildCompanyReviewAction(formData:FormData) {
     company,
     baselinePayload:draft.draft_payload,
     contextPack:contextResult.data ?? {},
-    valuationHistory:valuationResult.data ?? [],
+    valuationHistory:history.valuations ?? [],
     asOfDate:now.slice(0,10),
   });
   const merged=applyReviewPatch(draft.draft_payload,composition.review_patch);
