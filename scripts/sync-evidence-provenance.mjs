@@ -261,8 +261,8 @@ const sources=[...sourceMap.values()].filter((row)=>!existingSourceKeys.has(row.
 const observations=[...observationMap.values()]
   .filter((row)=>!existingObservationKeys.has(row.observation_key))
   .map(({source_quality_class,...row})=>row);
-for(let i=0;i<Math.max(sources.length,observations.length);i+=200){
-  const sourceChunk=sources.slice(i,i+200),obsChunk=observations.slice(i,i+200);
+for(let i=0;i<Math.max(sources.length,observations.length);i+=50){
+  const sourceChunk=sources.slice(i,i+50),obsChunk=observations.slice(i,i+50);
   if(!sourceChunk.length&&!obsChunk.length)continue;
   const {error}=await sb.rpc("ingest_evidence_batch_v1",{
     p_sources:sourceChunk,p_observations:obsChunk,p_facts:[],p_fact_observations:[],p_fact_inputs:[]
@@ -352,7 +352,7 @@ for(const rows of groups.values()){
     }
     previousFactId=factId;
 
-    if(factBuffer.length>=50||observationLinkBuffer.length>=150){
+    if(factBuffer.length>=20||observationLinkBuffer.length>=60){
       await flushFactBuffers();
     }
   }
@@ -437,7 +437,7 @@ for(const fact of facts){
         });
         existingInputLinkKeys.add(linkKey);
         derivedInputLinksPrepared+=1;
-        if(inputLinkBuffer.length>=100)await flushInputLinks();
+        if(inputLinkBuffer.length>=50)await flushInputLinks();
       }
     }
   }
@@ -499,8 +499,8 @@ for(const run of publishedRuns){
       conflict_state:fact.conflict_state??null,
       created_at:run.published_at??run.researched_at??new Date().toISOString(),
     }));
-  for(let i=0;i<rows.length;i+=500){
-    const chunk=rows.slice(i,i+500);
+  for(let i=0;i<rows.length;i+=100){
+    const chunk=rows.slice(i,i+100);
     const {error}=await sb.from("research_public_history_items").upsert(chunk,{
       onConflict:"research_run_id,module,metric_key,economic_period_end,economic_period_type,known_at",
       ignoreDuplicates:true,
