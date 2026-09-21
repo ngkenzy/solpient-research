@@ -23,7 +23,7 @@ on:
       - ".github/workflows/evidence-provenance.yml"
 
 concurrency:
-  group: solpient-evidence-provenance-ops
+  group: solpient-evidence-provenance-ops-v2
   cancel-in-progress: false
 
 jobs:
