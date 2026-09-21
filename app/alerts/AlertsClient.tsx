@@ -8,6 +8,7 @@ type AlertPrefs = {
   congress: boolean;
   insiders: boolean;
   research: boolean;
+  decision: boolean;
 };
 
 const WATCHLIST_KEY = "solpient.watchlist";
@@ -18,6 +19,7 @@ const defaults: AlertPrefs = {
   congress: true,
   insiders: true,
   research: true,
+  decision: true,
 };
 
 export function AlertsClient() {
@@ -89,6 +91,7 @@ export function AlertsClient() {
                     ["congress", "Political trades"],
                     ["insiders", "Insiders"],
                     ["research", "Research changes"],
+                    ["decision", "Decision triggers"],
                   ] as Array<[keyof AlertPrefs, string]>).map(([key, label]) => (
                     <button onClick={() => toggle(item.ticker, key)} key={key}>
                       <span>{label}</span>
