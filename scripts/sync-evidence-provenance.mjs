@@ -217,10 +217,28 @@ for(const row of events.filter((x)=>selectedIds.has(x.company_id))){
   });
 }
 
-const sources=[...sourceMap.values()];
-const observations=[...observationMap.values()].map(({source_quality_class,...row})=>row);
-for(let i=0;i<Math.max(sources.length,observations.length);i+=400){
-  const sourceChunk=sources.slice(i,i+400),obsChunk=observations.slice(i,i+400);
+const existingSourceRows=[];
+const existingObservationRows=[];
+for(const company of selected){
+  existingSourceRows.push(...await fetchAll("evidence_sources",(q)=>q
+    .select("source_key")
+    .eq("company_id",company.id)
+    .order("source_key",{ascending:true})
+  ));
+  existingObservationRows.push(...await fetchAll("evidence_observations",(q)=>q
+    .select("observation_key")
+    .eq("company_id",company.id)
+    .order("observation_key",{ascending:true})
+  ));
+}
+const existingSourceKeys=new Set(existingSourceRows.map((row)=>row.source_key));
+const existingObservationKeys=new Set(existingObservationRows.map((row)=>row.observation_key));
+const sources=[...sourceMap.values()].filter((row)=>!existingSourceKeys.has(row.source_key));
+const observations=[...observationMap.values()]
+  .filter((row)=>!existingObservationKeys.has(row.observation_key))
+  .map(({source_quality_class,...row})=>row);
+for(let i=0;i<Math.max(sources.length,observations.length);i+=200){
+  const sourceChunk=sources.slice(i,i+200),obsChunk=observations.slice(i,i+200);
   if(!sourceChunk.length&&!obsChunk.length)continue;
   const {error}=await sb.rpc("ingest_evidence_batch_v1",{
     p_sources:sourceChunk,p_observations:obsChunk,p_facts:[],p_fact_observations:[],p_fact_inputs:[]
@@ -249,7 +267,10 @@ for(const row of allObs){
   groups.get(key).push(row);
 }
 
-const existingFactsRaw=await fetchAll("normalized_facts",(q)=>q.select("id,fact_key,company_id,module,metric_key,value_numeric,unit,economic_period_end,economic_period_type,known_at,source_confidence_class,conflict_state,supersedes_fact_id,formula_identifier,derivation_basis"));
+const existingFactsRaw=await fetchAll("normalized_facts",(q)=>{
+  q=q.select("id,fact_key,company_id,module,metric_key,value_numeric,unit,economic_period_end,economic_period_type,known_at,source_confidence_class,conflict_state,supersedes_fact_id,formula_identifier,derivation_basis");
+  return selected.length===1?q.eq("company_id",selected[0].id):q;
+});
 const factByKey=new Map(existingFactsRaw.map((r)=>[r.fact_key,r]));
 let factsPrepared=0;
 let observationLinksPrepared=0;
@@ -292,14 +313,14 @@ for(const rows of groups.values()){
       factBuffer.push(built.fact);
       factByKey.set(built.fact.fact_key,{...built.fact,id:factId});
       factsPrepared+=1;
-    }
-    for(const link of built.observationLinks){
-      observationLinkBuffer.push({...link,normalized_fact_id:factId});
-      observationLinksPrepared+=1;
+      for(const link of built.observationLinks){
+        observationLinkBuffer.push({...link,normalized_fact_id:factId});
+        observationLinksPrepared+=1;
+      }
     }
     previousFactId=factId;
 
-    if(factBuffer.length>=250||observationLinkBuffer.length>=750){
+    if(factBuffer.length>=100||observationLinkBuffer.length>=300){
       await flushFactBuffers();
     }
   }
@@ -308,10 +329,12 @@ await flushFactBuffers();
 
 // Re-read facts after streaming so derived lineage and frozen legacy history use
 // exactly what is now present in the canonical ledger.
-const facts=await fetchAll("normalized_facts",(q)=>q
-  .select("id,company_id,module,metric_key,value_numeric,unit,economic_period_end,economic_period_type,known_at,source_confidence_class,conflict_state,supersedes_fact_id,formula_identifier,derivation_basis")
-  .order("known_at",{ascending:true})
-);
+const facts=await fetchAll("normalized_facts",(q)=>{
+  q=q
+    .select("id,company_id,module,metric_key,value_numeric,unit,economic_period_end,economic_period_type,known_at,source_confidence_class,conflict_state,supersedes_fact_id,formula_identifier,derivation_basis")
+    .order("known_at",{ascending:true});
+  return selected.length===1?q.eq("company_id",selected[0].id):q;
+});
 
 const factsByMetric=new Map();
 const factsByCompany=new Map();
@@ -336,6 +359,18 @@ for(const rows of factsByMetric.values()){
 // Use a metric index instead of repeatedly scanning the full fact universe.
 let derivedInputLinksPrepared=0;
 let inputLinkBuffer=[];
+const existingInputLinkKeys=new Set();
+const factIds=facts.map((row)=>row.id);
+for(let i=0;i<factIds.length;i+=100){
+  const ids=factIds.slice(i,i+100);
+  const {data,error}=await sb.from("normalized_fact_inputs")
+    .select("normalized_fact_id,input_fact_id,input_role")
+    .in("normalized_fact_id",ids);
+  if(error)throw error;
+  for(const row of data??[]){
+    existingInputLinkKeys.add([row.normalized_fact_id,row.input_fact_id,row.input_role].join("|"));
+  }
+}
 async function flushInputLinks(){
   if(!inputLinkBuffer.length)return;
   const {error}=await sb.rpc("ingest_evidence_batch_v1",{
@@ -361,12 +396,16 @@ for(const fact of facts){
     );
     if(chosen){
       used.add(chosen.id);
-      inputLinkBuffer.push({
-        normalized_fact_id:fact.id,input_fact_id:chosen.id,
-        input_role:"formula_input",input_order:index,created_at:fact.known_at
-      });
-      derivedInputLinksPrepared+=1;
-      if(inputLinkBuffer.length>=500)await flushInputLinks();
+      const linkKey=[fact.id,chosen.id,"formula_input"].join("|");
+      if(!existingInputLinkKeys.has(linkKey)){
+        inputLinkBuffer.push({
+          normalized_fact_id:fact.id,input_fact_id:chosen.id,
+          input_role:"formula_input",input_order:index,created_at:fact.known_at
+        });
+        existingInputLinkKeys.add(linkKey);
+        derivedInputLinksPrepared+=1;
+        if(inputLinkBuffer.length>=250)await flushInputLinks();
+      }
     }
   }
 }
