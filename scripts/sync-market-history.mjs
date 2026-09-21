@@ -10,6 +10,7 @@ const sb=createClient(url,secret,{auth:{persistSession:false,autoRefreshToken:fa
 const userAgent=process.env.MARKET_DATA_USER_AGENT??"SOLPIENT Research/1.0";
 const outputFlag=process.argv.indexOf("--output");
 const outputPath=outputFlag>=0?process.argv[outputFlag+1]:null;
+const onlyTicker=process.env.COVERAGE_TICKER?String(process.env.COVERAGE_TICKER).toUpperCase():null;
 
 function sleep(ms){return new Promise(resolve=>setTimeout(resolve,ms));}
 function n(v){const x=Number(v);return Number.isFinite(x)?x:null;}
@@ -57,7 +58,7 @@ const {data:companies,error:companyError}=await sb.from("companies").select("id,
 if(companyError)throw companyError;
 const summary=[];
 
-for(const company of companies??[]){
+for(const company of (companies??[]).filter(c=>!onlyTicker||c.ticker===onlyTicker)){
   const [{count,error:countError},{data:fundamentals,error:fundError}]=await Promise.all([
     sb.from("market_snapshots").select("id",{count:"exact",head:true}).eq("company_id",company.id),
     sb.from("fundamental_snapshots").select("period_end,shares_outstanding,provider").eq("company_id",company.id).not("shares_outstanding","is",null).order("period_end",{ascending:false}).limit(80),
