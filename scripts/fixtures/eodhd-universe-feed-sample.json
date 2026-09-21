@@ -1,0 +1,66 @@
+{
+  "quote": {
+    "code": "TEST",
+    "name": "Test Compounder",
+    "type": "Common Stock",
+    "date": "2026-09-18",
+    "MarketCapitalization": 20000000000,
+    "adjusted_close": 100
+  },
+  "liquidity": {
+    "averageDollarVolume": 50000000,
+    "observationCount": 30
+  },
+  "fundamental": {
+    "General": {
+      "Code": "TEST",
+      "Name": "Test Compounder",
+      "Sector": "Technology",
+      "Industry": "Software",
+      "CurrencyCode": "USD"
+    },
+    "Highlights": {
+      "MarketCapitalization": 20000000000,
+      "RevenueTTM": 5000000000,
+      "EBITDA": 1200000000,
+      "ReturnOnEquityTTM": 0.25,
+      "ReturnOnInvestmentTTM": 0.2,
+      "OperatingMarginTTM": 0.24,
+      "DilutedEpsTTM": 5,
+      "PEGRatio": 1.4
+    },
+    "Valuation": {
+      "ForwardPE": 20,
+      "EnterpriseValueEbitda": 14
+    },
+    "SharesStats": {
+      "SharesOutstanding": 200000000
+    },
+    "Financials": {
+      "Income_Statement": {
+        "yearly": {
+          "2025": {"date":"2025-12-31","totalRevenue":5000000000,"netIncome":800000000,"operatingIncome":1200000000,"ebit":1200000000,"interestExpense":50000000,"dilutedEPS":5},
+          "2024": {"date":"2024-12-31","totalRevenue":4500000000,"netIncome":700000000,"operatingIncome":1050000000,"ebit":1050000000,"interestExpense":50000000,"dilutedEPS":4.4},
+          "2023": {"date":"2023-12-31","totalRevenue":4000000000,"netIncome":620000000,"operatingIncome":920000000,"ebit":920000000,"interestExpense":50000000,"dilutedEPS":3.9},
+          "2022": {"date":"2022-12-31","totalRevenue":3500000000,"netIncome":550000000,"operatingIncome":800000000,"ebit":800000000,"interestExpense":50000000,"dilutedEPS":3.4},
+          "2021": {"date":"2021-12-31","totalRevenue":3100000000,"netIncome":480000000,"operatingIncome":690000000,"ebit":690000000,"interestExpense":50000000,"dilutedEPS":3.0}
+        }
+      },
+      "Cash_Flow": {
+        "yearly": {
+          "2025": {"date":"2025-12-31","totalCashFromOperatingActivities":1300000000,"capitalExpenditures":-200000000},
+          "2024": {"date":"2024-12-31","totalCashFromOperatingActivities":1150000000,"capitalExpenditures":-180000000},
+          "2023": {"date":"2023-12-31","totalCashFromOperatingActivities":1000000000,"capitalExpenditures":-160000000},
+          "2022": {"date":"2022-12-31","totalCashFromOperatingActivities":850000000,"capitalExpenditures":-150000000},
+          "2021": {"date":"2021-12-31","totalCashFromOperatingActivities":760000000,"capitalExpenditures":-140000000}
+        }
+      },
+      "Balance_Sheet": {
+        "yearly": {
+          "2025": {"date":"2025-12-31","cash":1000000000,"shortLongTermDebtTotal":500000000,"totalStockholderEquity":4000000000,"totalCurrentAssets":2500000000,"totalCurrentLiabilities":1000000000,"commonStockSharesOutstanding":200000000},
+          "2022": {"date":"2022-12-31","commonStockSharesOutstanding":205000000}
+        }
+      }
+    }
+  }
+}
