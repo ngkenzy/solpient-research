@@ -41,6 +41,21 @@ const none=normalizeMarketBeatInsiders({
 assert.equal(none.rows.length,0);
 assert.equal(none.coverage.status,"verified_none");
 
+const oldInsiderHtml=`
+<html><body><h1>TEST Insider Trading & Ownership</h1>
+<h2>TEST Insider Buying and Selling Activity</h2>
+<div>Number Of Insiders Buying (Last 12 Months) 0</div>
+<div>Number Of Insiders Selling (Last 12 Months) 0</div>
+<table><tbody>
+<tr><td>2/13/2025</td><td>Older Director Director</td><td>Buy</td><td>1,000</td><td>$25.00</td><td>$25,000</td><td>Details</td></tr>
+</tbody></table></body></html>`;
+const historicalOnly=normalizeMarketBeatInsiders({
+  company:{...company,ticker:"TEST"},html:oldInsiderHtml,sourceUrl:"https://example.test/test/insider-trades/",verifiedAt:"2026-09-20T20:00:00Z",
+});
+assert.equal(historicalOnly.rows.length,1);
+assert.equal(historicalOnly.coverage.status,"verified_none");
+assert.equal(historicalOnly.coverage.record_count,0);
+
 const institutionHtml=`
 <html><body><h1>Microsoft (MSFT) Institutional Ownership</h1>
 <h2>Institutional Ownership Changes (13F Filings) for Microsoft (NASDAQ:MSFT)</h2>
