@@ -37,7 +37,7 @@ A published `research_runs` row is the immutable root of a research package. Onc
 - `research_v2_sections`
 - `research_changes`
 
-Drafts, reviews, enrichment records, context packs, and compositions remain mutable before publication.
+Drafts, reviews, enrichment records, context packs, and compositions remain mutable before publication. Once a published research run references its draft, review, and composition, those three source records are sealed against later UPDATE/DELETE so the publication provenance cannot drift.
 
 Historical predictions are locked at `prediction_snapshots.locked_at`. The forecast snapshot cannot be updated or deleted after lock. Its predicted outcomes cannot be inserted or deleted after lock, and only resolver metadata on a predicted outcome may change later:
 
@@ -100,7 +100,8 @@ Application-side hashes use deterministic canonical serialization defined by `li
 
 - recursively sorted object keys;
 - stable JSON serialization;
-- array order preserved;
+- semantic publication arrays sorted by stable keys before publication hashing;
+- array order preserved for arrays whose sequence is part of the stored JSON meaning;
 - non-finite numbers normalized to `null`.
 
 The canonicalization version and hash algorithm are stored with each publication.
