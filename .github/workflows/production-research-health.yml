@@ -1,0 +1,26 @@
+name: SOLPIENT Production Research Health
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "23 */6 * * *"
+
+concurrency:
+  group: solpient-production-research-health
+  cancel-in-progress: true
+
+jobs:
+  canary:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Verify live research data path
+        env:
+          SOLPIENT_PRODUCTION_URL: https://solpient-research-app.vercel.app
+          SOLPIENT_HEALTH_TICKER: PFE
+        run: node scripts/check-production-research-health.mjs
