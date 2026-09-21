@@ -30,6 +30,7 @@ jobs:
         run: |
           npm run test:changes
           npm run test:company-change
+          npm run test:decision-triggers
           npm run test:standard
           npm run test:standard:v2
           npm run test:factory
