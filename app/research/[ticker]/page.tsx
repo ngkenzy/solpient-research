@@ -607,7 +607,7 @@ export default async function CompanyResearch({
 
         <CompanyIntelligence ticker={company.ticker} asOf={frozenAsOf} />
 
-        <PredictionHistory companyId={company.id} ticker={company.ticker} />
+        <PredictionHistory companyId={company.id} ticker={company.ticker} asOf={frozenAsOf} />
 
         <section className="dashboardGrid lowerDashboard">
           <article className="dashboardPanel changeSection">
