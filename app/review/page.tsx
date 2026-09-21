@@ -151,10 +151,10 @@ export default async function ReviewQueue({searchParams}:{searchParams:Promise<{
             </form>;
           }
           const href=row.draft?"/review/"+row.draft.id:row.latestRun?"/research/"+row.company.ticker:"/research";
-          return <Link className={styles.queueRowV2} href={href} key={row.company.id}>
+          return <div className={styles.queueRowV2} key={row.company.id}>
             {content}
-            <span className={styles.openArrow}>→</span>
-          </Link>;
+            <Link className={styles.openDraftButton} href={href}>{row.draft&&!row.draft.published_run_id?"Open →":"View →"}</Link>
+          </div>;
         })}
       </section>
 
