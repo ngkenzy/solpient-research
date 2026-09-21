@@ -896,7 +896,7 @@ h2 { letter-spacing: -.02em; }
 
 .signalSummary {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 8px;
 }
 
@@ -961,6 +961,7 @@ h2 { letter-spacing: -.02em; }
 .signalDot.strengthened { background: #56d58a; }
 .signalDot.weakened { background: #e36f6f; }
 .signalDot.unchanged { background: #a4abb6; }
+.signalDot.monitor { background: #d7b55a; }
 
 .lowerDashboard {
   grid-template-columns: 1.2fr .8fr 1fr;
