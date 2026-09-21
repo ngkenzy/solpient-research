@@ -22,6 +22,8 @@ type ValuationPoint = {
   forwardPe: number | null;
 };
 type CapitalPoint = {
+  period: string;
+  periodEnd: string;
   year: number;
   dividends: number | null;
   buybacks: number | null;
@@ -31,6 +33,16 @@ type CapitalPoint = {
   debtRepaid: number | null;
   shares: number | null;
 };
+export type PeerPoint = {
+  ticker: string;
+  revenueGrowth: number | null;
+  fcfMargin: number | null;
+  priceToFcf: number | null;
+  fcfYield: number | null;
+};
+
+type SeriesPoint = { label: string; value: number };
+type Series = { label: string; values: SeriesPoint[] };
 
 function compact(value: number | null | undefined) {
   if (value == null) return "—";
@@ -42,7 +54,12 @@ function compact(value: number | null | undefined) {
 
 function moneyCompact(value: number | null | undefined) {
   if (value == null) return "—";
-  return "$" + compact(value);
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    notation: "compact",
+    maximumFractionDigits: 1,
+  }).format(value);
 }
 
 function pct(value: number | null | undefined) {
@@ -61,108 +78,293 @@ function rangeYears(date: string, years: number) {
   return end.toISOString().slice(0, 10);
 }
 
-function path(points: Array<{ x: number; y: number }>) {
-  return points.map((point, i) => `${i ? "L" : "M"} ${point.x.toFixed(2)} ${point.y.toFixed(2)}`).join(" ");
+function svgPath(points: Array<{ x: number; y: number }>) {
+  return points
+    .map((point, i) => `${i ? "L" : "M"} ${point.x.toFixed(2)} ${point.y.toFixed(2)}`)
+    .join(" ");
 }
 
-function LineChart({
+function InteractiveLineChart({
   series,
   formatter = (value: number) => value.toFixed(1),
   minOverride,
   maxOverride,
 }: {
-  series: Array<{ label: string; values: Array<{ label: string; value: number }> }>;
+  series: Series[];
   formatter?: (value: number) => string;
   minOverride?: number;
   maxOverride?: number;
 }) {
+  const [hoverIndex, setHoverIndex] = useState<number | null>(null);
+  const [lockedIndex, setLockedIndex] = useState<number | null>(null);
   const all = series.flatMap((item) => item.values.map((point) => point.value));
   if (!all.length) return <div className="performanceEmpty">No chart data available.</div>;
+
+  const longest = series.reduce(
+    (best, item) => (item.values.length > best.values.length ? item : best),
+    series[0],
+  );
+  const pointCount = longest.values.length;
+  const activeIndex = lockedIndex ?? hoverIndex ?? Math.max(0, pointCount - 1);
   const rawMin = Math.min(...all);
   const rawMax = Math.max(...all);
   const pad = Math.max((rawMax - rawMin) * 0.12, rawMax === rawMin ? 1 : 0);
   const min = minOverride ?? rawMin - pad;
   const max = maxOverride ?? rawMax + pad;
   const spread = max - min || 1;
-  const maxLen = Math.max(...series.map((item) => item.values.length));
+
+  function indexFromPointer(event: React.PointerEvent<SVGSVGElement>) {
+    const rect = event.currentTarget.getBoundingClientRect();
+    const ratio = Math.min(1, Math.max(0, (event.clientX - rect.left) / rect.width));
+    return Math.round(ratio * Math.max(pointCount - 1, 0));
+  }
+
+  const activeLabel = longest.values[activeIndex]?.label ?? "";
+  const activeValues = series.map((item) => {
+    const exact = item.values.find((point) => point.label === activeLabel);
+    const fallback = item.values[Math.min(activeIndex, item.values.length - 1)];
+    return { label: item.label, point: exact ?? fallback };
+  });
 
   return (
-    <div className="performanceLineWrap">
-      <div className="performanceYAxis">
-        <span>{formatter(max)}</span>
-        <span>{formatter((max + min) / 2)}</span>
-        <span>{formatter(min)}</span>
-      </div>
-      <div className="performanceSvg">
-        <svg viewBox="0 0 100 48" role="img">
-          <path className="performanceGrid" d="M 2 4 L 98 4 M 2 24 L 98 24 M 2 44 L 98 44" />
-          {series.map((item, seriesIndex) => {
-            const coords = item.values.map((point, index) => ({
-              x: 3 + (index / Math.max(item.values.length - 1, 1)) * 94,
-              y: 44 - ((point.value - min) / spread) * 40,
-            }));
-            return (
-              <path
-                key={item.label}
-                className={`performanceLine performanceLine${seriesIndex + 1}`}
-                d={path(coords)}
+    <div className="interactiveChart">
+      <div className="performanceLineWrap">
+        <div className="performanceYAxis">
+          <span>{formatter(max)}</span>
+          <span>{formatter((max + min) / 2)}</span>
+          <span>{formatter(min)}</span>
+        </div>
+        <div className="performanceSvg">
+          <svg
+            viewBox="0 0 100 48"
+            role="img"
+            onPointerMove={(event) => setHoverIndex(indexFromPointer(event))}
+            onPointerLeave={() => setHoverIndex(null)}
+            onClick={(event) => {
+              const next = indexFromPointer(event);
+              setLockedIndex((current) => (current === next ? null : next));
+            }}
+          >
+            <path className="performanceChartGrid" d="M 2 4 L 98 4 M 2 24 L 98 24 M 2 44 L 98 44" />
+            {series.map((item, seriesIndex) => {
+              const coords = item.values.map((point, index) => ({
+                x: 3 + (index / Math.max(item.values.length - 1, 1)) * 94,
+                y: 44 - ((point.value - min) / spread) * 40,
+              }));
+              return (
+                <g key={item.label}>
+                  <path
+                    className={`performanceLine performanceLine${seriesIndex + 1}`}
+                    d={svgPath(coords)}
+                  />
+                  {coords.map((point, index) => (
+                    <circle
+                      key={index}
+                      className={index === activeIndex ? `performancePoint point${seriesIndex + 1} active` : `performancePoint point${seriesIndex + 1}`}
+                      cx={point.x}
+                      cy={point.y}
+                      r={index === activeIndex ? 1.2 : .55}
+                    />
+                  ))}
+                </g>
+              );
+            })}
+            {pointCount > 1 ? (
+              <line
+                className="performanceCrosshair"
+                x1={3 + (activeIndex / Math.max(pointCount - 1, 1)) * 94}
+                x2={3 + (activeIndex / Math.max(pointCount - 1, 1)) * 94}
+                y1="3"
+                y2="45"
               />
-            );
-          })}
-        </svg>
-        <div className="performanceLegend">
-          {series.map((item, index) => (
-            <span key={item.label}><i className={`performanceLegendSwatch swatch${index + 1}`} />{item.label}</span>
-          ))}
+            ) : null}
+          </svg>
+          <div className="performanceXAxis">
+            <span>{longest.values[0]?.label ?? ""}</span>
+            <span>{longest.values[Math.floor(pointCount / 2)]?.label ?? ""}</span>
+            <span>{longest.values.at(-1)?.label ?? ""}</span>
+          </div>
         </div>
-        <div className="performanceXAxis">
-          <span>{series[0]?.values[0]?.label ?? ""}</span>
-          <span>{series[0]?.values[Math.floor((series[0]?.values.length ?? 1) / 2)]?.label ?? ""}</span>
-          <span>{series[0]?.values.at(-1)?.label ?? ""}</span>
+      </div>
+
+      <div className="chartInspector" aria-live="polite">
+        <div className="chartInspectorDate">
+          <span>Selected</span>
+          <strong>{activeLabel || "—"}</strong>
+          <small>{lockedIndex == null ? "Hover or click chart" : "Click again to unlock"}</small>
         </div>
+        {activeValues.map((item) => (
+          <div key={item.label}>
+            <span>{item.label}</span>
+            <strong>{item.point ? formatter(item.point.value) : "—"}</strong>
+          </div>
+        ))}
+      </div>
+
+      <div className="performanceLegend">
+        {series.map((item, index) => (
+          <span key={item.label}>
+            <i className={`performanceLegendSwatch swatch${index + 1}`} />
+            {item.label}
+          </span>
+        ))}
       </div>
     </div>
   );
 }
 
-function BarChart({
+function InteractiveBarChart({
   rows,
   keys,
+  labelKey = "year",
 }: {
   rows: Array<Record<string, any>>;
   keys: Array<{ key: string; label: string }>;
+  labelKey?: string;
 }) {
-  const values = rows.flatMap((row) => keys.map((item) => Math.max(0, Number(row[item.key] ?? 0))));
+  const [selectedIndex, setSelectedIndex] = useState(Math.max(0, rows.length - 1));
+  const activeKeys = keys.filter((item) =>
+    rows.some((row) => Number.isFinite(Number(row[item.key])) && Number(row[item.key]) !== 0),
+  );
+  const values = rows.flatMap((row) =>
+    activeKeys.map((item) => Math.max(0, Number(row[item.key] ?? 0))),
+  );
   const max = Math.max(...values, 1);
+  const selected = rows[selectedIndex] ?? rows.at(-1);
+
+  if (!rows.length || !activeKeys.length) {
+    return <div className="performanceEmpty">No monetary chart data available.</div>;
+  }
+
   return (
-    <>
-      <div className="performanceBars">
-        {rows.map((row) => (
-          <div className="performanceBarGroup" key={row.year}>
+    <div className="interactiveBarChart">
+      <div
+        className="performanceBars"
+        style={{ ["--bar-columns" as string]: String(rows.length) }}
+      >
+        {rows.map((row, rowIndex) => (
+          <button
+            type="button"
+            className={rowIndex === selectedIndex ? "performanceBarGroup active" : "performanceBarGroup"}
+            key={String(row[labelKey]) + rowIndex}
+            onMouseEnter={() => setSelectedIndex(rowIndex)}
+            onFocus={() => setSelectedIndex(rowIndex)}
+            onClick={() => setSelectedIndex(rowIndex)}
+          >
             <div className="performanceBarColumns">
-              {keys.map((item, index) => {
+              {activeKeys.map((item, index) => {
                 const value = Math.max(0, Number(row[item.key] ?? 0));
                 return (
                   <div className="performanceBarColumn" key={item.key}>
+                    <span className="performanceBarValue">
+                      {value > 0 ? moneyCompact(value) : ""}
+                    </span>
                     <i
                       className={`performanceBar performanceBar${index + 1}`}
-                      style={{ height: `${Math.max(2, (value / max) * 100)}%` }}
-                      title={`${item.label}: ${moneyCompact(value)}`}
+                      style={{ height: `${value > 0 ? Math.max(3, (value / max) * 100) : 0}%` }}
                     />
                   </div>
                 );
               })}
             </div>
-            <span>{row.year}</span>
+            <span>{String(row[labelKey] ?? "")}</span>
+          </button>
+        ))}
+      </div>
+
+      <div className="barInspector" aria-live="polite">
+        <div>
+          <span>Selected period</span>
+          <strong>{String(selected?.[labelKey] ?? "—")}</strong>
+        </div>
+        {activeKeys.map((item) => (
+          <div key={item.key}>
+            <span>{item.label}</span>
+            <strong>{moneyCompact(Number(selected?.[item.key] ?? 0))}</strong>
           </div>
         ))}
       </div>
+
       <div className="performanceLegend">
-        {keys.map((item, index) => (
-          <span key={item.key}><i className={`performanceLegendSwatch swatch${index + 1}`} />{item.label}</span>
+        {activeKeys.map((item, index) => (
+          <span key={item.key}>
+            <i className={`performanceLegendSwatch swatch${index + 1}`} />
+            {item.label}
+          </span>
         ))}
       </div>
-    </>
+    </div>
+  );
+}
+
+function PeerComparisonChart({ ticker, peers }: { ticker: string; peers: PeerPoint[] }) {
+  const metrics = [
+    { key: "revenueGrowth", label: "Revenue growth", suffix: "%" },
+    { key: "fcfMargin", label: "FCF margin", suffix: "%" },
+    { key: "priceToFcf", label: "P / FCF", suffix: "×" },
+    { key: "fcfYield", label: "FCF yield", suffix: "%" },
+  ] as const;
+  const [metricKey, setMetricKey] = useState<(typeof metrics)[number]["key"]>("fcfMargin");
+  const [selectedTicker, setSelectedTicker] = useState(ticker);
+  const metric = metrics.find((item) => item.key === metricKey)!;
+  const valid = peers.filter((peer) => peer[metricKey] != null);
+  const max = Math.max(...valid.map((peer) => Math.abs(Number(peer[metricKey]))), 1);
+  const selected = peers.find((peer) => peer.ticker === selectedTicker) ?? valid[0];
+
+  return (
+    <article className="performancePanel performanceWide peerChartPanel">
+      <div className="performancePanelHeader">
+        <div>
+          <span className="panelKicker">RELATIVE CONTEXT</span>
+          <h3>Peer comparison</h3>
+        </div>
+        <div className="peerMetricSelector">
+          {metrics.map((item) => (
+            <button
+              type="button"
+              key={item.key}
+              className={metricKey === item.key ? "active" : ""}
+              onClick={() => setMetricKey(item.key)}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {valid.length ? (
+        <>
+          <div className="peerBarChart">
+            {valid.map((peer) => {
+              const value = Number(peer[metricKey]);
+              return (
+                <button
+                  type="button"
+                  key={peer.ticker}
+                  className={selected?.ticker === peer.ticker ? "peerBarRow active" : "peerBarRow"}
+                  onMouseEnter={() => setSelectedTicker(peer.ticker)}
+                  onFocus={() => setSelectedTicker(peer.ticker)}
+                  onClick={() => setSelectedTicker(peer.ticker)}
+                >
+                  <strong>{peer.ticker}</strong>
+                  <div><i style={{ width: `${Math.max(2, (Math.abs(value) / max) * 100)}%` }} /></div>
+                  <span>{value.toFixed(1)}{metric.suffix}</span>
+                </button>
+              );
+            })}
+          </div>
+          <div className="peerInspector">
+            <strong>{selected?.ticker ?? "—"}</strong>
+            <span>Revenue growth {pct(selected?.revenueGrowth)}</span>
+            <span>FCF margin {pct(selected?.fcfMargin)}</span>
+            <span>P/FCF {selected?.priceToFcf == null ? "—" : selected.priceToFcf.toFixed(1) + "×"}</span>
+            <span>FCF yield {pct(selected?.fcfYield)}</span>
+          </div>
+        </>
+      ) : (
+        <div className="performanceEmpty">No peer data available for this metric.</div>
+      )}
+    </article>
   );
 }
 
@@ -172,7 +374,8 @@ function marketStats(points: MarketPoint[]) {
   const last = points[points.length - 1];
   const totalReturn = (last.price / first.price - 1) * 100;
   const years = Math.max(
-    (new Date(last.date).getTime() - new Date(first.date).getTime()) / (365.25 * 24 * 3600 * 1000),
+    (new Date(last.date).getTime() - new Date(first.date).getTime()) /
+      (365.25 * 24 * 3600 * 1000),
     0.01,
   );
   const cagr = ((last.price / first.price) ** (1 / years) - 1) * 100;
@@ -193,6 +396,7 @@ export function CompanyPerformanceCharts({
   annual,
   valuation,
   capital,
+  peers,
 }: {
   ticker: string;
   benchmarkTicker: string;
@@ -201,6 +405,7 @@ export function CompanyPerformanceCharts({
   annual: AnnualPoint[];
   valuation: ValuationPoint[];
   capital: CapitalPoint[];
+  peers: PeerPoint[];
 }) {
   const [years, setYears] = useState(5);
   const latestDate = market.at(-1)?.date ?? "";
@@ -220,35 +425,59 @@ export function CompanyPerformanceCharts({
   const benchmarkStats = marketStats(benchmarkWindow);
 
   const priceSeries = [
-    { label: ticker, values: stockNormalized.map((point) => ({ label: point.date.slice(0, 7), value: point.value })) },
+    {
+      label: ticker,
+      values: stockNormalized.map((point) => ({
+        label: point.date.slice(0, 7),
+        value: point.value,
+      })),
+    },
     ...(benchmarkNormalized.length > 1
-      ? [{ label: benchmarkTicker, values: benchmarkNormalized.map((point) => ({ label: point.date.slice(0, 7), value: point.value })) }]
+      ? [
+          {
+            label: benchmarkTicker,
+            values: benchmarkNormalized.map((point) => ({
+              label: point.date.slice(0, 7),
+              value: point.value,
+            })),
+          },
+        ]
       : []),
   ];
 
   const marginSeries = [
     {
       label: "Gross margin",
-      values: annual.filter((p) => p.grossMargin != null).map((p) => ({ label: String(p.year), value: p.grossMargin! })),
+      values: annual
+        .filter((p) => p.grossMargin != null)
+        .map((p) => ({ label: String(p.year), value: p.grossMargin! })),
     },
     {
       label: "Operating margin",
-      values: annual.filter((p) => p.operatingMargin != null).map((p) => ({ label: String(p.year), value: p.operatingMargin! })),
+      values: annual
+        .filter((p) => p.operatingMargin != null)
+        .map((p) => ({ label: String(p.year), value: p.operatingMargin! })),
     },
     {
       label: "FCF margin",
-      values: annual.filter((p) => p.fcfMargin != null).map((p) => ({ label: String(p.year), value: p.fcfMargin! })),
+      values: annual
+        .filter((p) => p.fcfMargin != null)
+        .map((p) => ({ label: String(p.year), value: p.fcfMargin! })),
     },
   ].filter((item) => item.values.length);
 
   const perShareSeries = [
     {
       label: "Diluted EPS",
-      values: annual.filter((p) => p.eps != null).map((p) => ({ label: String(p.year), value: p.eps! })),
+      values: annual
+        .filter((p) => p.eps != null)
+        .map((p) => ({ label: String(p.year), value: p.eps! })),
     },
     {
       label: "FCF / share",
-      values: annual.filter((p) => p.fcfPerShare != null).map((p) => ({ label: String(p.year), value: p.fcfPerShare! })),
+      values: annual
+        .filter((p) => p.fcfPerShare != null)
+        .map((p) => ({ label: String(p.year), value: p.fcfPerShare! })),
     },
   ].filter((item) => item.values.length);
 
@@ -262,6 +491,15 @@ export function CompanyPerformanceCharts({
   const medianPFcf = pFcf.length
     ? [...pFcf.map((p) => p.value)].sort((a, b) => a - b)[Math.floor(pFcf.length / 2)]
     : null;
+
+  const capitalKeys = [
+    { key: "dividends", label: "Dividends" },
+    { key: "buybacks", label: "Buybacks" },
+    { key: "sbc", label: "Stock comp." },
+    { key: "acquisitions", label: "Acquisitions" },
+    { key: "debtRepaid", label: "Debt repaid" },
+    { key: "debtIssued", label: "Debt issued" },
+  ];
 
   return (
     <div className="performanceGrid">
@@ -290,20 +528,21 @@ export function CompanyPerformanceCharts({
           <div><span>Max drawdown</span><strong>{pct(stockStats?.maxDrawdown)}</strong></div>
           <div><span>{benchmarkTicker} return</span><strong>{pct(benchmarkStats?.totalReturn)}</strong></div>
         </div>
-        <LineChart series={priceSeries} formatter={(value) => value.toFixed(0)} />
-        {benchmarkNormalized.length < 2 ? (
-          <p className="performanceFootnote">Benchmark history is still being backfilled; stock history is complete.</p>
-        ) : (
-          <p className="performanceFootnote">Indexed to 100 at the beginning of the selected period. Price return only; dividends are not reinvested.</p>
-        )}
+        <InteractiveLineChart series={priceSeries} formatter={(value) => value.toFixed(0)} />
+        <p className="performanceFootnote">
+          Indexed to 100 at the beginning of the selected period. Hover to inspect; click a point to lock it. Price return only; dividends are not reinvested.
+        </p>
       </article>
 
       <article className="performancePanel performanceWide">
         <div className="performancePanelHeader">
-          <div><span className="panelKicker">BUSINESS PERFORMANCE</span><h3>Revenue and free cash flow</h3></div>
+          <div>
+            <span className="panelKicker">BUSINESS PERFORMANCE</span>
+            <h3>Revenue and free cash flow</h3>
+          </div>
           <small>Annual · USD</small>
         </div>
-        <BarChart
+        <InteractiveBarChart
           rows={annual as any}
           keys={[
             { key: "revenue", label: "Revenue" },
@@ -317,7 +556,11 @@ export function CompanyPerformanceCharts({
           <div><span className="panelKicker">OPERATING ECONOMICS</span><h3>Margin history</h3></div>
           <small>Percent</small>
         </div>
-        <LineChart series={marginSeries} formatter={(value) => value.toFixed(0) + "%"} minOverride={0} />
+        <InteractiveLineChart
+          series={marginSeries}
+          formatter={(value) => value.toFixed(1) + "%"}
+          minOverride={0}
+        />
       </article>
 
       <article className="performancePanel">
@@ -325,7 +568,10 @@ export function CompanyPerformanceCharts({
           <div><span className="panelKicker">PER-SHARE ECONOMICS</span><h3>EPS and FCF / share</h3></div>
           <small>USD / share</small>
         </div>
-        <LineChart series={perShareSeries} formatter={(value) => "$" + value.toFixed(1)} />
+        <InteractiveLineChart
+          series={perShareSeries}
+          formatter={(value) => "$" + value.toFixed(2)}
+        />
       </article>
 
       <article className="performancePanel">
@@ -337,7 +583,11 @@ export function CompanyPerformanceCharts({
           <div><span>Current</span><strong>{currentPFcf == null ? "—" : currentPFcf.toFixed(1) + "×"}</strong></div>
           <div><span>Median</span><strong>{medianPFcf == null ? "—" : medianPFcf.toFixed(1) + "×"}</strong></div>
         </div>
-        <LineChart series={[{ label: "P/FCF", values: pFcf }]} formatter={(value) => value.toFixed(0) + "×"} minOverride={0} />
+        <InteractiveLineChart
+          series={[{ label: "P/FCF", values: pFcf }]}
+          formatter={(value) => value.toFixed(1) + "×"}
+          minOverride={0}
+        />
       </article>
 
       <article className="performancePanel">
@@ -345,27 +595,33 @@ export function CompanyPerformanceCharts({
           <div><span className="panelKicker">CASH VALUATION</span><h3>Free-cash-flow yield</h3></div>
           <small>Percent</small>
         </div>
-        <LineChart series={[{ label: "FCF yield", values: fcfYield }]} formatter={(value) => value.toFixed(1) + "%"} />
+        <InteractiveLineChart
+          series={[{ label: "FCF yield", values: fcfYield }]}
+          formatter={(value) => value.toFixed(1) + "%"}
+        />
       </article>
 
       {capital.length ? (
         <article className="performancePanel performanceWide">
           <div className="performancePanelHeader">
-            <div><span className="panelKicker">CAPITAL ALLOCATION</span><h3>Where owner cash went</h3></div>
-            <small>Annual · USD</small>
+            <div>
+              <span className="panelKicker">CAPITAL ALLOCATION</span>
+              <h3>Cash allocation and dilution cost by reported period</h3>
+            </div>
+            <small>USD · hover/click a period</small>
           </div>
-          <BarChart
+          <InteractiveBarChart
             rows={capital as any}
-            keys={[
-              { key: "dividends", label: "Dividends" },
-              { key: "buybacks", label: "Buybacks" },
-              { key: "acquisitions", label: "Acquisitions" },
-              { key: "debtRepaid", label: "Debt repaid" },
-            ]}
+            keys={capitalKeys}
+            labelKey="period"
           />
-          <p className="performanceFootnote">Bars use reported or normalized stored capital-allocation history; zero or unavailable values remain visible as such.</p>
+          <p className="performanceFootnote">
+            Periods remain quarterly when the source database contains quarterly observations; null categories are omitted rather than displayed as false zeros.
+          </p>
         </article>
       ) : null}
+
+      {peers.length ? <PeerComparisonChart ticker={ticker} peers={peers} /> : null}
     </div>
   );
 }
