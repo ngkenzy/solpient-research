@@ -1,0 +1,527 @@
+{
+  "registry_version": "methodology-registry-v1",
+  "generated_for": "current-main-baseline",
+  "methodologies": [
+    {
+      "methodology_key": "historical_integrity",
+      "version": "historical-integrity-v1",
+      "name": "Historical Integrity V1",
+      "category": "integrity",
+      "risk_class": "critical",
+      "purpose": "Preserve published research, ranking history, and locked prediction history as append-only records that cannot be silently rewritten.",
+      "owner": "Solpient",
+      "source_files": [
+        "docs/HISTORICAL_INTEGRITY.md",
+        "supabase/migrations/20260921193310_historical_integrity_phase1.sql"
+      ],
+      "input_contract": {
+        "published_research": "reviewed research package",
+        "ranking_history": "ranking snapshots",
+        "prediction_snapshots": "locked forecasts"
+      },
+      "output_contract": {
+        "immutability": "append-only database records",
+        "corrections": "new superseding records"
+      },
+      "weights": {},
+      "thresholds": {},
+      "assumptions": {
+        "authoritative_publication_path": "publish_reviewed_research_v2",
+        "correction_model": "supersession"
+      },
+      "dependencies": [],
+      "known_limitations": [
+        "Pre-Phase-1 legacy rows may not have complete integrity metadata.",
+        "Historical integrity preserves records; it does not by itself prove source provenance or point-in-time correctness."
+      ],
+      "change_summary": "Initial immutable publication/ranking/prediction baseline.",
+      "predecessor_version": null,
+      "impacts": {
+        "database": true,
+        "public_ui": false,
+        "publication": true,
+        "ranking": true,
+        "capital_decision": true,
+        "historical_interpretation": true
+      },
+      "legacy_bootstrap": true
+    },
+    {
+      "methodology_key": "research_composer",
+      "version": "composer-v2",
+      "name": "Research Composer V2",
+      "category": "research_composition",
+      "risk_class": "high",
+      "purpose": "Compose structured company research, valuation scenarios, quality scores, and expected-return outputs from normalized company metrics and historical context.",
+      "owner": "Solpient",
+      "source_files": [
+        "lib/research-composer.mjs",
+        "scripts/compose-research-drafts.mjs"
+      ],
+      "input_contract": {
+        "company": "company identity",
+        "baseline_payload": "normalized draft evidence",
+        "context_pack": "historical and peer context",
+        "valuation_history": "historical valuation observations"
+      },
+      "output_contract": {
+        "research": "structured research package",
+        "scores": "quality and thesis outputs",
+        "valuations": "bear/base/bull values",
+        "expected_returns": "3/5/10 year scenarios"
+      },
+      "weights": {},
+      "thresholds": {
+        "valuation_history_min_observations": 40,
+        "valuation_history_min_coverage_fraction": 0.8
+      },
+      "assumptions": {
+        "dcf_bear": {
+          "discount_rate": 11.5,
+          "terminal_growth": 2
+        },
+        "dcf_base": {
+          "discount_rate": 10,
+          "terminal_growth": 2.5
+        },
+        "dcf_bull": {
+          "discount_rate": 9,
+          "terminal_growth": 3
+        },
+        "explicit_projection_years": 5
+      },
+      "dependencies": [
+        {
+          "methodology_key": "historical_context",
+          "version": "context-v2-provenance",
+          "required": true
+        }
+      ],
+      "known_limitations": [
+        "Composer V2 can use fixed DCF assumptions and fallback growth assumptions when evidence is incomplete.",
+        "Expected-return horizons reuse scenario terminal values rather than independently projecting each horizon.",
+        "Valuation Engine V3 is being developed separately to address these limitations."
+      ],
+      "change_summary": "Current production research composition baseline.",
+      "predecessor_version": null,
+      "impacts": {
+        "database": false,
+        "public_ui": true,
+        "publication": true,
+        "ranking": true,
+        "capital_decision": true,
+        "historical_interpretation": true
+      },
+      "legacy_bootstrap": true
+    },
+    {
+      "methodology_key": "historical_context",
+      "version": "context-v2-provenance",
+      "name": "Historical Context V2 Provenance",
+      "category": "context",
+      "risk_class": "high",
+      "purpose": "Build normalized company history, capital allocation, valuation history, peer context, and point-in-time context packs for research composition.",
+      "owner": "Solpient",
+      "source_files": [
+        "lib/historical-peer-engine.mjs",
+        "scripts/build-historical-peer-context.mjs"
+      ],
+      "input_contract": {
+        "fundamentals": "provider fundamental rows",
+        "market_history": "market snapshots",
+        "peer_sets": "configured local peers"
+      },
+      "output_contract": {
+        "company_history": "normalized metrics",
+        "capital_allocation": "capital rows",
+        "valuation_history": "point-in-time valuation rows",
+        "context_pack": "historical and peer context"
+      },
+      "weights": {},
+      "thresholds": {
+        "annual_history_target_years": 5,
+        "valuation_history_min_market_days": 252,
+        "filing_availability_heuristic_days": {
+          "annual": 90,
+          "quarterly": 50
+        }
+      },
+      "assumptions": {
+        "provider_priority": [
+          "sec_companyfacts",
+          "fmp",
+          "yahoo_fundamentals",
+          "alpha_vantage",
+          "unknown"
+        ],
+        "bank_fcf_valuation": false
+      },
+      "dependencies": [],
+      "known_limitations": [
+        "When explicit filing timestamps are unavailable, filing availability can fall back to 90-day annual or 50-day quarterly heuristics.",
+        "Context quality depends on retained provider history and configured peer availability."
+      ],
+      "change_summary": "Current normalized historical/peer context engine.",
+      "predecessor_version": null,
+      "impacts": {
+        "database": false,
+        "public_ui": true,
+        "publication": true,
+        "ranking": true,
+        "capital_decision": true,
+        "historical_interpretation": true
+      },
+      "legacy_bootstrap": true
+    },
+    {
+      "methodology_key": "data_coverage",
+      "version": "coverage-v2",
+      "name": "Data Coverage V2",
+      "category": "coverage",
+      "risk_class": "moderate",
+      "purpose": "Measure decision-readiness evidence coverage across fundamentals, balance sheet, history, market history, valuation, capital allocation, peers, industry evidence, consensus, and research structure.",
+      "owner": "Solpient",
+      "source_files": [
+        "lib/data-coverage-engine.mjs"
+      ],
+      "input_contract": {
+        "fundamentals": "normalized fundamentals",
+        "market_days": "retained market history",
+        "context": "peer context",
+        "draft": "research draft",
+        "valuation_history": "valuation observations",
+        "capital_allocation": "complete years",
+        "consensus": "snapshot count"
+      },
+      "output_contract": {
+        "coverage_report": "layer percentages, readiness percentage, missing-field list"
+      },
+      "weights": {
+        "fundamentals": 15,
+        "balance_sheet": 10,
+        "history": 10,
+        "market_history": 10,
+        "valuation_history": 10,
+        "capital_allocation": 10,
+        "peers": 10,
+        "industry": 10,
+        "consensus": 5,
+        "research_structure": 10
+      },
+      "thresholds": {
+        "history_target_years": 5,
+        "market_history_target_days": 1260,
+        "valuation_history_target_observations": 60,
+        "valuation_history_target_years": 5,
+        "capital_allocation_target_years": 5,
+        "consensus_target_snapshots": 5,
+        "peer_target_floor": 4
+      },
+      "assumptions": {
+        "primary_provider": "sec_companyfacts"
+      },
+      "dependencies": [],
+      "known_limitations": [
+        "Coverage measures presence/completeness, not whether every datum is economically correct.",
+        "Primary-source coverage is coarse until provenance quality is fully integrated."
+      ],
+      "change_summary": "Current decision-readiness coverage engine.",
+      "predecessor_version": null,
+      "impacts": {
+        "database": false,
+        "public_ui": true,
+        "publication": false,
+        "ranking": true,
+        "capital_decision": true,
+        "historical_interpretation": false
+      },
+      "legacy_bootstrap": true
+    },
+    {
+      "methodology_key": "decision_ranking",
+      "version": "decision-ranking-v1",
+      "name": "Decision Ranking V1",
+      "category": "ranking",
+      "risk_class": "critical",
+      "purpose": "Rank published companies by readiness tier and decision attractiveness while keeping evidence confidence separate from investment merit.",
+      "owner": "Solpient",
+      "source_files": [
+        "lib/decision-ranking-engine.mjs",
+        "scripts/refresh-rankings.mjs"
+      ],
+      "input_contract": {
+        "published_scores": "quality/moat/financial strength",
+        "valuation": "bear/base/bull and margin-of-safety prices",
+        "expected_return": "5-year base CAGR",
+        "coverage": "Coverage V2 report",
+        "market_price": "current price"
+      },
+      "output_contract": {
+        "business_quality": "0-100",
+        "investment_opportunity": "0-100",
+        "evidence_confidence": "0-100",
+        "decision_score": "0-100",
+        "readiness_state": "building/research_ready/decision_ready"
+      },
+      "weights": {
+        "decision_score": {
+          "business_quality": 40,
+          "investment_opportunity": 60
+        },
+        "business_quality": {
+          "quality": 55,
+          "moat": 30,
+          "financial_strength": 15
+        },
+        "investment_opportunity": {
+          "expected_return": 35,
+          "valuation_gap": 30,
+          "margin_of_safety": 20,
+          "downside_protection": 15
+        },
+        "evidence_confidence": {
+          "evidence": 90,
+          "freshness": 10
+        }
+      },
+      "thresholds": {
+        "research_ready_evidence_confidence": 60,
+        "decision_ready_evidence_confidence": 85,
+        "research_ready_quality_coverage": 55,
+        "decision_ready_quality_coverage": 70,
+        "research_ready_opportunity_coverage": 60,
+        "decision_ready_opportunity_coverage": 80
+      },
+      "assumptions": {
+        "ranking_order": [
+          "readiness_tier",
+          "decision_score",
+          "evidence_confidence",
+          "business_quality",
+          "ticker"
+        ],
+        "missing_components": "omit from component score and reduce coverage; never substitute 50"
+      },
+      "dependencies": [
+        {
+          "methodology_key": "data_coverage",
+          "version": "coverage-v2",
+          "required": true
+        }
+      ],
+      "known_limitations": [
+        "Evidence Confidence currently does not yet incorporate Phase 2 provenance conflict/confidence directly.",
+        "Decision Score is a research-ranking construct, not an automatic buy/sell instruction."
+      ],
+      "change_summary": "Initial three-dimensional decision ranking methodology.",
+      "predecessor_version": null,
+      "impacts": {
+        "database": true,
+        "public_ui": true,
+        "publication": false,
+        "ranking": true,
+        "capital_decision": true,
+        "historical_interpretation": true
+      },
+      "legacy_bootstrap": true
+    },
+    {
+      "methodology_key": "decision_readiness",
+      "version": "readiness-v1",
+      "name": "Decision Readiness V1",
+      "category": "readiness",
+      "risk_class": "high",
+      "purpose": "Gate company research into Building, Research Ready, and Decision Ready states using explicit evidence and component-coverage requirements.",
+      "owner": "Solpient",
+      "source_files": [
+        "lib/decision-ranking-engine.mjs"
+      ],
+      "input_contract": {
+        "business_quality": "score and component coverage",
+        "investment_opportunity": "score and component coverage",
+        "evidence_confidence": "confidence score",
+        "coverage": "Coverage V2 layers",
+        "price": "current market price",
+        "valuation": "base fair value",
+        "expected_return": "5-year base CAGR"
+      },
+      "output_contract": {
+        "readiness_state": "building/research_ready/decision_ready",
+        "blockers": "explicit missing gates",
+        "warnings": "non-blocking issues"
+      },
+      "weights": {},
+      "thresholds": {
+        "research_ready": {
+          "evidence_confidence": 60,
+          "research_structure": 80,
+          "fundamentals": 70,
+          "history": 60,
+          "business_quality_coverage": 55,
+          "opportunity_coverage": 60
+        },
+        "decision_ready": {
+          "evidence_confidence": 85,
+          "research_structure": 90,
+          "fundamentals": 85,
+          "history": 80,
+          "valuation_history": 60,
+          "capital_allocation": 50,
+          "peers": 50,
+          "business_quality_coverage": 70,
+          "opportunity_coverage": 80
+        }
+      },
+      "assumptions": {
+        "decision_ready_requires_5y_base_expected_return": true
+      },
+      "dependencies": [
+        {
+          "methodology_key": "decision_ranking",
+          "version": "decision-ranking-v1",
+          "required": true
+        },
+        {
+          "methodology_key": "data_coverage",
+          "version": "coverage-v2",
+          "required": true
+        }
+      ],
+      "known_limitations": [
+        "Decision Ready means evidence-complete enough for comparison, not an investment recommendation.",
+        "Readiness depends on the current coverage methodology and should be versioned when those gates materially change."
+      ],
+      "change_summary": "Initial readiness gating methodology.",
+      "predecessor_version": null,
+      "impacts": {
+        "database": true,
+        "public_ui": true,
+        "publication": false,
+        "ranking": true,
+        "capital_decision": true,
+        "historical_interpretation": true
+      },
+      "legacy_bootstrap": true
+    },
+    {
+      "methodology_key": "evidence_provenance",
+      "version": "evidence-provenance-v1",
+      "name": "Evidence Provenance V1",
+      "category": "integrity",
+      "risk_class": "critical",
+      "purpose": "Preserve source documents, observations, canonical fact lineage, conflict state, knowledge time, and exact published research input provenance without rewriting prior evidence.",
+      "owner": "Solpient",
+      "source_files": [
+        "lib/evidence-provenance.mjs",
+        "lib/evidence-provenance-db.mjs",
+        "docs/EVIDENCE_PROVENANCE.md"
+      ],
+      "input_contract": {
+        "sources": "retrieved source documents/provider observations",
+        "observations": "source statements with knowledge time",
+        "research_inputs": "reviewed publication inputs"
+      },
+      "output_contract": {
+        "evidence_sources": "append-only source ledger",
+        "evidence_observations": "append-only observation ledger",
+        "research_input_manifests": "frozen published input provenance"
+      },
+      "weights": {},
+      "thresholds": {
+        "material_numeric_conflict_relative_pct": 5
+      },
+      "assumptions": {
+        "source_quality_order": [
+          "primary_regulatory",
+          "company_direct",
+          "structured_provider",
+          "verified_secondary",
+          "derived_calculation",
+          "analyst_assumption"
+        ],
+        "historical_queries_use": "knowledge time"
+      },
+      "dependencies": [
+        {
+          "methodology_key": "historical_integrity",
+          "version": "historical-integrity-v1",
+          "required": true
+        }
+      ],
+      "known_limitations": [
+        "Legacy research may have partial provenance and must remain labeled legacy_provenance_partial.",
+        "Source authority is a deterministic ordering and does not imply lower-ranked sources are always incorrect."
+      ],
+      "change_summary": "Phase 2 canonical evidence provenance baseline completed on main.",
+      "predecessor_version": null,
+      "impacts": {
+        "database": true,
+        "public_ui": true,
+        "publication": true,
+        "ranking": true,
+        "capital_decision": true,
+        "historical_interpretation": true
+      },
+      "legacy_bootstrap": true
+    },
+    {
+      "methodology_key": "canonical_fact_normalization",
+      "version": "canonical-fact-v1",
+      "name": "Canonical Fact Normalization V1",
+      "category": "context",
+      "risk_class": "critical",
+      "purpose": "Select and normalize point-in-time company facts deterministically from preserved source observations while keeping revisions, conflicts, derivations, and superseded facts auditable.",
+      "owner": "Solpient",
+      "source_files": [
+        "lib/evidence-provenance.mjs",
+        "lib/evidence-provenance-db.mjs",
+        "docs/EVIDENCE_PROVENANCE.md"
+      ],
+      "input_contract": {
+        "evidence_observations": "eligible source observations",
+        "resolution_decisions": "optional reviewed conflict selections",
+        "derived_inputs": "version-pinned input fact IDs"
+      },
+      "output_contract": {
+        "normalized_facts": "append-only canonical facts with economic/knowledge time",
+        "fact_lineage": "observation and derived-input links",
+        "conflict_state": "verified/provisional/conflicting/superseded/unavailable"
+      },
+      "weights": {},
+      "thresholds": {
+        "material_numeric_conflict_relative_pct": 5
+      },
+      "assumptions": {
+        "selection_order": [
+          "source_quality",
+          "known_at",
+          "provider",
+          "stable_identifier"
+        ],
+        "same_provider_later_statement": "revision rather than independent provider conflict"
+      },
+      "dependencies": [
+        {
+          "methodology_key": "evidence_provenance",
+          "version": "evidence-provenance-v1",
+          "required": true
+        }
+      ],
+      "known_limitations": [
+        "Canonical selection cannot create source evidence that was never observed.",
+        "Derived metrics remain dependent on the correctness and completeness of their input fact lineage."
+      ],
+      "change_summary": "Phase 2 canonical fact normalization baseline completed on main.",
+      "predecessor_version": null,
+      "impacts": {
+        "database": true,
+        "public_ui": true,
+        "publication": true,
+        "ranking": true,
+        "capital_decision": true,
+        "historical_interpretation": true
+      },
+      "legacy_bootstrap": true
+    }
+  ]
+}
