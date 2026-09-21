@@ -28,6 +28,7 @@ const required=requiredValidations(decision);
 assert.deepEqual(required,[
   "build",
   "db_invariant",
+  "historical_integrity",
   "manual_review",
   "methodology_regression",
   "unit_tests",
@@ -46,6 +47,7 @@ const ready=assessActivationReadiness(decision,[
   {validation_type:"unit_tests",status:"pass",validated_at:"2026-09-21T10:00:00Z"},
   {validation_type:"build",status:"pass",validated_at:"2026-09-21T10:01:00Z"},
   {validation_type:"db_invariant",status:"pass",validated_at:"2026-09-21T10:02:00Z"},
+  {validation_type:"historical_integrity",status:"pass",validated_at:"2026-09-21T10:02:30Z"},
   {validation_type:"manual_review",status:"pass",validated_at:"2026-09-21T10:03:00Z"},
   {validation_type:"methodology_regression",status:"pass",validated_at:"2026-09-21T10:04:00Z"},
 ]);
@@ -57,6 +59,7 @@ const blockedByLatestFailure=assessActivationReadiness(decision,[
   {validation_type:"unit_tests",status:"fail",validated_at:"2026-09-21T11:00:00Z"},
   {validation_type:"build",status:"pass",validated_at:"2026-09-21T10:01:00Z"},
   {validation_type:"db_invariant",status:"pass",validated_at:"2026-09-21T10:02:00Z"},
+  {validation_type:"historical_integrity",status:"pass",validated_at:"2026-09-21T10:02:30Z"},
   {validation_type:"manual_review",status:"pass",validated_at:"2026-09-21T10:03:00Z"},
   {validation_type:"methodology_regression",status:"pass",validated_at:"2026-09-21T10:04:00Z"},
 ]);
