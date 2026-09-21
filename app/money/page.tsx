@@ -248,10 +248,18 @@ export default function MoneyPage() {
   };
 
   const remove = (collection: "accounts" | "debts" | "goals" | "transactions", itemId: string) => {
-    setState((current) => ({
-      ...current,
-      [collection]: current[collection].filter((item) => item.id !== itemId),
-    }));
+    setState((current) => {
+      if (collection === "accounts") {
+        return { ...current, accounts: current.accounts.filter((item) => item.id !== itemId) };
+      }
+      if (collection === "debts") {
+        return { ...current, debts: current.debts.filter((item) => item.id !== itemId) };
+      }
+      if (collection === "goals") {
+        return { ...current, goals: current.goals.filter((item) => item.id !== itemId) };
+      }
+      return { ...current, transactions: current.transactions.filter((item) => item.id !== itemId) };
+    });
   };
 
   const loadDemo = () => {
