@@ -50,7 +50,9 @@
     "repair:process": "node scripts/process-research-repairs.mjs",
     "test:company-change": "node scripts/test-company-change-engine.mjs",
     "changes:capture": "node scripts/build-company-change-events.mjs",
-    "changes:backfill": "node scripts/backfill-research-change-events.mjs"
+    "changes:backfill": "node scripts/backfill-research-change-events.mjs",
+    "test:decision-triggers": "node scripts/test-decision-trigger-engine.mjs",
+    "decision:triggers": "node scripts/build-decision-triggers.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.4",
