@@ -1,0 +1,279 @@
+.section {
+  margin: 34px 0;
+  display: grid;
+  gap: 18px;
+}
+
+.header, .wideCard, .card, .conclusion {
+  border: 1px solid rgba(255,255,255,.09);
+  background: linear-gradient(180deg, rgba(20,24,31,.98), rgba(14,17,23,.98));
+  border-radius: 18px;
+}
+
+.header {
+  padding: 24px;
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  align-items: flex-start;
+}
+
+.header h2, .card h3, .wideCard h3 {
+  margin: 6px 0 8px;
+}
+
+.header p, .card p, .wideCard p, .conclusion p {
+  color: #aab3c0;
+  line-height: 1.6;
+}
+
+.kicker {
+  color: #7f8a98;
+  font-size: 11px;
+  letter-spacing: .13em;
+  font-weight: 800;
+}
+
+.status {
+  min-width: 130px;
+  text-align: right;
+}
+
+.status span, .status small {
+  display: block;
+  color: #8d98a7;
+  text-transform: uppercase;
+  font-size: 10px;
+  letter-spacing: .08em;
+}
+
+.status strong {
+  display: block;
+  font-size: 28px;
+  margin: 4px 0;
+}
+
+.summaryGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.card, .wideCard, .conclusion {
+  padding: 24px;
+}
+
+.split {
+  margin-top: 18px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0,1fr));
+  gap: 14px;
+}
+
+.split > div, .valuationItem, .returnGrid > div, .auditFooter > div {
+  padding: 14px;
+  border-radius: 13px;
+  background: rgba(255,255,255,.035);
+  border: 1px solid rgba(255,255,255,.06);
+}
+
+.split span, .factGrid span, .valuationItem span, .returnGrid span,
+.auditFooter span, .conclusionGrid span {
+  display: block;
+  color: #7f8a98;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+}
+
+.factGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0,1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.factGrid > div {
+  border-top: 1px solid rgba(255,255,255,.07);
+  padding-top: 11px;
+}
+
+.factGrid strong {
+  display: block;
+  margin-top: 5px;
+  text-transform: capitalize;
+}
+
+.note {
+  font-size: 13px;
+  margin-top: 16px !important;
+}
+
+.cardHeading {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 20px;
+}
+
+.inlineStats {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.inlineStats span {
+  color: #8d98a7;
+  font-size: 12px;
+}
+
+.inlineStats strong {
+  color: #f2f5f7;
+  margin-left: 4px;
+}
+
+.valuationGrid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0,1fr));
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.valuationItem strong {
+  display: block;
+  font-size: 20px;
+  margin: 6px 0;
+}
+
+.valuationItem small, .returnGrid small, .auditFooter small {
+  color: #7f8a98;
+  line-height: 1.35;
+}
+
+.auditFooter {
+  display: grid;
+  grid-template-columns: 1fr 1fr 2fr;
+  gap: 12px;
+  margin-top: 14px;
+  align-items: stretch;
+}
+
+.auditFooter strong {
+  display: block;
+  margin: 5px 0;
+  font-size: 18px;
+}
+
+.auditFooter p {
+  margin: 0;
+  padding: 14px;
+}
+
+.returnGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0,1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.returnGrid strong {
+  display: block;
+  font-size: 24px;
+  margin: 4px 0;
+}
+
+.riskList {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.riskList > div {
+  display: grid;
+  grid-template-columns: 70px 1fr;
+  gap: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255,255,255,.07);
+}
+
+.riskList strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.riskList p {
+  margin: 0;
+  font-size: 13px;
+}
+
+.riskLevel {
+  align-self: start;
+  display: inline-block;
+  text-align: center;
+  padding: 4px 7px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.06);
+  color: #c6ced8;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+
+.conclusionGrid {
+  display: grid;
+  grid-template-columns: repeat(2,minmax(0,1fr));
+  gap: 14px;
+  margin-top: 14px;
+}
+
+.conclusionGrid > div {
+  padding: 14px;
+  background: rgba(255,255,255,.025);
+  border-radius: 12px;
+}
+
+.conclusionGrid p {
+  margin: 6px 0 0;
+}
+
+.breaker {
+  margin: 16px 0 0 !important;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255,255,255,.08);
+}
+
+.breaker strong {
+  color: #f2f5f7;
+}
+
+@media (max-width: 900px) {
+  .summaryGrid, .split, .conclusionGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .valuationGrid {
+    grid-template-columns: repeat(2, minmax(0,1fr));
+  }
+
+  .auditFooter {
+    grid-template-columns: 1fr;
+  }
+
+  .factGrid {
+    grid-template-columns: repeat(2, minmax(0,1fr));
+  }
+
+  .header, .cardHeading {
+    flex-direction: column;
+  }
+
+  .status {
+    text-align: left;
+  }
+}
+
+@media (max-width: 560px) {
+  .valuationGrid, .returnGrid, .factGrid {
+    grid-template-columns: 1fr;
+  }
+}
