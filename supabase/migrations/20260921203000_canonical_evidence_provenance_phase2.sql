@@ -692,7 +692,7 @@ begin
 end $$;
 
 create or replace function private.capture_fundamental_snapshot_provenance()
-returns trigger language plpgsql set search_path='' as $$
+returns trigger language plpgsql security definer set search_path='' as $
 declare
   v_changed boolean;
 begin
