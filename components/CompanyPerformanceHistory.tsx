@@ -16,6 +16,30 @@ function monthlyLast<T extends { trading_date?: string; as_of_date?: string }>(r
   return [...byMonth.values()];
 }
 
+async function fetchMarketHistory(
+  supabase: any,
+  symbol: string,
+  companyId?: string | null,
+) {
+  const pageSize = 1000;
+  const rows: any[] = [];
+  for (let page = 0; page < 4; page++) {
+    let query = supabase
+      .from("market_snapshots")
+      .select("trading_date,price")
+      .eq("symbol", symbol)
+      .order("trading_date", { ascending: true })
+      .range(page * pageSize, page * pageSize + pageSize - 1);
+    if (companyId) query = query.eq("company_id", companyId);
+    const { data, error } = await query;
+    if (error) break;
+    const batch = data ?? [];
+    rows.push(...batch);
+    if (batch.length < pageSize) break;
+  }
+  return rows;
+}
+
 export async function CompanyPerformanceHistory({
   companyId,
   ticker,
@@ -29,26 +53,15 @@ export async function CompanyPerformanceHistory({
   if (!supabase) return null;
 
   const [
-    marketResult,
-    benchmarkResult,
+    marketRows,
+    benchmarkRows,
     metricsResult,
     valuationResult,
     capitalResult,
     contextResult,
   ] = await Promise.all([
-    supabase
-      .from("market_snapshots")
-      .select("trading_date,price")
-      .eq("company_id", companyId)
-      .eq("symbol", ticker)
-      .order("trading_date", { ascending: true })
-      .limit(4000),
-    supabase
-      .from("market_snapshots")
-      .select("trading_date,price")
-      .eq("symbol", benchmarkTicker)
-      .order("trading_date", { ascending: true })
-      .limit(4000),
+    fetchMarketHistory(supabase, ticker, companyId),
+    fetchMarketHistory(supabase, benchmarkTicker),
     supabase
       .from("company_metric_history")
       .select("metric_key,period_end,fiscal_year,period_type,value_numeric,unit")
@@ -86,13 +99,13 @@ export async function CompanyPerformanceHistory({
   ]);
 
   const market = monthlyLast(
-    (marketResult.data ?? [])
+    marketRows
       .map((row: any) => ({ date: row.trading_date, trading_date: row.trading_date, price: n(row.price) }))
       .filter((row: any) => row.price != null),
   ).map((row: any) => ({ date: row.date, price: row.price }));
 
   const benchmark = monthlyLast(
-    (benchmarkResult.data ?? [])
+    benchmarkRows
       .map((row: any) => ({ date: row.trading_date, trading_date: row.trading_date, price: n(row.price) }))
       .filter((row: any) => row.price != null),
   ).map((row: any) => ({ date: row.date, price: row.price }));
