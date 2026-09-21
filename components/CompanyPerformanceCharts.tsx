@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type PointerEvent } from "react";
+import { useMemo, useState } from "react";
 
 type MarketPoint = { date: string; price: number };
 type AnnualPoint = {
@@ -113,7 +113,7 @@ function InteractiveLineChart({
   const max = maxOverride ?? rawMax + pad;
   const spread = max - min || 1;
 
-  function indexFromPointer(event: PointerEvent<SVGSVGElement>) {
+  function indexFromPointer(event: { currentTarget: SVGSVGElement; clientX: number }) {
     const rect = event.currentTarget.getBoundingClientRect();
     const ratio = Math.min(1, Math.max(0, (event.clientX - rect.left) / rect.width));
     return Math.round(ratio * Math.max(pointCount - 1, 0));
