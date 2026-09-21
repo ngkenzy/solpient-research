@@ -110,6 +110,13 @@ const report=buildCoverageReport({
     {module:"software_platform",metric_key:"rpo_or_backlog_growth",status:"available"},
     {module:"software_platform",metric_key:"recurring_revenue_mix",status:"not_applicable"},
   ]}},
+  valuationObservations:60,
+  valuationCoverageYears:5,
+  capitalCompleteYears:5,
+  peerMetricTickers:4,
+  consensusSnapshots:5,
+  publishedResearch:true,
+  valuationFormulaPersisted:true,
   asOfDate:"2026-09-20"
 });
 assert.equal(report.fundamentals_pct,100);
@@ -117,7 +124,13 @@ assert.equal(report.history_pct,100);
 assert.equal(report.market_history_pct,100);
 assert.equal(report.status,"sufficient");
 assert.equal(report.primary_source_quarters,20);
-console.log("Data Coverage Engine tests passed.");
+assert.equal(report.valuation_history_pct,100);
+assert.equal(report.capital_allocation_pct,100);
+assert.equal(report.peer_pct,100);
+assert.equal(report.consensus_pct,100);
+assert.equal(report.research_structure_pct,100);
+assert.equal(report.decision_readiness_pct,100);
+console.log("Data Coverage Engine v2 tests passed.");
 
 const annualFundamentals=Array.from({length:4},(_,i)=>({
   provider:"yahoo_fundamentals",period_end:String(2022+i)+"-12-31",fiscal_year:2022+i,fiscal_period:"FY",
