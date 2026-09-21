@@ -29,6 +29,7 @@ jobs:
       - name: Test research engines
         run: |
           npm run test:changes
+          npm run test:company-change
           npm run test:standard
           npm run test:standard:v2
           npm run test:factory
