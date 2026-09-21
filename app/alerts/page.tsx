@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { AlertsClient } from "./AlertsClient";
 import { AutoMonitorFeed } from "@/components/AutoMonitorFeed";
+import { DecisionTriggerFeed } from "@/components/DecisionTriggerFeed";
 import { SolpientBrand } from "@/components/SolpientBrand";
 
 export default function AlertsPage() {
@@ -22,6 +23,7 @@ export default function AlertsPage() {
           Choose the evidence that matters to you: research changes, institutional holdings,
           political transaction disclosures, and insider activity.
         </p>
+        <DecisionTriggerFeed />
         <AutoMonitorFeed />
         <AlertsClient />
       </main>
