@@ -22,6 +22,10 @@ declare
   v_failed_review uuid;
   v_failed_composition uuid;
   v_prediction uuid;
+  v_prediction_outcome uuid;
+  v_realized uuid;
+  v_realized_correction uuid;
+  v_score uuid;
   v_ranking uuid;
   v_ranking_correction uuid;
   v_result jsonb;
@@ -260,6 +264,55 @@ begin
   exception when others then v_failed := true;
   end;
   if not v_failed then raise exception 'Locked prediction delete was not blocked.'; end if;
+
+  select id into v_prediction_outcome
+  from public.prediction_outcomes
+  where prediction_snapshot_id=v_prediction
+  limit 1;
+
+  v_failed := false;
+  begin
+    update public.prediction_outcomes set predicted_value=999 where id=v_prediction_outcome;
+  exception when others then v_failed := true;
+  end;
+  if not v_failed then raise exception 'Locked forecast value update was not blocked.'; end if;
+
+  -- Resolver metadata remains mutable without changing the original forecast.
+  update public.prediction_outcomes
+  set resolver_status='manual', resolved_at=v_now, resolution_note='Integrity resolver metadata test'
+  where id=v_prediction_outcome;
+
+  insert into public.realized_outcomes(
+    prediction_outcome_id,observed_at,actual_value,actual_text,source_note
+  ) values (
+    v_prediction_outcome,v_now,1090,'Observed','Initial observation'
+  ) returning id into v_realized;
+
+  insert into public.realized_outcomes(
+    prediction_outcome_id,observed_at,actual_value,actual_text,source_note,
+    supersedes_id,correction_reason
+  ) values (
+    v_prediction_outcome,v_now + interval '1 second',1100,'Corrected observed','Corrected source',
+    v_realized,'Corrected source mapping'
+  ) returning id into v_realized_correction;
+
+  if not exists(select 1 from public.realized_outcomes where id=v_realized)
+     or not exists(select 1 from public.realized_outcomes where id=v_realized_correction and supersedes_id=v_realized) then
+    raise exception 'Realized-outcome correction did not preserve the original.';
+  end if;
+
+  insert into public.prediction_scores(
+    prediction_outcome_id,realized_outcome_id,absolute_error,methodology_version,notes
+  ) values (
+    v_prediction_outcome,v_realized_correction,0,'score-v1','Integrity score'
+  ) returning id into v_score;
+
+  v_failed := false;
+  begin
+    update public.prediction_scores set notes='rewrite attempt' where id=v_score;
+  exception when others then v_failed := true;
+  end;
+  if not v_failed then raise exception 'Prediction score rewrite was not blocked.'; end if;
 
   -- Ranking history is append-only and corrections preserve the original row.
   insert into public.ranking_history(
