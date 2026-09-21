@@ -58,7 +58,8 @@ export async function CompanyPerformanceHistory({
     metricsResult,
     valuationResult,
     capitalResult,
-    contextResult,
+    peerMetricResult,
+    runResult,
   ] = await Promise.all([
     fetchMarketHistory(supabase, ticker, companyId),
     fetchMarketHistory(supabase, benchmarkTicker),
@@ -86,14 +87,21 @@ export async function CompanyPerformanceHistory({
       .limit(2000),
     supabase
       .from("capital_allocation_history")
-      .select("fiscal_year,dividends_paid,buybacks,stock_based_compensation,acquisitions,debt_issued,debt_repaid,ending_share_count")
+      .select("fiscal_year,period_end,dividends_paid,buybacks,stock_based_compensation,acquisitions,debt_issued,debt_repaid,ending_share_count")
       .eq("company_id", companyId)
-      .order("fiscal_year", { ascending: true }),
+      .order("period_end", { ascending: true }),
     supabase
-      .from("research_context_packs")
-      .select("peer_comparison,peer_set,history_coverage,trends")
+      .from("peer_metric_snapshots")
+      .select("peer_ticker,metric_key,as_of_date,value_numeric")
       .eq("company_id", companyId)
-      .order("generated_at", { ascending: false })
+      .in("metric_key", ["revenue_growth_yoy","fcf_margin","price_to_fcf","fcf_yield"])
+      .order("as_of_date", { ascending: false }),
+    supabase
+      .from("research_runs")
+      .select("id")
+      .eq("company_id", companyId)
+      .eq("status", "published")
+      .order("version", { ascending: false })
       .limit(1)
       .maybeSingle(),
   ]);
@@ -150,7 +158,16 @@ export async function CompanyPerformanceHistory({
     forwardPe: row.forward_pe,
   }));
 
+  const quarterLabel = (periodEnd: string | null | undefined, fiscalYear: number) => {
+    if (!periodEnd) return String(fiscalYear);
+    const month = Number(periodEnd.slice(5, 7));
+    const quarter = month === 3 ? "Q1" : month === 6 ? "Q2" : month === 9 ? "Q3" : month === 12 ? "Q4" : "";
+    return quarter ? quarter + " " + fiscalYear : periodEnd.slice(0, 7);
+  };
+
   const capital = (capitalResult.data ?? []).map((row: any) => ({
+    period: quarterLabel(row.period_end, Number(row.fiscal_year)),
+    periodEnd: row.period_end,
     year: Number(row.fiscal_year),
     dividends: n(row.dividends_paid),
     buybacks: n(row.buybacks),
@@ -161,9 +178,43 @@ export async function CompanyPerformanceHistory({
     shares: n(row.ending_share_count),
   }));
 
-  const peerRows = Array.isArray(contextResult.data?.peer_comparison)
-    ? contextResult.data.peer_comparison
-    : [];
+  const peerMap = new Map<string, any>();
+  for (const row of peerMetricResult.data ?? []) {
+    const peer = peerMap.get(row.peer_ticker) ?? {
+      ticker: row.peer_ticker,
+      revenueGrowth: null,
+      fcfMargin: null,
+      priceToFcf: null,
+      fcfYield: null,
+    };
+    if (row.metric_key === "revenue_growth_yoy" && peer.revenueGrowth == null) peer.revenueGrowth = n(row.value_numeric);
+    if (row.metric_key === "fcf_margin" && peer.fcfMargin == null) peer.fcfMargin = n(row.value_numeric);
+    if (row.metric_key === "price_to_fcf" && peer.priceToFcf == null) peer.priceToFcf = n(row.value_numeric);
+    if (row.metric_key === "fcf_yield" && peer.fcfYield == null) peer.fcfYield = n(row.value_numeric);
+    peerMap.set(row.peer_ticker, peer);
+  }
+
+  let selfMetrics: any = null;
+  if (runResult.data?.id) {
+    const { data } = await supabase
+      .from("financial_metrics")
+      .select("revenue_growth,fcf_margin")
+      .eq("research_run_id", runResult.data.id)
+      .maybeSingle();
+    selfMetrics = data;
+  }
+
+  const latestValuation = valuation.at(-1);
+  const peers = [
+    {
+      ticker,
+      revenueGrowth: n(selfMetrics?.revenue_growth),
+      fcfMargin: n(selfMetrics?.fcf_margin),
+      priceToFcf: latestValuation?.priceToFcf ?? null,
+      fcfYield: latestValuation?.fcfYield ?? null,
+    },
+    ...[...peerMap.values()].sort((a, b) => a.ticker.localeCompare(b.ticker)),
+  ];
 
   return (
     <section className="companyPerformanceSection">
@@ -190,33 +241,8 @@ export async function CompanyPerformanceHistory({
         annual={annual}
         valuation={valuation}
         capital={capital}
+        peers={peers}
       />
-
-      {peerRows.length ? (
-        <article className="performancePanel peerPanel">
-          <div className="performancePanelHeader">
-            <div>
-              <span className="panelKicker">RELATIVE CONTEXT</span>
-              <h3>Peer comparison</h3>
-            </div>
-            <small>Latest normalized snapshot</small>
-          </div>
-          <div className="peerTable">
-            <div className="peerTableHeader">
-              <span>Company</span><span>Revenue growth</span><span>FCF margin</span><span>P/FCF</span><span>FCF yield</span>
-            </div>
-            {peerRows.map((peer: any) => (
-              <div className="peerTableRow" key={peer.ticker}>
-                <strong>{peer.ticker}</strong>
-                <span>{n(peer.metrics?.revenue_growth_yoy)?.toFixed(1) ?? "—"}%</span>
-                <span>{n(peer.metrics?.fcf_margin)?.toFixed(1) ?? "—"}%</span>
-                <span>{n(peer.metrics?.price_to_fcf)?.toFixed(1) ?? "—"}×</span>
-                <span>{n(peer.metrics?.fcf_yield)?.toFixed(1) ?? "—"}%</span>
-              </div>
-            ))}
-          </div>
-        </article>
-      ) : null}
     </section>
   );
 }
