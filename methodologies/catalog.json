@@ -402,6 +402,126 @@
         "historical_interpretation": true
       },
       "legacy_bootstrap": true
+    },
+    {
+      "methodology_key": "evidence_provenance",
+      "version": "evidence-provenance-v1",
+      "name": "Evidence Provenance V1",
+      "category": "integrity",
+      "risk_class": "critical",
+      "purpose": "Preserve source documents, observations, canonical fact lineage, conflict state, knowledge time, and exact published research input provenance without rewriting prior evidence.",
+      "owner": "Solpient",
+      "source_files": [
+        "lib/evidence-provenance.mjs",
+        "lib/evidence-provenance-db.mjs",
+        "docs/EVIDENCE_PROVENANCE.md"
+      ],
+      "input_contract": {
+        "sources": "retrieved source documents/provider observations",
+        "observations": "source statements with knowledge time",
+        "research_inputs": "reviewed publication inputs"
+      },
+      "output_contract": {
+        "evidence_sources": "append-only source ledger",
+        "evidence_observations": "append-only observation ledger",
+        "research_input_manifests": "frozen published input provenance"
+      },
+      "weights": {},
+      "thresholds": {
+        "material_numeric_conflict_relative_pct": 5
+      },
+      "assumptions": {
+        "source_quality_order": [
+          "primary_regulatory",
+          "company_direct",
+          "structured_provider",
+          "verified_secondary",
+          "derived_calculation",
+          "analyst_assumption"
+        ],
+        "historical_queries_use": "knowledge time"
+      },
+      "dependencies": [
+        {
+          "methodology_key": "historical_integrity",
+          "version": "historical-integrity-v1",
+          "required": true
+        }
+      ],
+      "known_limitations": [
+        "Legacy research may have partial provenance and must remain labeled legacy_provenance_partial.",
+        "Source authority is a deterministic ordering and does not imply lower-ranked sources are always incorrect."
+      ],
+      "change_summary": "Phase 2 canonical evidence provenance baseline completed on main.",
+      "predecessor_version": null,
+      "impacts": {
+        "database": true,
+        "public_ui": true,
+        "publication": true,
+        "ranking": true,
+        "capital_decision": true,
+        "historical_interpretation": true
+      },
+      "legacy_bootstrap": true
+    },
+    {
+      "methodology_key": "canonical_fact_normalization",
+      "version": "canonical-fact-v1",
+      "name": "Canonical Fact Normalization V1",
+      "category": "context",
+      "risk_class": "critical",
+      "purpose": "Select and normalize point-in-time company facts deterministically from preserved source observations while keeping revisions, conflicts, derivations, and superseded facts auditable.",
+      "owner": "Solpient",
+      "source_files": [
+        "lib/evidence-provenance.mjs",
+        "lib/evidence-provenance-db.mjs",
+        "docs/EVIDENCE_PROVENANCE.md"
+      ],
+      "input_contract": {
+        "evidence_observations": "eligible source observations",
+        "resolution_decisions": "optional reviewed conflict selections",
+        "derived_inputs": "version-pinned input fact IDs"
+      },
+      "output_contract": {
+        "normalized_facts": "append-only canonical facts with economic/knowledge time",
+        "fact_lineage": "observation and derived-input links",
+        "conflict_state": "verified/provisional/conflicting/superseded/unavailable"
+      },
+      "weights": {},
+      "thresholds": {
+        "material_numeric_conflict_relative_pct": 5
+      },
+      "assumptions": {
+        "selection_order": [
+          "source_quality",
+          "known_at",
+          "provider",
+          "stable_identifier"
+        ],
+        "same_provider_later_statement": "revision rather than independent provider conflict"
+      },
+      "dependencies": [
+        {
+          "methodology_key": "evidence_provenance",
+          "version": "evidence-provenance-v1",
+          "required": true
+        }
+      ],
+      "known_limitations": [
+        "Canonical selection cannot create source evidence that was never observed.",
+        "Derived metrics remain dependent on the correctness and completeness of their input fact lineage."
+      ],
+      "change_summary": "Phase 2 canonical fact normalization baseline completed on main.",
+      "predecessor_version": null,
+      "impacts": {
+        "database": true,
+        "public_ui": true,
+        "publication": true,
+        "ranking": true,
+        "capital_decision": true,
+        "historical_interpretation": true
+      },
+      "legacy_bootstrap": true
     }
   ]
 }
