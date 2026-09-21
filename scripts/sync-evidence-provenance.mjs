@@ -1,4 +1,5 @@
 import process from "node:process";
+import { spawnSync } from "node:child_process";
 // Main-push provenance workflow runs this synchronizer idempotently.
 import { randomUUID, createHash } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
@@ -84,6 +85,26 @@ function pushMetric({sources,observations,companyId,provider,sourceType,title,ur
 
 const {data:companies,error:companyError}=await sb.from("companies").select("id,ticker").order("ticker");
 if(companyError)throw companyError;
+
+if(!onlyTicker&&process.env.PROVENANCE_CHILD!=="1"){
+  for(const company of companies??[]){
+    const child=spawnSync(process.execPath,[process.argv[1],"--ticker="+company.ticker],{
+      stdio:"inherit",
+      env:{...process.env,COVERAGE_TICKER:company.ticker,PROVENANCE_CHILD:"1"},
+    });
+    if(child.error)throw child.error;
+    if(child.status!==0){
+      throw new Error("Canonical provenance sync failed for "+company.ticker+" with exit code "+String(child.status)+".");
+    }
+  }
+  console.log(JSON.stringify({
+    provenance_version:"evidence-provenance-v1",
+    orchestration:"sequential_company_runs",
+    companies:(companies??[]).length,
+  },null,2));
+  process.exit(0);
+}
+
 const selected=(companies??[]).filter((c)=>!onlyTicker||c.ticker===onlyTicker);
 const selectedIds=new Set(selected.map((c)=>c.id));
 const sourceMap=new Map(),observationMap=new Map();
@@ -212,13 +233,11 @@ const allObs=[];
 for(const company of selected){
   const rows=await fetchAll("evidence_observations",(q)=>q.eq("company_id",company.id).order("known_at",{ascending:true}));
   if(!rows.length)continue;
-  const sourceIds=[...new Set(rows.map((r)=>r.source_id))];
-  const sourceRows=[];
-  const sourceLookupBatchSize=100;
-  for(let i=0;i<sourceIds.length;i+=sourceLookupBatchSize){
-    const {data,error}=await sb.from("evidence_sources").select("id,source_quality_class").in("id",sourceIds.slice(i,i+sourceLookupBatchSize));
-    if(error)throw error;sourceRows.push(...(data??[]));
-  }
+  const sourceRows=await fetchAll("evidence_sources",(q)=>q
+    .select("id,source_quality_class")
+    .eq("company_id",company.id)
+    .order("id",{ascending:true})
+  );
   const quality=new Map(sourceRows.map((r)=>[r.id,r.source_quality_class]));
   allObs.push(...rows.map((r)=>({...r,source_quality_class:quality.get(r.source_id)??"verified_secondary"})));
 }
