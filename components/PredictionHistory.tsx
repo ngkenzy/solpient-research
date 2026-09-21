@@ -15,14 +15,16 @@ function fmt(value: unknown, unit?: string | null) {
   return new Intl.NumberFormat("en-US",{maximumFractionDigits:2}).format(v);
 }
 
-export async function PredictionHistory({ companyId, ticker }: { companyId: string; ticker: string }) {
+export async function PredictionHistory({ companyId, ticker, asOf = null }: { companyId: string; ticker: string; asOf?: string | null }) {
   const supabase = getSupabase();
   if (!supabase) return null;
 
-  const { data: snapshots } = await supabase
+  let snapshotQuery = supabase
     .from("prediction_snapshots")
     .select("id,prediction_key,predicted_at,model_version,horizon_months,benchmark_ticker,price_at_prediction,confidence,thesis_status,rationale")
-    .eq("company_id", companyId)
+    .eq("company_id", companyId);
+  if (asOf) snapshotQuery = snapshotQuery.lte("predicted_at", asOf);
+  const { data: snapshots } = await snapshotQuery
     .order("predicted_at", { ascending: false })
     .limit(12);
 
@@ -55,12 +57,15 @@ export async function PredictionHistory({ companyId, ticker }: { companyId: stri
     .in("prediction_snapshot_id", ids);
 
   const outcomeIds = (outcomes ?? []).map((o) => o.id);
-  const { data: realized } = outcomeIds.length
-    ? await supabase
+  let realizedQuery = outcomeIds.length
+    ? supabase
         .from("realized_outcomes")
         .select("prediction_outcome_id,observed_at,actual_value,actual_text")
         .in("prediction_outcome_id", outcomeIds)
-        .order("observed_at", { ascending: false })
+    : null;
+  if (realizedQuery && asOf) realizedQuery = realizedQuery.lte("observed_at", asOf);
+  const { data: realized } = realizedQuery
+    ? await realizedQuery.order("observed_at", { ascending: false })
     : { data: [] as any[] };
 
   const latestRealized = new Map<string, any>();
