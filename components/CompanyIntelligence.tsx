@@ -148,9 +148,17 @@ export async function CompanyIntelligence({ ticker }: { ticker: string }) {
   const political = dedupedRows
     .filter((row) => row.activity_type === "political")
     .sort((a, b) => String(b.disclosure_date ?? b.transaction_date ?? b.created_at).localeCompare(String(a.disclosure_date ?? a.transaction_date ?? a.created_at)));
-  const insiders = dedupedRows
+  const insiderAll = dedupedRows
     .filter((row) => row.activity_type === "insider")
     .sort((a, b) => String(b.disclosure_date ?? b.transaction_date ?? b.created_at).localeCompare(String(a.disclosure_date ?? a.transaction_date ?? a.created_at)));
+  const insiderCoverage = coverageByType.get("insider");
+  const insiders = insiderAll.filter((row) => {
+    const activityDate = row.transaction_date ?? row.disclosure_date ?? row.created_at?.slice(0, 10);
+    if (!activityDate) return false;
+    if (insiderCoverage?.window_start && activityDate < insiderCoverage.window_start) return false;
+    if (insiderCoverage?.window_end && activityDate > insiderCoverage.window_end) return false;
+    return true;
+  });
 
   const latest = dedupedRows
     .map((row) => row.disclosure_date ?? row.transaction_date ?? row.position_date ?? row.created_at)
@@ -337,7 +345,12 @@ export async function CompanyIntelligence({ ticker }: { ticker: string }) {
           </div>
 
           <div className="intelligenceNote">
-            <p>Transaction type is shown as reported by the stored source. It is not interpreted as a buy or sell signal for the stock.</p>
+            <p>
+              Transaction type is shown as reported by the stored source. It is not interpreted as a buy or sell signal for the stock.
+              {insiderAll.length > insiders.length
+                ? " Older insider transactions remain in the historical ledger but are excluded from the current-window count."
+                : ""}
+            </p>
           </div>
         </article>
       </div>
