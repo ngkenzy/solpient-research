@@ -64,7 +64,12 @@ export default async function ReviewDraft({params,searchParams}:{params:Promise<
         <div><span className={styles.kicker}>FACTORY DRAFT · {draft.generation_version}</span><h1>{company?.ticker} · {company?.company_name}</h1>
           <p>Evidence cutoff {new Date(draft.source_cutoff_at).toLocaleString("en-US")}. Drafts do not affect rankings until promotion succeeds.</p>
         </div>
-        <div className={styles.readinessCard}><span>Promotion readiness</span><strong className={readiness.ready?styles.readyText:styles.pendingText}>{readiness.ready?"READY":"BLOCKED"}</strong><small>{readiness.standard.completenessPct ?? 0}% Standard completeness</small></div>
+        <div className={styles.readinessCard}>
+          <span>Promotion readiness</span>
+          <strong className={readiness.ready?styles.readyText:styles.pendingText}>{readiness.ready?"READY":"BLOCKED"}</strong>
+          <small>{readiness.standard.completenessPct ?? 0}% structural completeness</small>
+          {readiness.standard.applies?<small className={readiness.standard.decisionGradeReady===false?styles.pendingText:styles.readyText}>{readiness.standard.decisionGradeCoveragePct ?? 100}% decision-grade coverage · {readiness.standard.decisionGradeReady===false?"NOT READY":"READY"}</small>:null}
+        </div>
       </section>
 
       {messages.saved?<div className={styles.successBanner}>Review saved and revalidated.</div>:null}
@@ -76,6 +81,10 @@ export default async function ReviewDraft({params,searchParams}:{params:Promise<
 
       <div className={styles.detailGrid}>
         <section className={styles.panel}><div className={styles.panelHeader}><div><span className={styles.kicker}>READINESS GATES</span><h2>What still blocks publication</h2></div><strong>{readiness.blockers.length}</strong></div>
+          {readiness.standard.applies?<div className={styles.gapList}>
+            <div><strong>Structural completeness · {readiness.standard.completenessPct ?? 0}%</strong><span>Checks required sections, metric records, valuation scenarios, risks, thesis variables, sources and decision dashboard structure.</span></div>
+            <div><strong>Decision-grade coverage · {readiness.standard.decisionGradeCoveragePct ?? 100}%</strong><span>{readiness.standard.decisionGradeReady===false?"Industry-critical evidence is still insufficient for publication.":"Industry-critical evidence gates passed."}</span></div>
+          </div>:null}
           {readiness.blockers.length?<div className={styles.blockerList}>{readiness.blockers.map((item:string)=><div key={item}>• {item}</div>)}</div>:<div className={styles.readyBox}>All promotion gates passed. Save once more if needed, then publish.</div>}
         </section>
         <section className={styles.panel}><div className={styles.panelHeader}><div><span className={styles.kicker}>FACTORY GAPS</span><h2>Evidence still requiring enrichment</h2></div><strong>{gaps.length}</strong></div>
