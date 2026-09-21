@@ -3,6 +3,7 @@ import { getSupabase } from "@/lib/supabase";
 import { CapitalActivity, type CapitalActivityItem } from "@/components/CapitalActivity";
 import styles from "./home.module.css";
 import { SolpientBrand } from "@/components/SolpientBrand";
+import { decisionRankingMap, loadLatestDecisionRanking, readinessDisplay } from "@/lib/decision-ranking-read-model";
 
 export const dynamic = "force-dynamic";
 
@@ -232,6 +233,9 @@ export default async function Home() {
       .limit(30),
   ]);
 
+  const phase3Ranking = await loadLatestDecisionRanking(supabase);
+  const phase3ByCompany = decisionRankingMap(phase3Ranking.rows);
+
   const companies = companiesResult.data ?? [];
   const runs = runsResult.data ?? [];
   const companyById = new Map(companies.map((company: any) => [company.id, company]));
@@ -288,13 +292,18 @@ export default async function Home() {
         base,
         marketDate: market?.trading_date ?? null,
         gap: valuationGap(price, base),
+        phase3: phase3ByCompany.get(company.id) ?? null,
       };
     })
     .filter(Boolean)
-    .sort(
-      (a: any, b: any) =>
-        (num(b.scores.overall_score) ?? -1) - (num(a.scores.overall_score) ?? -1),
-    );
+    .sort((a: any, b: any) => {
+      if (phase3Ranking.available) {
+        const ar = Number(a.phase3?.rank ?? Number.MAX_SAFE_INTEGER);
+        const br = Number(b.phase3?.rank ?? Number.MAX_SAFE_INTEGER);
+        if (ar !== br) return ar - br;
+      }
+      return (num(b.scores.overall_score) ?? -1) - (num(a.scores.overall_score) ?? -1);
+    });
 
   const currentRank = new Map(ranked.map((item: any, index: number) => [item.company.id, index + 1]));
   const rankDelta = (companyId: string) => {
@@ -399,14 +408,14 @@ export default async function Home() {
           <section className={styles.rankingPanel}>
             <div className={styles.panelHeader}>
               <div>
-                <span className={styles.panelEyebrow}>RESEARCH PRIORITY</span>
-                <h2>Research Ranking</h2>
+                <span className={styles.panelEyebrow}>{phase3Ranking.available ? "DECISION PRIORITY" : "RESEARCH PRIORITY"}</span>
+                <h2>{phase3Ranking.available ? "Decision Ranking" : "Research Ranking"}</h2>
               </div>
               <Link href="/research">View all companies →</Link>
             </div>
 
             <div className={styles.rankHeader}>
-              <span>#</span><span>Company</span><span>Score</span><span>Price</span>
+              <span>#</span><span>Company</span><span>{phase3Ranking.available ? "Decision" : "Score"}</span><span>Price</span>
               <span>Base value</span><span>Valuation</span><span>Change</span><span>Why</span>
             </div>
 
@@ -420,9 +429,15 @@ export default async function Home() {
                     <span className={styles.rankNumber}>{index + 1}</span>
                     <div className={styles.companyCell}>
                       <span className={styles.companyMark}>{item.company.ticker.slice(0, 2)}</span>
-                      <div><strong>{item.company.company_name}</strong><small>{item.company.ticker}</small></div>
+                      <div>
+                        <strong>{item.company.company_name}</strong>
+                        <small>
+                          {item.company.ticker}
+                          {phase3Ranking.available ? " · " + readinessDisplay(item.phase3?.readiness_state) : ""}
+                        </small>
+                      </div>
                     </div>
-                    <strong>{num(item.scores.overall_score) ?? "—"}</strong>
+                    <strong>{phase3Ranking.available ? (num(item.phase3?.decision_score) ?? "—") : (num(item.scores.overall_score) ?? "—")}</strong>
                     <span>{money(item.price)}</span>
                     <span>{money(item.base)}</span>
                     <strong className={valuation.tone}>{valuation.label}</strong>
@@ -436,7 +451,11 @@ export default async function Home() {
                 <div className={styles.emptyCompact}>Published research will appear here when available.</div>
               )}
             </div>
-            <p className={styles.rankingNote}>Rankings prioritize research attention. They are not an automatic buy list.</p>
+            <p className={styles.rankingNote}>
+              {phase3Ranking.available
+                ? "Readiness gates the ranking before Decision Score. Decision Ready means evidence-complete enough for comparison, not an automatic buy signal."
+                : "Rankings prioritize research attention. They are not an automatic buy list."}
+            </p>
           </section>
 
           <aside className={styles.glancePanel}>
