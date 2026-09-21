@@ -26,5 +26,11 @@ const merged=applyReviewPatch(draft,{
 assert.equal(merged.business_assessment.moat_rating,"wide");
 assert.equal(merged.risk_register.length,5);
 assert.equal(validatePromotionReadiness(merged).ready,true);
+const nullScore=structuredClone(merged);
+nullScore.scores.moat_score=null;
+assert.equal(validatePromotionReadiness(nullScore).ready,false);
+const blankValuation=structuredClone(merged);
+blankValuation.valuations.base_value="";
+assert.equal(validatePromotionReadiness(blankValuation).ready,false);
 assert.equal(validatePromotionReadiness(applyReviewPatch(draft,{research:{summary:"Reviewed summary."}})).ready,false);
 console.log("Review Workbench tests passed.");
