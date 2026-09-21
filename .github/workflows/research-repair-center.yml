@@ -1,0 +1,50 @@
+name: SOLPIENT Research Repair Center
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 13 * * 1-5"
+  push:
+    branches: [main]
+    paths:
+      - "scripts/build-research-repair-queue.mjs"
+      - "scripts/process-research-repairs.mjs"
+      - "lib/data-coverage-engine.mjs"
+      - ".github/workflows/research-repair-center.yml"
+
+concurrency:
+  group: solpient-research-repair-center
+  cancel-in-progress: false
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+      - name: Build repair queue
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: npm run repair:queue
+      - name: Process safe automatic repairs
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          REPAIR_MAX_JOBS: "6"
+        run: npm run repair:process
+      - name: Recalculate coverage
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: npm run coverage:build
+      - name: Verify repair outcomes
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: npm run repair:queue
