@@ -24,6 +24,16 @@ import styles from "./money.module.css";
 const STORAGE_KEY = "solpient.money.profile.v2";
 const LEGACY_STORAGE_KEY = "solpient.money.profile.v1";
 
+type View = "overview" | "cashflow" | "debt" | "goals" | "accounts";
+
+const viewLabels: Array<{ id: View; label: string; icon: string }> = [
+  { id: "overview", label: "Overview", icon: "⌂" },
+  { id: "cashflow", label: "Cash flow", icon: "↕" },
+  { id: "debt", label: "Debt", icon: "−" },
+  { id: "goals", label: "Goals", icon: "◎" },
+  { id: "accounts", label: "Accounts", icon: "◫" },
+];
+
 const accountTypeLabels: Record<MoneyAccountType, string> = {
   checking: "Checking",
   savings: "Savings",
@@ -42,7 +52,7 @@ const debtTypeLabels: Record<DebtType, string> = {
   other: "Other",
 };
 
-function id(prefix: string) {
+function uid(prefix: string) {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
     return prefix + "-" + crypto.randomUUID();
   }
@@ -68,87 +78,39 @@ function dateLabel(value: string) {
   if (!value) return "No date";
   const date = new Date(value + "T12:00:00");
   if (!Number.isFinite(date.getTime())) return value;
-  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
-function NumberInput({
-  label,
-  value,
-  onChange,
-  suffix = "$",
-  compact = false,
-}: {
-  label: string;
-  value: number;
-  onChange: (value: number) => void;
-  suffix?: string;
-  compact?: boolean;
-}) {
+function NumberField({ label, value, onChange, suffix = "$" }: { label: string; value: number; onChange: (value: number) => void; suffix?: string }) {
   return (
-    <label className={compact ? styles.compactField : styles.field}>
+    <label className={styles.field}>
       <span>{label}</span>
-      <div className={styles.inputWrap}>
-        <input
-          min="0"
-          inputMode="decimal"
-          step={suffix === "%" ? "0.1" : "1"}
-          type="number"
-          value={value || ""}
-          onChange={(event) => onChange(Math.max(0, Number(event.target.value) || 0))}
-        />
+      <div className={styles.input}>
+        <input min="0" inputMode="decimal" step={suffix === "%" ? "0.1" : "1"} type="number" value={value || ""} onChange={(event) => onChange(Math.max(0, Number(event.target.value) || 0))} />
         <em>{suffix}</em>
       </div>
     </label>
   );
 }
 
-function TextInput({
-  label,
-  value,
-  onChange,
-  placeholder,
-  type = "text",
-}: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  placeholder?: string;
-  type?: "text" | "date";
-}) {
+function TextField({ label, value, onChange, placeholder, type = "text" }: { label: string; value: string; onChange: (value: string) => void; placeholder?: string; type?: "text" | "date" }) {
   return (
     <label className={styles.field}>
       <span>{label}</span>
-      <div className={styles.inputWrap}>
-        <input
-          type={type}
-          value={value}
-          placeholder={placeholder}
-          onChange={(event) => onChange(event.target.value)}
-        />
+      <div className={styles.input}>
+        <input type={type} value={value} placeholder={placeholder} onChange={(event) => onChange(event.target.value)} />
       </div>
     </label>
   );
 }
 
-function SelectInput<T extends string>({
-  label,
-  value,
-  onChange,
-  options,
-}: {
-  label: string;
-  value: T;
-  onChange: (value: T) => void;
-  options: Array<{ value: T; label: string }>;
-}) {
+function SelectField<T extends string>({ label, value, onChange, options }: { label: string; value: T; onChange: (value: T) => void; options: Array<{ value: T; label: string }> }) {
   return (
     <label className={styles.field}>
       <span>{label}</span>
-      <div className={styles.inputWrap}>
+      <div className={styles.input}>
         <select value={value} onChange={(event) => onChange(event.target.value as T)}>
-          {options.map((option) => (
-            <option value={option.value} key={option.value}>{option.label}</option>
-          ))}
+          {options.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}
         </select>
       </div>
     </label>
@@ -158,14 +120,15 @@ function SelectInput<T extends string>({
 export default function MoneyPage() {
   const [state, setState] = useState<MoneyState>(emptyMoneyState);
   const [loaded, setLoaded] = useState(false);
+  const [view, setView] = useState<View>("overview");
   const [accountDraft, setAccountDraft] = useState({ name: "", type: "checking" as MoneyAccountType, balance: 0 });
   const [debtDraft, setDebtDraft] = useState({ name: "", type: "credit_card" as DebtType, balance: 0, apr: 0, minimumPayment: 0 });
   const [goalDraft, setGoalDraft] = useState({ name: "", targetAmount: 0, currentAmount: 0, targetDate: "", priority: "medium" as GoalPriority });
   const [transactionDraft, setTransactionDraft] = useState({ date: "", description: "", amount: 0, direction: "expense" as TransactionDirection, category: "Other", recurring: false });
   const [coachQuestion, setCoachQuestion] = useState("");
   const [coachAnswer, setCoachAnswer] = useState("");
-  const [coachSource, setCoachSource] = useState<"ai" | "rules" | "">("");
   const [coachLoading, setCoachLoading] = useState(false);
+  const [coachSource, setCoachSource] = useState<"ai" | "rules" | "">("");
 
   useEffect(() => {
     try {
@@ -175,13 +138,10 @@ export default function MoneyPage() {
         if (parsed?.version === 2) setState({ ...emptyMoneyState, ...parsed });
       } else {
         const legacy = window.localStorage.getItem(LEGACY_STORAGE_KEY);
-        if (legacy) {
-          const migrated = migrateV1Profile(JSON.parse(legacy) as FinancialProfile);
-          setState(migrated);
-        }
+        if (legacy) setState(migrateV1Profile(JSON.parse(legacy) as FinancialProfile));
       }
     } catch {
-      // The app remains usable when browser storage is unavailable.
+      // Local storage is optional.
     } finally {
       setLoaded(true);
     }
@@ -192,87 +152,65 @@ export default function MoneyPage() {
     try {
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     } catch {
-      // Browser persistence is an enhancement, not a requirement.
+      // The planner remains usable without persistence.
     }
   }, [loaded, state]);
 
   const analysis = useMemo(() => analyzeMoneyState(state), [state]);
-  const hasData =
-    state.accounts.length > 0 ||
-    state.debts.length > 0 ||
-    state.transactions.length > 0 ||
-    state.settings.monthlyIncomeOverride > 0;
+  const hasData = state.accounts.length > 0 || state.debts.length > 0 || state.transactions.length > 0 || state.settings.monthlyIncomeOverride > 0;
+  const firstAction = analysis.nextDollarActions[0];
+  const emergencyTarget = Math.max(1, state.settings.emergencyTargetMonths || 4);
+  const reserveProgress = Math.min(100, (analysis.emergencyMonths / emergencyTarget) * 100);
+  const debtWithHighestApr = [...state.debts].filter((item) => item.type !== "mortgage").sort((a, b) => b.apr - a.apr)[0];
+
+  const insight =
+    analysis.freeCashFlow < 0
+      ? { title: "Cash flow needs attention", body: "Monthly spending is above income. Solpient is holding back optional investing until that gap is closed.", tone: "danger" }
+      : analysis.highestConsumerApr >= 15
+        ? { title: "High-interest debt is the biggest drag", body: (debtWithHighestApr?.name ?? "Consumer debt") + " is costing " + analysis.highestConsumerApr.toFixed(1) + "% APR. That is why it ranks ahead of new market risk.", tone: "danger" }
+        : analysis.emergencyMonths < emergencyTarget
+          ? { title: "Your reserve is still being built", body: "You have " + analysis.emergencyMonths.toFixed(1) + " months of liquid runway against a " + emergencyTarget + "-month target.", tone: "watch" }
+          : { title: "Foundation looks stable", body: "Cash flow, liquidity, and debt are not showing an urgent constraint. New surplus can move toward goals and long-term investing.", tone: "good" };
 
   const updateSettings = (key: keyof MoneyState["settings"], value: number) => {
-    setState((current) => ({
-      ...current,
-      settings: { ...current.settings, [key]: value },
-    }));
+    setState((current) => ({ ...current, settings: { ...current.settings, [key]: value } }));
   };
 
   const addAccount = () => {
     if (!accountDraft.name.trim() || accountDraft.balance <= 0) return;
-    const account: MoneyAccount = { id: id("acct"), ...accountDraft, name: accountDraft.name.trim() };
+    const account: MoneyAccount = { id: uid("acct"), ...accountDraft, name: accountDraft.name.trim() };
     setState((current) => ({ ...current, accounts: [...current.accounts, account] }));
     setAccountDraft({ name: "", type: "checking", balance: 0 });
   };
 
   const addDebt = () => {
     if (!debtDraft.name.trim() || debtDraft.balance <= 0) return;
-    const debt: DebtAccount = { id: id("debt"), ...debtDraft, name: debtDraft.name.trim() };
+    const debt: DebtAccount = { id: uid("debt"), ...debtDraft, name: debtDraft.name.trim() };
     setState((current) => ({ ...current, debts: [...current.debts, debt] }));
     setDebtDraft({ name: "", type: "credit_card", balance: 0, apr: 0, minimumPayment: 0 });
   };
 
   const addGoal = () => {
     if (!goalDraft.name.trim() || goalDraft.targetAmount <= 0) return;
-    const goal: MoneyGoal = { id: id("goal"), ...goalDraft, name: goalDraft.name.trim() };
+    const goal: MoneyGoal = { id: uid("goal"), ...goalDraft, name: goalDraft.name.trim() };
     setState((current) => ({ ...current, goals: [...current.goals, goal] }));
     setGoalDraft({ name: "", targetAmount: 0, currentAmount: 0, targetDate: "", priority: "medium" });
   };
 
   const addTransaction = () => {
     if (!transactionDraft.description.trim() || transactionDraft.amount <= 0) return;
-    const transaction: MoneyTransaction = {
-      id: id("tx"),
-      ...transactionDraft,
-      date: transactionDraft.date || new Date().toISOString().slice(0, 10),
-      description: transactionDraft.description.trim(),
-      category: transactionDraft.category.trim() || "Other",
-    };
-    setState((current) => ({
-      ...current,
-      transactions: [transaction, ...current.transactions].slice(0, 250),
-    }));
+    const transaction: MoneyTransaction = { id: uid("tx"), ...transactionDraft, date: transactionDraft.date || new Date().toISOString().slice(0, 10), description: transactionDraft.description.trim(), category: transactionDraft.category.trim() || "Other" };
+    setState((current) => ({ ...current, transactions: [transaction, ...current.transactions].slice(0, 250) }));
     setTransactionDraft({ date: "", description: "", amount: 0, direction: "expense", category: "Other", recurring: false });
   };
 
   const remove = (collection: "accounts" | "debts" | "goals" | "transactions", itemId: string) => {
     setState((current) => {
-      if (collection === "accounts") {
-        return { ...current, accounts: current.accounts.filter((item) => item.id !== itemId) };
-      }
-      if (collection === "debts") {
-        return { ...current, debts: current.debts.filter((item) => item.id !== itemId) };
-      }
-      if (collection === "goals") {
-        return { ...current, goals: current.goals.filter((item) => item.id !== itemId) };
-      }
+      if (collection === "accounts") return { ...current, accounts: current.accounts.filter((item) => item.id !== itemId) };
+      if (collection === "debts") return { ...current, debts: current.debts.filter((item) => item.id !== itemId) };
+      if (collection === "goals") return { ...current, goals: current.goals.filter((item) => item.id !== itemId) };
       return { ...current, transactions: current.transactions.filter((item) => item.id !== itemId) };
     });
-  };
-
-  const loadDemo = () => {
-    setState(createDemoMoneyState(new Date()));
-    setCoachAnswer("");
-  };
-
-  const reset = () => {
-    setState(emptyMoneyState);
-    setCoachAnswer("");
-    try {
-      window.localStorage.removeItem(STORAGE_KEY);
-    } catch {}
   };
 
   const askCoach = async (question = coachQuestion) => {
@@ -283,296 +221,262 @@ export default function MoneyPage() {
     setCoachAnswer("");
     setCoachSource("");
     try {
-      const response = await fetch("/api/money/coach", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          question: cleanQuestion,
-          summary: buildCoachSummary(analysis),
-        }),
-      });
+      const response = await fetch("/api/money/coach", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ question: cleanQuestion, summary: buildCoachSummary(analysis) }) });
       const payload = await response.json();
       setCoachAnswer(payload.answer ?? payload.error ?? "Solpient could not explain the plan.");
       setCoachSource(payload.source === "ai" ? "ai" : "rules");
     } catch {
-      setCoachAnswer("Solpient could not reach the coach endpoint. Your deterministic plan is still available above.");
+      setCoachAnswer("Solpient could not reach the coach. Your deterministic plan is still available.");
       setCoachSource("rules");
     } finally {
       setCoachLoading(false);
     }
   };
 
+  const reset = () => {
+    setState(emptyMoneyState);
+    setCoachAnswer("");
+    try { window.localStorage.removeItem(STORAGE_KEY); } catch {}
+  };
+
   return (
     <div className={styles.page}>
       <header className={styles.topbar}>
         <Link href="/" className={styles.brand}><strong>SOLPIENT</strong><span>Financial Intelligence</span></Link>
-        <nav>
+        <nav className={styles.globalNav}>
           <Link href="/">Home</Link>
           <Link href="/research">Research</Link>
-          <Link className={styles.active} href="/money">Money</Link>
+          <Link className={styles.activeGlobal} href="/money">Money</Link>
         </nav>
-        <div className={styles.privacyPill}>Local-first financial profile</div>
+        <div className={styles.status}>{loaded ? "Private · saved locally" : "Loading…"}</div>
       </header>
 
-      <main className={styles.main}>
-        <section className={styles.hero}>
-          <div>
-            <span className={styles.eyebrow}>SOLPIENT MONEY · V2</span>
-            <h1>One financial map. One next move.</h1>
-            <p>
-              Accounts, debt, spending, goals, and retirement now feed one auditable
-              decision engine. The coach explains the plan; it does not invent it.
-            </p>
-          </div>
-          <div className={styles.heroActions}>
-            <button className={styles.primaryButton} type="button" onClick={loadDemo}>Load example</button>
-            <button className={styles.secondaryButton} type="button" onClick={reset}>Reset</button>
-          </div>
-        </section>
-
-        <section className={styles.metrics}>
-          <article className={styles.scoreCard}>
-            <span>Financial Health</span>
-            <div><strong>{hasData ? analysis.score : "—"}</strong><em>/100</em></div>
-            <p>{hasData ? analysis.scoreLabel : "Build your household map"}</p>
-          </article>
-          <article><span>Net worth</span><strong>{hasData ? money(analysis.netWorth) : "—"}</strong><p>{money(analysis.assets)} assets · {money(analysis.debt)} debt</p></article>
-          <article><span>Free cash flow</span><strong>{hasData ? money(analysis.freeCashFlow) : "—"}</strong><p>{hasData ? percent(analysis.savingsRate) + " savings rate" : "Income minus spending"}</p></article>
-          <article><span>Liquid runway</span><strong>{hasData ? analysis.emergencyMonths.toFixed(1) + " mo" : "—"}</strong><p>{money(analysis.liquidCash)} liquid cash</p></article>
-          <article><span>Highest consumer APR</span><strong>{hasData ? analysis.highestConsumerApr.toFixed(1) + "%" : "—"}</strong><p>{money(analysis.minimumDebtPayments)} minimum debt payments</p></article>
-        </section>
-
-        <div className={styles.workspace}>
-          <div className={styles.leftColumn}>
-            <section className={styles.panel}>
-              <div className={styles.panelHeader}>
-                <div><span className={styles.eyebrow}>MONTHLY BASELINE</span><h2>Cash-flow settings</h2></div>
-                <span className={styles.autoSave}>{loaded ? "Saved locally" : "Loading…"}</span>
-              </div>
-              <div className={styles.settingGrid}>
-                <NumberInput label="Monthly take-home income" value={state.settings.monthlyIncomeOverride} onChange={(value) => updateSettings("monthlyIncomeOverride", value)} />
-                <NumberInput label="Monthly spending" value={state.settings.monthlyExpensesOverride} onChange={(value) => updateSettings("monthlyExpensesOverride", value)} />
-                <NumberInput label="Retirement contributions" value={state.settings.monthlyRetirementContribution} onChange={(value) => updateSettings("monthlyRetirementContribution", value)} />
-                <NumberInput label="Uncaptured employer match" value={state.settings.uncapturedEmployerMatchMonthly} onChange={(value) => updateSettings("uncapturedEmployerMatchMonthly", value)} />
-                <NumberInput label="Emergency target" value={state.settings.emergencyTargetMonths} onChange={(value) => updateSettings("emergencyTargetMonths", Math.max(1, Math.min(12, value)))} suffix="months" />
-              </div>
-              <p className={styles.panelNote}>If income or spending is left blank, Solpient uses transactions from the last 31 days.</p>
-            </section>
-
-            <section className={styles.panel}>
-              <div className={styles.panelHeader}>
-                <div><span className={styles.eyebrow}>BALANCE SHEET</span><h2>Accounts</h2></div>
-                <strong className={styles.headerMetric}>{money(analysis.assets)}</strong>
-              </div>
-              <div className={styles.itemList}>
-                {state.accounts.map((account) => (
-                  <div className={styles.itemRow} key={account.id}>
-                    <span className={styles.itemIcon}>A</span>
-                    <div><strong>{account.name}</strong><small>{accountTypeLabels[account.type]}</small></div>
-                    <b>{money(account.balance)}</b>
-                    <button type="button" onClick={() => remove("accounts", account.id)}>×</button>
-                  </div>
-                ))}
-                {!state.accounts.length ? <div className={styles.emptyInline}>No accounts added yet.</div> : null}
-              </div>
-              <div className={styles.addForm}>
-                <TextInput label="Account name" value={accountDraft.name} onChange={(value) => setAccountDraft((current) => ({ ...current, name: value }))} placeholder="Checking, TSP, brokerage…" />
-                <SelectInput label="Type" value={accountDraft.type} onChange={(value) => setAccountDraft((current) => ({ ...current, type: value }))} options={Object.entries(accountTypeLabels).map(([value, label]) => ({ value: value as MoneyAccountType, label }))} />
-                <NumberInput label="Balance" value={accountDraft.balance} onChange={(value) => setAccountDraft((current) => ({ ...current, balance: value }))} />
-                <button type="button" className={styles.addButton} onClick={addAccount}>Add account</button>
-              </div>
-            </section>
-
-            <section className={styles.panel}>
-              <div className={styles.panelHeader}>
-                <div><span className={styles.eyebrow}>LIABILITIES</span><h2>Debt</h2></div>
-                <strong className={styles.headerMetric}>{money(analysis.debt)}</strong>
-              </div>
-              <div className={styles.itemList}>
-                {state.debts.map((debt) => (
-                  <div className={styles.itemRow} key={debt.id}>
-                    <span className={styles.itemIcon}>D</span>
-                    <div><strong>{debt.name}</strong><small>{debtTypeLabels[debt.type]} · {debt.apr.toFixed(1)}% APR · min {money(debt.minimumPayment)}</small></div>
-                    <b>{money(debt.balance)}</b>
-                    <button type="button" onClick={() => remove("debts", debt.id)}>×</button>
-                  </div>
-                ))}
-                {!state.debts.length ? <div className={styles.emptyInline}>No debt added yet.</div> : null}
-              </div>
-              <div className={styles.addFormWide}>
-                <TextInput label="Debt name" value={debtDraft.name} onChange={(value) => setDebtDraft((current) => ({ ...current, name: value }))} placeholder="Visa, mortgage, auto…" />
-                <SelectInput label="Type" value={debtDraft.type} onChange={(value) => setDebtDraft((current) => ({ ...current, type: value }))} options={Object.entries(debtTypeLabels).map(([value, label]) => ({ value: value as DebtType, label }))} />
-                <NumberInput label="Balance" value={debtDraft.balance} onChange={(value) => setDebtDraft((current) => ({ ...current, balance: value }))} />
-                <NumberInput label="APR" value={debtDraft.apr} onChange={(value) => setDebtDraft((current) => ({ ...current, apr: value }))} suffix="%" />
-                <NumberInput label="Minimum payment" value={debtDraft.minimumPayment} onChange={(value) => setDebtDraft((current) => ({ ...current, minimumPayment: value }))} />
-                <button type="button" className={styles.addButton} onClick={addDebt}>Add debt</button>
-              </div>
-            </section>
-
-            <section className={styles.panel}>
-              <div className={styles.panelHeader}>
-                <div><span className={styles.eyebrow}>GOALS</span><h2>What the money is for</h2></div>
-                <strong className={styles.headerMetric}>{analysis.activeGoalCount} active</strong>
-              </div>
-              <div className={styles.goalGrid}>
-                {state.goals.map((goal) => {
-                  const progress = goal.targetAmount > 0 ? Math.min(100, (goal.currentAmount / goal.targetAmount) * 100) : 0;
-                  return (
-                    <article className={styles.goalCard} key={goal.id}>
-                      <div><span>{goal.priority}</span><button type="button" onClick={() => remove("goals", goal.id)}>×</button></div>
-                      <strong>{goal.name}</strong>
-                      <p>{money(goal.currentAmount)} of {money(goal.targetAmount)} · {goal.targetDate ? dateLabel(goal.targetDate) : "No date"}</p>
-                      <div className={styles.progressTrack}><i style={{ width: progress + "%" }} /></div>
-                    </article>
-                  );
-                })}
-                {!state.goals.length ? <div className={styles.emptyInline}>No goals added yet.</div> : null}
-              </div>
-              <div className={styles.addFormWide}>
-                <TextInput label="Goal" value={goalDraft.name} onChange={(value) => setGoalDraft((current) => ({ ...current, name: value }))} placeholder="Emergency fund, trip, home repair…" />
-                <NumberInput label="Target" value={goalDraft.targetAmount} onChange={(value) => setGoalDraft((current) => ({ ...current, targetAmount: value }))} />
-                <NumberInput label="Already saved" value={goalDraft.currentAmount} onChange={(value) => setGoalDraft((current) => ({ ...current, currentAmount: value }))} />
-                <TextInput label="Target date" value={goalDraft.targetDate} onChange={(value) => setGoalDraft((current) => ({ ...current, targetDate: value }))} type="date" />
-                <SelectInput label="Priority" value={goalDraft.priority} onChange={(value) => setGoalDraft((current) => ({ ...current, priority: value }))} options={[{ value: "high", label: "High" }, { value: "medium", label: "Medium" }, { value: "low", label: "Low" }]} />
-                <button type="button" className={styles.addButton} onClick={addGoal}>Add goal</button>
-              </div>
-            </section>
-
-            <section className={styles.panel}>
-              <div className={styles.panelHeader}>
-                <div><span className={styles.eyebrow}>CASH FLOW</span><h2>Transactions</h2></div>
-                <strong className={styles.headerMetric}>{analysis.recentTransactionCount} recent</strong>
-              </div>
-              <div className={styles.transactionGrid}>
-                <div>
-                  <div className={styles.addFormTransaction}>
-                    <TextInput label="Date" value={transactionDraft.date} onChange={(value) => setTransactionDraft((current) => ({ ...current, date: value }))} type="date" />
-                    <TextInput label="Description" value={transactionDraft.description} onChange={(value) => setTransactionDraft((current) => ({ ...current, description: value }))} placeholder="Paycheck, groceries…" />
-                    <NumberInput label="Amount" value={transactionDraft.amount} onChange={(value) => setTransactionDraft((current) => ({ ...current, amount: value }))} />
-                    <SelectInput label="Direction" value={transactionDraft.direction} onChange={(value) => setTransactionDraft((current) => ({ ...current, direction: value }))} options={[{ value: "expense", label: "Expense" }, { value: "income", label: "Income" }, { value: "transfer", label: "Transfer" }]} />
-                    <TextInput label="Category" value={transactionDraft.category} onChange={(value) => setTransactionDraft((current) => ({ ...current, category: value }))} placeholder="Food, housing, income…" />
-                    <label className={styles.checkField}><input type="checkbox" checked={transactionDraft.recurring} onChange={(event) => setTransactionDraft((current) => ({ ...current, recurring: event.target.checked }))} /><span>Recurring</span></label>
-                    <button type="button" className={styles.addButton} onClick={addTransaction}>Add transaction</button>
-                  </div>
-                  <div className={styles.transactionList}>
-                    {state.transactions.slice(0, 12).map((transaction) => (
-                      <div key={transaction.id}>
-                        <span>{dateLabel(transaction.date)}</span>
-                        <div><strong>{transaction.description}</strong><small>{transaction.category}{transaction.recurring ? " · recurring" : ""}</small></div>
-                        <b data-direction={transaction.direction}>{transaction.direction === "expense" ? "−" : transaction.direction === "income" ? "+" : ""}{money(transaction.amount)}</b>
-                        <button type="button" onClick={() => remove("transactions", transaction.id)}>×</button>
-                      </div>
-                    ))}
-                    {!state.transactions.length ? <div className={styles.emptyInline}>Add transactions to see spending patterns.</div> : null}
-                  </div>
-                </div>
-
-                <aside className={styles.spendingPanel}>
-                  <span className={styles.eyebrow}>TOP SPENDING</span>
-                  {analysis.topSpending.map((item) => (
-                    <div className={styles.spendingRow} key={item.category}>
-                      <div><strong>{item.category}</strong><span>{money(item.amount)}</span></div>
-                      <div className={styles.spendingTrack}><i style={{ width: Math.min(100, item.share * 100) + "%" }} /></div>
-                    </div>
-                  ))}
-                  {!analysis.topSpending.length ? <p>No recent expense transactions.</p> : null}
-                </aside>
-              </div>
-            </section>
-          </div>
-
-          <aside className={styles.rightColumn}>
-            <section className={styles.planPanel}>
-              <div className={styles.panelHeaderCompact}>
-                <div><span className={styles.eyebrow}>NEXT BEST DOLLAR</span><h2>Your priority sequence</h2></div>
-              </div>
-
-              {!hasData ? (
-                <div className={styles.emptyPlan}>
-                  <div>◎</div><strong>Build your financial map</strong>
-                  <p>Add accounts, debts, monthly cash flow, and goals. Solpient will calculate the next action.</p>
-                  <button type="button" onClick={loadDemo}>Preview example</button>
-                </div>
-              ) : (
-                <>
-                  <div className={styles.available}>
-                    <span>Available this month</span>
-                    <strong>{money(Math.max(0, analysis.freeCashFlow))}</strong>
-                    <small>Based on the monthly income and spending currently in the engine.</small>
-                  </div>
-
-                  <div className={styles.actionList}>
-                    {analysis.nextDollarActions.map((action, index) => (
-                      <article className={styles.action} data-tone={action.tone} key={action.id}>
-                        <span className={styles.actionNumber}>{index + 1}</span>
-                        <div>
-                          <div className={styles.actionTitle}><strong>{action.title}</strong><b>{money(action.amount)}</b></div>
-                          <p>{action.reason}</p>
-                        </div>
-                      </article>
-                    ))}
-                  </div>
-
-                  {analysis.debtInterestImpact > 0 ? (
-                    <div className={styles.impactBox}>
-                      <span>Approx. first-year interest avoided</span>
-                      <strong>{money(analysis.debtInterestImpact)}</strong>
-                      <small>Simple APR estimate on recommended principal reduction; lender timing and compounding can differ.</small>
-                    </div>
-                  ) : null}
-
-                  <div className={styles.breakdown}>
-                    <div className={styles.breakdownHeader}><strong>Health score</strong><span>{analysis.score}/100</span></div>
-                    <div><span>Cash flow</span><b>{analysis.scoreBreakdown.cashFlow}/25</b></div>
-                    <div><span>Liquidity</span><b>{analysis.scoreBreakdown.liquidity}/25</b></div>
-                    <div><span>Consumer debt</span><b>{analysis.scoreBreakdown.debt}/30</b></div>
-                    <div><span>Retirement contribution</span><b>{analysis.scoreBreakdown.retirement}/20</b></div>
-                  </div>
-                </>
-              )}
-            </section>
-
-            <section className={styles.coachPanel}>
-              <div className={styles.panelHeaderCompact}>
-                <div><span className={styles.eyebrow}>SOLPIENT COACH</span><h2>Ask why</h2></div>
-                {coachSource ? <span className={styles.coachBadge}>{coachSource === "ai" ? "AI" : "Rules fallback"}</span> : null}
-              </div>
-              <p className={styles.coachIntro}>The coach receives only summary metrics and the action plan—not account names or transaction descriptions.</p>
-              <div className={styles.quickQuestions}>
-                {["Why is this my first priority?", "Should I invest more this month?", "What would improve my score fastest?"].map((question) => (
-                  <button type="button" key={question} onClick={() => askCoach(question)}>{question}</button>
-                ))}
-              </div>
-              <textarea value={coachQuestion} onChange={(event) => setCoachQuestion(event.target.value)} placeholder="Ask Solpient about your plan…" maxLength={600} />
-              <button className={styles.coachButton} type="button" disabled={coachLoading || !coachQuestion.trim()} onClick={() => askCoach()}>
-                {coachLoading ? "Explaining…" : "Explain my plan"}
+      <main className={styles.shell}>
+        <aside className={styles.sidebar}>
+          <div className={styles.sidebarIntro}><span>Money</span><strong>Your financial cockpit</strong></div>
+          <nav className={styles.localNav}>
+            {viewLabels.map((item) => (
+              <button type="button" key={item.id} data-active={view === item.id} onClick={() => setView(item.id)}>
+                <span>{item.icon}</span>{item.label}
               </button>
-              {coachAnswer ? <div className={styles.coachAnswer}>{coachAnswer}</div> : null}
-            </section>
-
-            <section className={styles.privacyCard}>
-              <strong>V2 privacy architecture</strong>
-              <p>Financial records stay in this browser. The optional coach endpoint sends only aggregate metrics and the deterministic plan. If no OpenAI key is configured, Solpient falls back to a rules explanation.</p>
-            </section>
-          </aside>
-        </div>
-
-        <section className={styles.nextLayer}>
-          <span className={styles.eyebrow}>NEXT LAYER</span>
-          <h2>V2 is ready for read-only account connectivity.</h2>
-          <div>
-            <article><b>LIVE</b><strong>Household graph</strong><p>Accounts, debts, transactions, goals, and settings.</p></article>
-            <article><b>LIVE</b><strong>Decision engine</strong><p>Deterministic Next Best Dollar with goal-aware sequencing.</p></article>
-            <article><b>LIVE</b><strong>Coach</strong><p>Privacy-safe AI explanation with rules fallback.</p></article>
-            <article><b>NEXT</b><strong>Bank connections</strong><p>Plaid-style read-only synchronization without changing the engine.</p></article>
+            ))}
+          </nav>
+          <div className={styles.sideSummary}>
+            <span>Financial health</span>
+            <div><strong>{hasData ? analysis.score : "—"}</strong><em>/100</em></div>
+            <small>{hasData ? analysis.scoreLabel : "Add your numbers"}</small>
           </div>
+          <div className={styles.sideActions}>
+            <button type="button" onClick={() => setState(createDemoMoneyState(new Date()))}>Load example</button>
+            <button type="button" onClick={reset}>Reset data</button>
+          </div>
+        </aside>
+
+        <section className={styles.content}>
+          <header className={styles.pageHeader}>
+            <div>
+              <span className={styles.kicker}>SOLPIENT MONEY</span>
+              <h1>{view === "overview" ? "Your money, simplified." : viewLabels.find((item) => item.id === view)?.label}</h1>
+              <p>{view === "overview" ? "One place to understand where you stand and what your next dollar should do." : "Edit the details here. Your overview stays focused on decisions, not data entry."}</p>
+            </div>
+            <div className={styles.headerActions}><button type="button" onClick={() => setView("accounts")}>+ Add financial data</button></div>
+          </header>
+
+          {view === "overview" ? (
+            <div className={styles.overview}>
+              <section className={styles.heroGrid}>
+                <article className={styles.netWorthCard}>
+                  <span>Net worth</span>
+                  <strong>{hasData ? money(analysis.netWorth) : "—"}</strong>
+                  <div className={styles.balanceSplit}>
+                    <div><span>Assets</span><b>{money(analysis.assets)}</b></div>
+                    <div><span>Debt</span><b>{money(analysis.debt)}</b></div>
+                  </div>
+                </article>
+                <article className={styles.nextMoveCard}>
+                  <div className={styles.cardEyebrow}>YOUR NEXT MOVE</div>
+                  {firstAction ? (
+                    <><h2>{firstAction.title}</h2><strong>{money(firstAction.amount)}</strong><p>{firstAction.reason}</p></>
+                  ) : (
+                    <><h2>Build your financial map</h2><strong>Start here</strong><p>Add income, spending, accounts, and debt so Solpient can calculate your first move.</p></>
+                  )}
+                  <button type="button" onClick={() => setView(firstAction?.kind === "debt" ? "debt" : "cashflow")}>Review plan →</button>
+                </article>
+              </section>
+
+              <section className={styles.snapshotGrid}>
+                <article><span>Monthly surplus</span><strong>{hasData ? money(analysis.freeCashFlow) : "—"}</strong><small>{hasData ? percent(analysis.savingsRate) + " savings rate" : "Income minus spending"}</small></article>
+                <article><span>Liquid cash</span><strong>{hasData ? money(analysis.liquidCash) : "—"}</strong><small>{analysis.emergencyMonths.toFixed(1)} months of runway</small></article>
+                <article><span>Highest APR</span><strong>{hasData ? analysis.highestConsumerApr.toFixed(1) + "%" : "—"}</strong><small>{debtWithHighestApr?.name ?? "No consumer debt"}</small></article>
+                <article><span>Active goals</span><strong>{analysis.activeGoalCount}</strong><small>{state.goals.length ? "Track progress and target dates" : "No goals added"}</small></article>
+              </section>
+
+              <section className={styles.decisionGrid}>
+                <article className={styles.planCard}>
+                  <div className={styles.sectionHeader}><div><span className={styles.kicker}>PLAN</span><h2>Next Best Dollar</h2></div><button type="button" onClick={() => setView("cashflow")}>Edit assumptions</button></div>
+                  <div className={styles.planList}>
+                    {analysis.nextDollarActions.slice(0, 4).map((action, index) => (
+                      <div key={action.id}><span>{index + 1}</span><div><strong>{action.title}</strong><small>{action.reason}</small></div><b>{money(action.amount)}</b></div>
+                    ))}
+                    {!analysis.nextDollarActions.length ? <p className={styles.empty}>No plan yet. Add your financial data.</p> : null}
+                  </div>
+                </article>
+                <article className={styles.insightCard} data-tone={insight.tone}>
+                  <span className={styles.kicker}>WHAT MATTERS NOW</span><h2>{insight.title}</h2><p>{insight.body}</p>
+                  <div className={styles.healthLine}>
+                    <div><span>Emergency reserve</span><strong>{analysis.emergencyMonths.toFixed(1)} / {emergencyTarget} months</strong></div>
+                    <div className={styles.progress}><i style={{ width: reserveProgress + "%" }} /></div>
+                  </div>
+                </article>
+              </section>
+
+              <section className={styles.lowerGrid}>
+                <article className={styles.cashCard}>
+                  <div className={styles.sectionHeader}><div><span className={styles.kicker}>MONEY FLOW</span><h2>Where the month is going</h2></div><button type="button" onClick={() => setView("cashflow")}>View transactions</button></div>
+                  <div className={styles.flowBar}>
+                    <div><span>Income</span><strong>{money(analysis.monthlyIncome)}</strong></div>
+                    <div><span>Spending</span><strong>{money(analysis.monthlyExpenses)}</strong></div>
+                    <div><span>Left over</span><strong>{money(analysis.freeCashFlow)}</strong></div>
+                  </div>
+                  <div className={styles.spendingList}>
+                    {analysis.topSpending.slice(0, 4).map((item) => (
+                      <div key={item.category}><span>{item.category}</span><div className={styles.miniBar}><i style={{ width: Math.min(100, item.share * 100) + "%" }} /></div><b>{money(item.amount)}</b></div>
+                    ))}
+                    {!analysis.topSpending.length ? <p className={styles.empty}>Add recent expenses to see spending patterns.</p> : null}
+                  </div>
+                </article>
+                <article className={styles.goalsPreview}>
+                  <div className={styles.sectionHeader}><div><span className={styles.kicker}>GOALS</span><h2>What your money is for</h2></div><button type="button" onClick={() => setView("goals")}>Manage</button></div>
+                  <div className={styles.goalPreviewList}>
+                    {state.goals.slice(0, 3).map((goal) => {
+                      const progress = goal.targetAmount > 0 ? Math.min(100, (goal.currentAmount / goal.targetAmount) * 100) : 0;
+                      return <div key={goal.id}><div><strong>{goal.name}</strong><small>{dateLabel(goal.targetDate)}</small></div><div className={styles.goalTrack}><i style={{ width: progress + "%" }} /></div><span>{Math.round(progress)}%</span></div>;
+                    })}
+                    {!state.goals.length ? <p className={styles.empty}>No goals yet. Add one to give surplus money a purpose.</p> : null}
+                  </div>
+                </article>
+              </section>
+
+              <section className={styles.coach}>
+                <div className={styles.coachIntro}><span className={styles.kicker}>ASK SOLPIENT</span><h2>Why is this my next move?</h2><p>The coach explains the deterministic plan. It does not replace the numbers underneath it.</p></div>
+                <div className={styles.coachBox}>
+                  <div className={styles.quickQuestions}>
+                    {["Why is this first?", "What improves my score fastest?", "Can I invest more this month?"].map((question) => <button type="button" key={question} onClick={() => askCoach(question)}>{question}</button>)}
+                  </div>
+                  <div className={styles.coachComposer}>
+                    <input value={coachQuestion} onChange={(event) => setCoachQuestion(event.target.value)} placeholder="Ask about your plan…" maxLength={600} />
+                    <button type="button" disabled={coachLoading || !coachQuestion.trim()} onClick={() => askCoach()}>{coachLoading ? "…" : "Ask"}</button>
+                  </div>
+                  {coachAnswer ? <div className={styles.coachAnswer}><span>{coachSource === "ai" ? "AI explanation" : "Rules explanation"}</span>{coachAnswer}</div> : null}
+                </div>
+              </section>
+            </div>
+          ) : null}
+
+          {view === "cashflow" ? (
+            <div className={styles.detailStack}>
+              <section className={styles.detailCard}>
+                <div className={styles.sectionHeader}><div><span className={styles.kicker}>BASELINE</span><h2>Monthly assumptions</h2></div><span className={styles.subtle}>Blank income/spending uses the last 31 days of transactions.</span></div>
+                <div className={styles.formGrid}>
+                  <NumberField label="Take-home income" value={state.settings.monthlyIncomeOverride} onChange={(value) => updateSettings("monthlyIncomeOverride", value)} />
+                  <NumberField label="Monthly spending" value={state.settings.monthlyExpensesOverride} onChange={(value) => updateSettings("monthlyExpensesOverride", value)} />
+                  <NumberField label="Retirement contribution" value={state.settings.monthlyRetirementContribution} onChange={(value) => updateSettings("monthlyRetirementContribution", value)} />
+                  <NumberField label="Uncaptured employer match" value={state.settings.uncapturedEmployerMatchMonthly} onChange={(value) => updateSettings("uncapturedEmployerMatchMonthly", value)} />
+                  <NumberField label="Emergency target" value={state.settings.emergencyTargetMonths} onChange={(value) => updateSettings("emergencyTargetMonths", Math.max(1, Math.min(12, value)))} suffix="months" />
+                </div>
+              </section>
+
+              <section className={styles.detailCard}>
+                <div className={styles.sectionHeader}><div><span className={styles.kicker}>TRANSACTIONS</span><h2>Recent money movement</h2></div><strong>{analysis.recentTransactionCount} recent</strong></div>
+                <div className={styles.addRowTransaction}>
+                  <TextField label="Date" value={transactionDraft.date} onChange={(value) => setTransactionDraft((current) => ({ ...current, date: value }))} type="date" />
+                  <TextField label="Description" value={transactionDraft.description} onChange={(value) => setTransactionDraft((current) => ({ ...current, description: value }))} placeholder="Paycheck, groceries…" />
+                  <NumberField label="Amount" value={transactionDraft.amount} onChange={(value) => setTransactionDraft((current) => ({ ...current, amount: value }))} />
+                  <SelectField label="Type" value={transactionDraft.direction} onChange={(value) => setTransactionDraft((current) => ({ ...current, direction: value }))} options={[{ value: "expense", label: "Expense" }, { value: "income", label: "Income" }, { value: "transfer", label: "Transfer" }]} />
+                  <TextField label="Category" value={transactionDraft.category} onChange={(value) => setTransactionDraft((current) => ({ ...current, category: value }))} placeholder="Food, housing…" />
+                  <button className={styles.addPrimary} type="button" onClick={addTransaction}>Add</button>
+                </div>
+                <div className={styles.table}>
+                  {state.transactions.slice(0, 20).map((transaction) => (
+                    <div className={styles.tableRow} key={transaction.id}><span>{dateLabel(transaction.date)}</span><div><strong>{transaction.description}</strong><small>{transaction.category}</small></div><b data-kind={transaction.direction}>{transaction.direction === "expense" ? "−" : transaction.direction === "income" ? "+" : ""}{money(transaction.amount)}</b><button type="button" onClick={() => remove("transactions", transaction.id)}>Remove</button></div>
+                  ))}
+                  {!state.transactions.length ? <p className={styles.empty}>No transactions yet.</p> : null}
+                </div>
+              </section>
+            </div>
+          ) : null}
+
+          {view === "debt" ? (
+            <div className={styles.detailStack}>
+              <section className={styles.detailCard}>
+                <div className={styles.sectionHeader}><div><span className={styles.kicker}>DEBT</span><h2>{money(analysis.debt)} outstanding</h2></div><span className={styles.subtle}>Highest consumer APR: {analysis.highestConsumerApr.toFixed(1)}%</span></div>
+                <div className={styles.itemCards}>
+                  {state.debts.map((debt) => <article key={debt.id}><div><span>{debtTypeLabels[debt.type]}</span><button type="button" onClick={() => remove("debts", debt.id)}>×</button></div><strong>{debt.name}</strong><b>{money(debt.balance)}</b><p>{debt.apr.toFixed(1)}% APR · minimum {money(debt.minimumPayment)}/mo</p></article>)}
+                  {!state.debts.length ? <p className={styles.empty}>No debts added.</p> : null}
+                </div>
+              </section>
+              <section className={styles.detailCard}>
+                <div className={styles.sectionHeader}><div><span className={styles.kicker}>ADD DEBT</span><h2>New liability</h2></div></div>
+                <div className={styles.formGrid}>
+                  <TextField label="Name" value={debtDraft.name} onChange={(value) => setDebtDraft((current) => ({ ...current, name: value }))} placeholder="Visa, mortgage…" />
+                  <SelectField label="Type" value={debtDraft.type} onChange={(value) => setDebtDraft((current) => ({ ...current, type: value }))} options={Object.entries(debtTypeLabels).map(([value, label]) => ({ value: value as DebtType, label }))} />
+                  <NumberField label="Balance" value={debtDraft.balance} onChange={(value) => setDebtDraft((current) => ({ ...current, balance: value }))} />
+                  <NumberField label="APR" value={debtDraft.apr} onChange={(value) => setDebtDraft((current) => ({ ...current, apr: value }))} suffix="%" />
+                  <NumberField label="Minimum payment" value={debtDraft.minimumPayment} onChange={(value) => setDebtDraft((current) => ({ ...current, minimumPayment: value }))} />
+                </div>
+                <button className={styles.addPrimary} type="button" onClick={addDebt}>Add debt</button>
+              </section>
+            </div>
+          ) : null}
+
+          {view === "goals" ? (
+            <div className={styles.detailStack}>
+              <section className={styles.detailCard}>
+                <div className={styles.sectionHeader}><div><span className={styles.kicker}>GOALS</span><h2>{analysis.activeGoalCount} active goals</h2></div></div>
+                <div className={styles.itemCards}>
+                  {state.goals.map((goal) => {
+                    const progress = goal.targetAmount > 0 ? Math.min(100, (goal.currentAmount / goal.targetAmount) * 100) : 0;
+                    return <article key={goal.id}><div><span>{goal.priority} priority</span><button type="button" onClick={() => remove("goals", goal.id)}>×</button></div><strong>{goal.name}</strong><b>{money(goal.currentAmount)} / {money(goal.targetAmount)}</b><p>{dateLabel(goal.targetDate)}</p><div className={styles.goalTrack}><i style={{ width: progress + "%" }} /></div></article>;
+                  })}
+                  {!state.goals.length ? <p className={styles.empty}>No goals added.</p> : null}
+                </div>
+              </section>
+              <section className={styles.detailCard}>
+                <div className={styles.sectionHeader}><div><span className={styles.kicker}>ADD GOAL</span><h2>Give your surplus a purpose</h2></div></div>
+                <div className={styles.formGrid}>
+                  <TextField label="Goal" value={goalDraft.name} onChange={(value) => setGoalDraft((current) => ({ ...current, name: value }))} placeholder="Trip, home repair…" />
+                  <NumberField label="Target" value={goalDraft.targetAmount} onChange={(value) => setGoalDraft((current) => ({ ...current, targetAmount: value }))} />
+                  <NumberField label="Already saved" value={goalDraft.currentAmount} onChange={(value) => setGoalDraft((current) => ({ ...current, currentAmount: value }))} />
+                  <TextField label="Target date" value={goalDraft.targetDate} onChange={(value) => setGoalDraft((current) => ({ ...current, targetDate: value }))} type="date" />
+                  <SelectField label="Priority" value={goalDraft.priority} onChange={(value) => setGoalDraft((current) => ({ ...current, priority: value }))} options={[{ value: "high", label: "High" }, { value: "medium", label: "Medium" }, { value: "low", label: "Low" }]} />
+                </div>
+                <button className={styles.addPrimary} type="button" onClick={addGoal}>Add goal</button>
+              </section>
+            </div>
+          ) : null}
+
+          {view === "accounts" ? (
+            <div className={styles.detailStack}>
+              <section className={styles.detailCard}>
+                <div className={styles.sectionHeader}><div><span className={styles.kicker}>ACCOUNTS</span><h2>{money(analysis.assets)} in assets</h2></div></div>
+                <div className={styles.itemCards}>
+                  {state.accounts.map((account) => <article key={account.id}><div><span>{accountTypeLabels[account.type]}</span><button type="button" onClick={() => remove("accounts", account.id)}>×</button></div><strong>{account.name}</strong><b>{money(account.balance)}</b></article>)}
+                  {!state.accounts.length ? <p className={styles.empty}>No accounts added.</p> : null}
+                </div>
+              </section>
+              <section className={styles.detailCard}>
+                <div className={styles.sectionHeader}><div><span className={styles.kicker}>ADD ACCOUNT</span><h2>New asset</h2></div></div>
+                <div className={styles.formGrid}>
+                  <TextField label="Account name" value={accountDraft.name} onChange={(value) => setAccountDraft((current) => ({ ...current, name: value }))} placeholder="Checking, TSP, brokerage…" />
+                  <SelectField label="Type" value={accountDraft.type} onChange={(value) => setAccountDraft((current) => ({ ...current, type: value }))} options={Object.entries(accountTypeLabels).map(([value, label]) => ({ value: value as MoneyAccountType, label }))} />
+                  <NumberField label="Balance" value={accountDraft.balance} onChange={(value) => setAccountDraft((current) => ({ ...current, balance: value }))} />
+                </div>
+                <button className={styles.addPrimary} type="button" onClick={addAccount}>Add account</button>
+              </section>
+            </div>
+          ) : null}
         </section>
       </main>
-
-      <footer className={styles.footer}>
-        <div><strong>SOLPIENT</strong><span>See clearly. Decide deliberately.</span></div>
-        <span>Money v2 · local-first · deterministic planning · privacy-safe coach</span>
-      </footer>
     </div>
   );
 }
