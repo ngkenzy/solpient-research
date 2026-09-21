@@ -13,11 +13,12 @@ type Candidate = PortfolioCandidate & {
   rank:number|null;
 };
 
-const money=(v:unknown)=>Number.isFinite(Number(v))
+const present=(v:unknown)=>v!==null&&v!==undefined&&v!==""&&Number.isFinite(Number(v));
+const money=(v:unknown)=>present(v)
   ?new Intl.NumberFormat("en-US",{style:"currency",currency:"USD",maximumFractionDigits:0}).format(Number(v))
   :"—";
-const pct=(v:unknown,d=1)=>Number.isFinite(Number(v))?Number(v).toFixed(d)+"%":"—";
-const score=(v:unknown)=>Number.isFinite(Number(v))?Number(v).toFixed(1):"—";
+const pct=(v:unknown,d=1)=>present(v)?Number(v).toFixed(d)+"%":"—";
+const score=(v:unknown)=>present(v)?Number(v).toFixed(1):"—";
 const label=(v:unknown)=>String(v??"").replaceAll("_"," ").replace(/\b\w/g,c=>c.toUpperCase());
 const num=(v:string)=>{const x=Number(v.replaceAll(",",""));return Number.isFinite(x)?x:0;};
 
