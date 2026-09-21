@@ -47,7 +47,10 @@
     "test:marketbeat-capital": "node scripts/test-marketbeat-capital-intelligence.mjs",
     "bootstrap:company": "node scripts/bootstrap-company.mjs",
     "repair:queue": "node scripts/build-research-repair-queue.mjs",
-    "repair:process": "node scripts/process-research-repairs.mjs"
+    "repair:process": "node scripts/process-research-repairs.mjs",
+    "test:company-change": "node scripts/test-company-change-engine.mjs",
+    "changes:capture": "node scripts/build-company-change-events.mjs",
+    "changes:backfill": "node scripts/backfill-research-change-events.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.4",
