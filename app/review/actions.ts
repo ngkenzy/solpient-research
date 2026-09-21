@@ -18,6 +18,8 @@ import { composeResearchV1, RESEARCH_COMPOSER_VERSION } from "@/lib/research-com
 import { validateResearchStandard } from "@/lib/research-standard.mjs";
 // @ts-expect-error Node ESM research helper
 import { buildCompanyHistory } from "@/lib/historical-peer-engine.mjs";
+// @ts-expect-error Node ESM research helper
+import { buildReferencePeerContext } from "@/lib/reference-peer-data.mjs";
 
 export async function unlockReviewAction(formData:FormData) {
   const ok=await unlockReviewAccess(String(formData.get("key") ?? ""));
@@ -180,6 +182,43 @@ export async function buildCompanyReviewAction(formData:FormData) {
 
   const company=companyResult.data;
   if (!company) redirect("/review?error=company-not-found");
+  const now=new Date().toISOString();
+
+  let contextForComposition:any=contextResult.data ?? {};
+  try {
+    const peerContext=await buildReferencePeerContext({ticker:company.ticker,asOfDate:now.slice(0,10)});
+    const availablePeers=peerContext.peerComparison.filter((peer:any)=>peer.data_status==="available").length;
+    if (peerContext.snapshotRows.length) {
+      const rows=peerContext.snapshotRows.map((row:any)=>({...row,company_id:company.id}));
+      for (let i=0;i<rows.length;i+=400) {
+        const {error}=await supabase.from("peer_metric_snapshots").upsert(rows.slice(i,i+400),{
+          onConflict:"company_id,peer_ticker,metric_key,as_of_date"
+        });
+        if (error) throw error;
+      }
+    }
+    contextForComposition={
+      ...contextForComposition,
+      peer_set:peerContext.peerSet,
+      peer_comparison:peerContext.peerComparison,
+      summary:{
+        ...(contextForComposition.summary ?? {}),
+        configured_peers:peerContext.peerSet.length,
+        peers_with_local_data:availablePeers,
+      },
+    };
+    if (contextResult.data?.id) {
+      const {error}=await supabase.from("research_context_packs").update({
+        peer_set:peerContext.peerSet,
+        peer_comparison:peerContext.peerComparison,
+        summary:contextForComposition.summary,
+        updated_at:now,
+      }).eq("id",contextResult.data.id);
+      if (error) throw error;
+    }
+  } catch {
+    // Peer enrichment is best-effort. Decision-grade validation will keep publication blocked if coverage remains insufficient.
+  }
 
   const history=buildCompanyHistory({
     company,
@@ -207,18 +246,16 @@ export async function buildCompanyReviewAction(formData:FormData) {
       context_pack_id:contextResult.data.id,
       context_version:contextResult.data.context_version,
       as_of_date:contextResult.data.as_of_date,
-      history_coverage:contextResult.data.history_coverage,
-      trends:contextResult.data.trends,
-      latest_metrics:contextResult.data.latest_metrics,
-      peer_set:contextResult.data.peer_set,
-      peer_comparison:contextResult.data.peer_comparison,
-      capital_allocation:contextResult.data.capital_allocation,
-      limitations:contextResult.data.limitations,
-      summary:contextResult.data.summary,
+      history_coverage:contextForComposition.history_coverage,
+      trends:contextForComposition.trends,
+      latest_metrics:contextForComposition.latest_metrics,
+      peer_set:contextForComposition.peer_set,
+      peer_comparison:contextForComposition.peer_comparison,
+      capital_allocation:contextForComposition.capital_allocation,
+      limitations:contextForComposition.limitations,
+      summary:contextForComposition.summary,
     };
   }
-
-  const now=new Date().toISOString();
   const {data:draft,error:draftError}=await supabase.from("baseline_drafts").upsert({
     company_id:company.id,
     generation_version:BASELINE_FACTORY_VERSION,
@@ -239,7 +276,7 @@ export async function buildCompanyReviewAction(formData:FormData) {
   const composition=composeResearchV1({
     company,
     baselinePayload:draft.draft_payload,
-    contextPack:contextResult.data ?? {},
+    contextPack:contextForComposition,
     valuationHistory:history.valuations ?? [],
     asOfDate:now.slice(0,10),
   });
