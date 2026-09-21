@@ -4,6 +4,8 @@ import { getSupabase } from "@/lib/supabase";
 import { CompanyIntelligence } from "@/components/CompanyIntelligence";
 import { CompanyPerformanceHistory } from "@/components/CompanyPerformanceHistory";
 import { AdvancedResearchModules } from "@/components/AdvancedResearchModules";
+import { ValuationBridge } from "@/components/ValuationBridge";
+import { ResearchCoveragePanel } from "@/components/ResearchCoveragePanel";
 import { ResearchControls } from "@/components/ResearchControls";
 import { PredictionHistory } from "@/components/PredictionHistory";
 import { SolpientBrand } from "@/components/SolpientBrand";
@@ -547,6 +549,15 @@ export default async function CompanyResearch({
             </div>
           </article>
         </section>
+
+        <ValuationBridge
+          companyId={company.id}
+          researchRunId={run.id}
+          ticker={company.ticker}
+          currentPrice={currentPrice}
+        />
+
+        <ResearchCoveragePanel companyId={company.id} />
 
         <ResearchStandardV2 researchRunId={run.id} />
 
