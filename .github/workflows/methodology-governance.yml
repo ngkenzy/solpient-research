@@ -4,7 +4,8 @@ on:
   pull_request:
     paths:
       - "lib/methodology-governance.mjs"
-      - "lib/methodology-activation-v1.mjs"\n      - "lib/methodology-implementation-hash.mjs"
+      - "lib/methodology-activation-v1.mjs"
+      - "lib/methodology-implementation-hash.mjs"
       - "methodologies/catalog.json"
       - "scripts/test-methodology-governance.mjs"
       - "scripts/test-methodology-activation-v1.mjs"
@@ -13,7 +14,9 @@ on:
       - "scripts/register-methodologies.mjs"
       - "scripts/govern-methodology.mjs"
       - "supabase/migrations/20260921230000_methodology_registry_governance.sql"
-      - "supabase/tests/methodology_governance.sql"\n      - "supabase/migrations/20260922032500_methodology_activation_v1_1_hardening.sql"\n      - "supabase/tests/methodology_activation_v1_1.sql"
+      - "supabase/tests/methodology_governance.sql"
+      - "supabase/migrations/20260922032500_methodology_activation_v1_1_hardening.sql"
+      - "supabase/tests/methodology_activation_v1_1.sql"
       - "app/review/methodologies/page.tsx"
       - "docs/METHODOLOGY_GOVERNANCE.md"
       - ".github/workflows/methodology-governance.yml"
