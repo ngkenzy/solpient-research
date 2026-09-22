@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getSupabase } from "@/lib/supabase";
+import { loadResearchHealthData } from "@/lib/repositories/research-health";
 import { SolpientBrand } from "@/components/SolpientBrand";
 import { ResearchHealthDashboard } from "@/components/ResearchHealthDashboard";
 import styles from "./research-health.module.css";
@@ -7,31 +7,28 @@ import styles from "./research-health.module.css";
 export const dynamic = "force-dynamic";
 
 export default async function ResearchHealthPage() {
-  const supabase=getSupabase();
+  const data=await loadResearchHealthData();
 
-  if(!supabase){
+  if(!data){
     return(
       <main className={styles.offline}>
         <strong>SOLPIENT</strong>
         <h1>Research Health & Repair Center</h1>
-        <p>Supabase is not configured for this deployment.</p>
+        <p>No Solpient data source is configured for this deployment.</p>
         <Link href="/">Return home →</Link>
       </main>
     );
   }
 
-  const [companiesR,coverageR,jobsR,automationR]=await Promise.all([
-    supabase.from("companies").select("id,ticker,company_name,sector").order("ticker"),
-    supabase.from("data_coverage_reports").select("*").eq("engine_version","coverage-v2").order("as_of_date",{ascending:false}).order("generated_at",{ascending:false}),
-    supabase.from("research_repair_jobs").select("id,company_id,layer,field,repair_type,automation_mode,status,priority,reason,attempt_count,last_error,updated_at").order("priority",{ascending:false}),
-    supabase.from("automation_runs").select("pipeline,completed_at,status,records_written").eq("pipeline","research_repair_center").order("started_at",{ascending:false}).limit(1).maybeSingle(),
-  ]);
+  const companies=data.companies;
+  const coverage=data.coverage;
+  const jobs=data.jobs;
+  const latestRepairRun=data.latestRepairRun;
 
-  const companies=companiesR.data??[];
   const latestCoverage=new Map<string,any>();
-  for(const row of coverageR.data??[])if(!latestCoverage.has(row.company_id))latestCoverage.set(row.company_id,row);
+  for(const row of coverage)if(!latestCoverage.has(row.company_id))latestCoverage.set(row.company_id,row);
   const jobsByCompany=new Map<string,any[]>();
-  for(const job of jobsR.data??[]){
+  for(const job of jobs){
     const rows=jobsByCompany.get(job.company_id)??[];
     rows.push(job);
     jobsByCompany.set(job.company_id,rows);
@@ -100,7 +97,7 @@ export default async function ResearchHealthPage() {
       <main className={styles.main}>
         <ResearchHealthDashboard
           rows={rows}
-          latestRepairRun={automationR.data??null}
+          latestRepairRun={latestRepairRun}
         />
       </main>
 
