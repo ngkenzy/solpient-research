@@ -1,5 +1,5 @@
 import process from "node:process";
-import { createClient } from "@supabase/supabase-js";
+import { createPostgresCompatClient } from "../lib/pg-supabase-compat.mjs";
 import { composeResearchV1, RESEARCH_COMPOSER_VERSION } from "../lib/research-composer.mjs";
 import { applyReviewPatch } from "../lib/review-workbench.mjs";
 import { validateResearchStandard } from "../lib/research-standard.mjs";
@@ -7,7 +7,7 @@ import { validateResearchStandard } from "../lib/research-standard.mjs";
 const url=process.env.SUPABASE_URL;
 const secret=process.env.SUPABASE_SECRET_KEY||process.env.SUPABASE_SERVICE_ROLE_KEY;
 if(!url||!secret)throw new Error("Missing SUPABASE_URL and server secret.");
-const sb=createClient(url,secret,{auth:{persistSession:false,autoRefreshToken:false}});
+const sb=createPostgresCompatClient();
 
 const tickerArg=process.argv.find((v)=>v.startsWith("--ticker="))?.split("=")[1]?.toUpperCase()??null;
 const {data:drafts,error:draftError}=await sb.from("baseline_drafts").select("*").in("status",["generated","ready_for_review"]).order("generated_at",{ascending:false});
