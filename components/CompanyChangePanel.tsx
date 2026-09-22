@@ -1,4 +1,5 @@
 import { getSupabase } from "@/lib/supabase";
+import { databaseConfigured, dbQuery } from "@/lib/db";
 import styles from "./CompanyChangePanel.module.css";
 
 function n(value:unknown){
@@ -50,21 +51,44 @@ export async function CompanyChangePanel({
   ticker:string;
   asOf?:string|null;
 }) {
-  const supabase=getSupabase();
-  if(!supabase)return null;
-
-  let eventQuery=supabase
-    .from("company_change_events")
-    .select("*")
-    .eq("company_id",companyId)
-    .eq("research_run_id",researchRunId);
-  if(asOf)eventQuery=eventQuery.lte("created_at",asOf);
-  const {data:events}=await eventQuery
-    .order("occurred_at",{ascending:false})
-    .order("created_at",{ascending:false})
-    .limit(16);
-
-  const rows=events??[];
+  let rows:any[]=[];
+  if(databaseConfigured()){
+    rows=await dbQuery<any>(
+      asOf
+        ? `
+            select *
+            from public.company_change_events
+            where company_id=$1
+              and research_run_id=$2
+              and created_at <= $3::timestamptz
+            order by occurred_at desc, created_at desc
+            limit 16
+          `
+        : `
+            select *
+            from public.company_change_events
+            where company_id=$1
+              and research_run_id=$2
+            order by occurred_at desc, created_at desc
+            limit 16
+          `,
+      asOf?[companyId,researchRunId,asOf]:[companyId,researchRunId],
+    );
+  }else{
+    const supabase=getSupabase();
+    if(!supabase)return null;
+    let eventQuery=supabase
+      .from("company_change_events")
+      .select("*")
+      .eq("company_id",companyId)
+      .eq("research_run_id",researchRunId);
+    if(asOf)eventQuery=eventQuery.lte("created_at",asOf);
+    const {data:events}=await eventQuery
+      .order("occurred_at",{ascending:false})
+      .order("created_at",{ascending:false})
+      .limit(16);
+    rows=events??[];
+  }
   const trend=overallTrend(rows);
   const counts={
     improving:rows.filter(e=>e.decision_impact==="improving").length,
