@@ -121,12 +121,56 @@ for(const job of grouped.get("market_context")??[]){
 }
 
 if((grouped.get("peer_context")??[]).length)contextNeeded=true;
+if((grouped.get("capital_history")??[]).length)contextNeeded=true;
 
 if(contextNeeded){
-  const contextJobs=jobs.filter(j=>["fundamentals","market_context","peer_context"].includes(j.runner));
+  const contextJobs=jobs.filter(j=>["fundamentals","market_context","peer_context","capital_history"].includes(j.runner));
   await attempt("historical_peer_context",
     ()=>runNode("scripts/build-historical-peer-context.mjs"),
     contextJobs.map(j=>j.id));
+}
+
+for(const job of grouped.get("autonomous_industry")??[]){
+  const ticker=tickerById.get(job.company_id);
+  if(!ticker){failures.set(job.id,"Company ticker unavailable.");continue;}
+  await attempt(
+    "autonomous_industry:"+ticker,
+    ()=>runNode("scripts/assign-research-factory-industry-v2-1.mjs",{
+      RESEARCH_FACTORY_TICKER:ticker,
+    }),
+    [job.id]
+  );
+  contextNeeded=true;
+}
+
+if((grouped.get("autonomous_industry")??[]).length){
+  const industryJobs=grouped.get("autonomous_industry")??[];
+  await attempt(
+    "historical_peer_context_after_industry",
+    ()=>runNode("scripts/build-historical-peer-context.mjs"),
+    industryJobs.map(j=>j.id)
+  );
+  for(const job of industryJobs){
+    const ticker=tickerById.get(job.company_id);
+    if(!ticker)continue;
+    await attempt(
+      "coverage_after_industry:"+ticker,
+      ()=>runNode("scripts/build-data-coverage.mjs",{COVERAGE_TICKER:ticker}),
+      [job.id]
+    );
+  }
+}
+
+for(const job of grouped.get("autonomous_valuation")??[]){
+  const ticker=tickerById.get(job.company_id);
+  if(!ticker){failures.set(job.id,"Company ticker unavailable.");continue;}
+  await attempt(
+    "autonomous_valuation:"+ticker,
+    ()=>runNode("scripts/build-autonomous-valuation-pack-v2-1.mjs",{
+      RESEARCH_FACTORY_TICKER:ticker,
+    }),
+    [job.id]
+  );
 }
 
 for(const job of jobs){
