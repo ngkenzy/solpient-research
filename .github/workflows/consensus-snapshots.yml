@@ -2,12 +2,6 @@ name: Consensus Snapshot Refresh
 
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths:
-      - "scripts/sync-marketbeat-consensus.mjs"
-      - ".github/workflows/consensus-snapshots.yml"
-
 concurrency:
   group: consensus-snapshot-refresh
   cancel-in-progress: false
