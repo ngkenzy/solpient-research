@@ -2,7 +2,13 @@ import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
 import { createClient } from "@supabase/supabase-js";
-import { buildMethodologyValidationBundle, SCREEN_MATERIALIZATION_STACK, methodologyStackStatus, METHODOLOGY_ACTIVATION_VERSION } from "../lib/methodology-activation-v1.mjs";
+import {
+  buildMethodologyValidationBundle,
+  SCREEN_MATERIALIZATION_STACK,
+  methodologyStackStatus,
+  METHODOLOGY_ACTIVATION_VERSION,
+} from "../lib/methodology-activation-v1.mjs";
+import { buildMethodologyImplementationFingerprint } from "../lib/methodology-implementation-hash.mjs";
 import { canonicalSha256, CANONICALIZATION_VERSION } from "../lib/integrity-hash.mjs";
 import {
   UNIVERSE_SCREENING_VERSION,
@@ -21,6 +27,7 @@ const dryRun=process.argv.includes("--dry-run");
 const acknowledgeReviewItems=process.argv.includes("--acknowledge-review-items");
 const acknowledgeClassificationReviewQueue=process.argv.includes("--acknowledge-classification-review-queue");
 const limit=Math.max(1,Number(arg("limit",process.env.SOLPIENT_100_LIMIT??100))||100);
+const minInputCount=Math.max(1,Number(arg("min-input-count","1000"))||1000);
 const providerArg=arg("provider",process.env.UNIVERSE_PROVIDER??null);
 const asOfArg=arg("as-of",process.env.UNIVERSE_AS_OF_AT??null);
 
@@ -31,7 +38,8 @@ function parseInput(filePath){
   const ext=path.extname(filePath).toLowerCase();
   if(ext===".jsonl"||ext===".ndjson"){
     const rows=raw.split(/\r?\n/).map(x=>x.trim()).filter(Boolean).map((line,i)=>{
-      try{return JSON.parse(line);}catch(error){throw new Error("Invalid JSONL at line "+(i+1)+": "+error.message);}
+      try{return JSON.parse(line);}
+      catch(error){throw new Error("Invalid JSONL at line "+(i+1)+": "+error.message);}
     });
     return{rows,metadata:{}};
   }
@@ -59,8 +67,17 @@ for(const [index,row] of parsed.rows.entries()){
 }
 
 const provider=providerArg??parsed.metadata.provider??"unknown-provider";
-const asOfAt=asOfArg??parsed.metadata.as_of_at??new Date().toISOString();
-if(!Number.isFinite(new Date(asOfAt).getTime()))throw new Error("Invalid as-of timestamp: "+asOfAt);
+const requestedAsOf=asOfArg??parsed.metadata.as_of_at??null;
+if(!dryRun&&!requestedAsOf){
+  throw new Error(
+    "Production materialization requires an explicit --as-of timestamp or input metadata.as_of_at. "+
+    "A current-time fallback is not allowed for immutable screening history."
+  );
+}
+if(requestedAsOf&&!Number.isFinite(new Date(requestedAsOf).getTime())){
+  throw new Error("Invalid as-of timestamp: "+requestedAsOf);
+}
+const asOfAt=requestedAsOf?new Date(requestedAsOf).toISOString():null;
 
 const normalizedRows=[...parsed.rows]
   .map(row=>({...row,ticker:String(row.ticker).trim().toUpperCase()}))
@@ -68,6 +85,7 @@ const normalizedRows=[...parsed.rows]
 
 const validationBundle=buildMethodologyValidationBundle(normalizedRows,{
   limit,
+  minInputCount,
   acknowledgeReviewItems,
   acknowledgeClassificationReviewQueue,
 });
@@ -77,10 +95,12 @@ const inputHash=canonicalSha256({
   selection_version:UNIVERSE_SELECTION_VERSION,
   canonicalization_version:CANONICALIZATION_VERSION,
   provider,
-  as_of_at:new Date(asOfAt).toISOString(),
+  as_of_at:asOfAt,
   limit,
+  min_input_count:minInputCount,
   activation_version:METHODOLOGY_ACTIVATION_VERSION,
   validation_hash:validationBundle.validation_hash,
+  universe_input_hash:validationBundle.universe_input_hash,
   rows:normalizedRows,
 });
 
@@ -97,13 +117,16 @@ const preview={
   methodology_version:UNIVERSE_SCREENING_VERSION,
   selection_version:UNIVERSE_SELECTION_VERSION,
   provider,
-  as_of_at:new Date(asOfAt).toISOString(),
+  as_of_at:asOfAt,
   input_hash:inputHash,
+  universe_input_hash:validationBundle.universe_input_hash,
   input_count:normalizedRows.length,
+  min_input_count:minInputCount,
   counts,
   validation_gate:{
     ready:validationBundle.ready,
     validation_hash:validationBundle.validation_hash,
+    universe_input_hash:validationBundle.universe_input_hash,
     qa_status:validationBundle.qa_status,
     qa_blockers:validationBundle.qa_blockers,
     qa_review_items:validationBundle.qa_review_items,
@@ -151,11 +174,13 @@ const {data:methodologyDefinitions,error:methodologyDefinitionsError}=await sb
   .select("*")
   .in("methodology_key",stackKeys);
 if(methodologyDefinitionsError)throw methodologyDefinitionsError;
+
 const methodologyDefinitionIds=(methodologyDefinitions??[]).map(x=>x.id);
 const {data:methodologyEvents,error:methodologyEventsError}=methodologyDefinitionIds.length
   ?await sb.from("methodology_lifecycle_events").select("*").in("methodology_definition_id",methodologyDefinitionIds)
   :{data:[],error:null};
 if(methodologyEventsError)throw methodologyEventsError;
+
 const activeStack=methodologyStackStatus(
   methodologyDefinitions??[],
   methodologyEvents??[],
@@ -164,9 +189,33 @@ const activeStack=methodologyStackStatus(
 if(!activeStack.ready){
   throw new Error(
     "Universe materialization requires the exact active methodology stack. Missing="+
-    activeStack.missing.join(",")+
-    " inactive="+JSON.stringify(activeStack.inactive)
+    activeStack.missing.join(",")+" inactive="+JSON.stringify(activeStack.inactive)
   );
+}
+
+for(const row of activeStack.rows){
+  const def=(methodologyDefinitions??[]).find(d=>d.id===row.definition_id);
+  const currentFingerprint=buildMethodologyImplementationFingerprint(def?.manifest??def);
+  if(!row.implementation_hash||
+     row.implementation_hash!==currentFingerprint.implementation_hash){
+    throw new Error(
+      "Universe materialization blocked by implementation drift: "+
+      row.methodology_key+" "+row.version
+    );
+  }
+  if(row.active_event?.metadata?.implementation_hash!==row.implementation_hash){
+    throw new Error(
+      "Active methodology event is not bound to its implementation hash: "+
+      row.methodology_key+" "+row.version
+    );
+  }
+  if(row.active_event?.metadata?.validation_hash!==validationBundle.validation_hash||
+     row.active_event?.metadata?.universe_input_hash!==validationBundle.universe_input_hash){
+    throw new Error(
+      "Universe materialization input does not match the exact bundle used for methodology activation: "+
+      row.methodology_key+" "+row.version
+    );
+  }
 }
 
 const {data:existing,error:existingError}=await sb
@@ -187,46 +236,8 @@ if(existing){
   process.exit(0);
 }
 
-const {data:run,error:runError}=await sb.from("universe_screen_runs").insert({
-  as_of_at:new Date(asOfAt).toISOString(),
-  methodology_version:UNIVERSE_SCREENING_VERSION,
-  selection_version:UNIVERSE_SELECTION_VERSION,
-  provider,
-  input_hash:inputHash,
-  input_count:normalizedRows.length,
-  result_count:screened.length,
-  excluded_count:counts.excluded,
-  watch_count:counts.watch,
-  research_candidate_count:counts.research_candidate,
-  solpient_100_candidate_count:counts.solpient_100_candidate,
-  proposed_deep_research_count:counts.proposed_deep_research,
-  metadata:{
-    source_version:parsed.metadata.source_version,
-    universe_name:parsed.metadata.universe_name,
-    canonicalization_version:CANONICALIZATION_VERSION,
-    shortlist_limit:limit,
-    sector_evidence_model_version:screened[0]?.sectorEvidenceModelVersion??null,
-    methodology_activation_version:METHODOLOGY_ACTIVATION_VERSION,
-    validation_hash:validationBundle.validation_hash,
-    qa_version:validationBundle.qa_version,
-    qa_status:validationBundle.qa_status,
-    qa_blockers:validationBundle.qa_blockers,
-    qa_review_items:validationBundle.qa_review_items,
-    classification_review_required_count:validationBundle.classification.review_required_count,
-    classification_unresolved_count:validationBundle.classification.unresolved_count,
-    classification_obvious_unknown_count:validationBundle.classification.obvious_unknown_count,
-    active_methodology_stack:activeStack.rows.map(x=>({
-      methodology_key:x.methodology_key,
-      version:x.version,
-      lifecycle_state:x.lifecycle_state,
-    })),
-  },
-}).select("id").single();
-if(runError)throw runError;
-
 const resultRows=screened.map(result=>{
   const payload={
-    universe_screen_run_id:run.id,
     ticker:result.ticker,
     company_name:result.companyName,
     sector:result.sector,
@@ -262,13 +273,69 @@ const resultRows=screened.map(result=>{
   return{...payload,result_hash:canonicalSha256(payload)};
 });
 
-for(let i=0;i<resultRows.length;i+=500){
-  const {error}=await sb.from("universe_screen_results").insert(resultRows.slice(i,i+500));
-  if(error)throw error;
+const runPayload={
+  as_of_at:asOfAt,
+  methodology_version:UNIVERSE_SCREENING_VERSION,
+  selection_version:UNIVERSE_SELECTION_VERSION,
+  provider,
+  input_hash:inputHash,
+  input_count:normalizedRows.length,
+  result_count:resultRows.length,
+  excluded_count:counts.excluded,
+  watch_count:counts.watch,
+  research_candidate_count:counts.research_candidate,
+  solpient_100_candidate_count:counts.solpient_100_candidate,
+  proposed_deep_research_count:counts.proposed_deep_research,
+  metadata:{
+    source_version:parsed.metadata.source_version,
+    universe_name:parsed.metadata.universe_name,
+    canonicalization_version:CANONICALIZATION_VERSION,
+    shortlist_limit:limit,
+    minimum_universe_size:minInputCount,
+    sector_evidence_model_version:screened[0]?.sectorEvidenceModelVersion??null,
+    methodology_activation_version:METHODOLOGY_ACTIVATION_VERSION,
+    validation_hash:validationBundle.validation_hash,
+    universe_input_hash:validationBundle.universe_input_hash,
+    qa_version:validationBundle.qa_version,
+    qa_status:validationBundle.qa_status,
+    qa_blockers:validationBundle.qa_blockers,
+    qa_review_items:validationBundle.qa_review_items,
+    classification_review_required_count:validationBundle.classification.review_required_count,
+    classification_unresolved_count:validationBundle.classification.unresolved_count,
+    classification_obvious_unknown_count:validationBundle.classification.obvious_unknown_count,
+    active_methodology_stack:activeStack.rows.map(x=>({
+      methodology_key:x.methodology_key,
+      version:x.version,
+      lifecycle_state:x.lifecycle_state,
+      implementation_hash:x.implementation_hash,
+      activation_commit_sha:x.active_event?.commit_sha??null,
+    })),
+    atomic_publication:true,
+  },
+};
+
+const {data:runId,error:publishError}=await sb.rpc(
+  "publish_universe_screen_package_v1_1",
+  {p_run:runPayload,p_results:resultRows}
+);
+if(publishError)throw publishError;
+
+const {count:publishedResultCount,error:countError}=await sb
+  .from("universe_screen_results")
+  .select("id",{count:"exact",head:true})
+  .eq("universe_screen_run_id",runId);
+if(countError)throw countError;
+if(publishedResultCount!==resultRows.length){
+  throw new Error(
+    "Post-publication verification failed: expected "+resultRows.length+
+    " results, found "+publishedResultCount+"."
+  );
 }
 
 console.log(JSON.stringify({
   ...preview,
   materialized:true,
-  universe_screen_run_id:run.id,
+  atomic_publication:true,
+  universe_screen_run_id:runId,
+  published_result_count:publishedResultCount,
 },null,2));
