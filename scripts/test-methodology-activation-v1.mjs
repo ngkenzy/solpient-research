@@ -46,6 +46,7 @@ const accepted=buildMethodologyValidationBundle(rows,{
   limit:10,
   minInputCount:10,
   acknowledgeReviewItems:true,
+  acknowledgeClassificationReviewQueue:true,
 });
 assert.equal(accepted.ready,true);
 assert.match(accepted.validation_hash,/^[0-9a-f]{64}$/);
@@ -57,6 +58,7 @@ const tooSmall=buildMethodologyValidationBundle(rows,{
   limit:10,
   minInputCount:1000,
   acknowledgeReviewItems:true,
+  acknowledgeClassificationReviewQueue:true,
 });
 assert.equal(tooSmall.ready,false);
 assert.equal(tooSmall.acceptance.full_universe_size,false);
@@ -76,6 +78,7 @@ const unknownBundle=buildMethodologyValidationBundle(unknownRows,{
   limit:10,
   minInputCount:10,
   acknowledgeReviewItems:true,
+  acknowledgeClassificationReviewQueue:true,
 });
 assert.equal(unknownBundle.classification.unresolved_count,0);
 assert.ok(unknownBundle.classification.review_required_count>=1);
