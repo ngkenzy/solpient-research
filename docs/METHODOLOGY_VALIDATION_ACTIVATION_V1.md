@@ -49,9 +49,10 @@ Required dependencies are version-pinned.
 
 - External dependencies must have the exact required version in ACTIVE state.
 - Methodologies being promoted in the same atomic activation may satisfy one another once they have reached VALIDATED.
+- A declared dependency may also be satisfied by a target successor only when the registry proves an explicit predecessor chain from the required version to that exact target version (for example Sector Model V2 → V2.2 → V2.3).
 - A same-key predecessor used as implementation lineage must be registered, but it is not falsely required to remain the active production version after its successor is promoted.
 
-An unrelated active version of the same methodology key never satisfies an exact dependency.
+An unrelated or unproven same-key version never satisfies a dependency.
 
 ## Verified CI evidence
 
