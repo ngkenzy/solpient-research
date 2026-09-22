@@ -13,7 +13,17 @@ import {
   loadPrepareV2Data,
   saveReviewState,
   updateReviewVerification,
+  updateReviewReadiness,
 } from "@/lib/repositories/review-workbench";
+import { databaseConfigured } from "@/lib/db";
+// @ts-expect-error Node ESM PostgreSQL factory helper
+import {
+  loadCompanyFactoryInputsPg,
+  persistPeerContextPg,
+  persistValuationHistoryPg,
+  upsertBaselineDraftPg,
+  persistBuiltResearchPackagePg,
+} from "@/lib/factory-storage-pg.mjs";
 import { clearReviewAccess, requireReviewAccess, unlockReviewAccess } from "@/lib/review-auth";
 // @ts-expect-error Node ESM research helper
 import { applyReviewPatch, mergeReviewPatches, validatePromotionReadiness } from "@/lib/review-workbench.mjs";
@@ -214,11 +224,129 @@ export async function applyComposerAction(formData:FormData) {
 
 export async function buildCompanyReviewAction(formData:FormData) {
   await requireReviewAccess();
-  const supabase=getAdminSupabase();
-  if (!supabase) redirect("/review/login?setup=1");
 
   const companyId=String(formData.get("company_id") ?? "");
   if (!companyId) redirect("/review?error=missing-company");
+
+  if (databaseConfigured()) {
+    const inputs=await loadCompanyFactoryInputsPg(companyId,{
+      fundamentalLimit:160,
+      marketLimit:3200,
+      filingLimit:25,
+    });
+    const company=inputs.company;
+    if (!company) redirect("/review?error=company-not-found");
+    const now=new Date().toISOString();
+
+    let contextForComposition:any=inputs.context ?? {};
+    try {
+      const peerContext=await buildReferencePeerContext({ticker:company.ticker,asOfDate:now.slice(0,10)});
+      const availablePeers=peerContext.peerComparison.filter((peer:any)=>peer.data_status==="available").length;
+      const summary={
+        ...(contextForComposition.summary ?? {}),
+        configured_peers:peerContext.peerSet.length,
+        peers_with_local_data:availablePeers,
+      };
+      await persistPeerContextPg({
+        companyId:company.id,
+        contextId:inputs.context?.id ?? null,
+        peerContext,
+        summary,
+        now,
+      });
+      contextForComposition={
+        ...contextForComposition,
+        peer_set:peerContext.peerSet,
+        peer_comparison:peerContext.peerComparison,
+        summary,
+      };
+    } catch {
+      // Best-effort peer enrichment. Publication remains blocked if coverage is insufficient.
+    }
+
+    const history=buildCompanyHistory({
+      company,
+      fundamentals:inputs.fundamentals ?? [],
+      markets:inputs.markets ?? [],
+    });
+    if (history.valuations.length) {
+      await persistValuationHistoryPg(history.valuations);
+    }
+
+    const baseline=buildBaselineDraft({
+      company,
+      market:inputs.market ?? null,
+      fundamentals:inputs.fundamentals ?? [],
+      filings:inputs.filings ?? [],
+    });
+
+    if (inputs.context) {
+      baseline.payload.factory.research_context={
+        context_pack_id:inputs.context.id,
+        context_version:inputs.context.context_version,
+        as_of_date:inputs.context.as_of_date,
+        history_coverage:contextForComposition.history_coverage,
+        trends:contextForComposition.trends,
+        latest_metrics:contextForComposition.latest_metrics,
+        peer_set:contextForComposition.peer_set,
+        peer_comparison:contextForComposition.peer_comparison,
+        capital_allocation:contextForComposition.capital_allocation,
+        limitations:contextForComposition.limitations,
+        summary:contextForComposition.summary,
+      };
+    }
+
+    const draft=await upsertBaselineDraftPg({
+      company_id:company.id,
+      generation_version:BASELINE_FACTORY_VERSION,
+      generated_at:baseline.payload.factory.generated_at,
+      source_cutoff_at:baseline.sourceCutoffAt,
+      industry_module:baseline.industryModule,
+      status:"generated",
+      evidence_completeness_pct:baseline.evidenceCompletenessPct,
+      standard_valid:baseline.validation.valid,
+      standard_status:baseline.validation.status,
+      validation_result:baseline.validation,
+      evidence_summary:{
+        ...baseline.evidenceSummary,
+        context_pack_id:inputs.context?.id ?? null,
+        context_version:inputs.context?.context_version ?? null,
+      },
+      draft_payload:baseline.payload,
+      updated_at:now,
+    });
+    if (!draft) throw new Error("Draft creation failed.");
+
+    const composition=composeResearchV1({
+      company,
+      baselinePayload:draft.draft_payload,
+      contextPack:contextForComposition,
+      valuationHistory:history.valuations ?? [],
+      asOfDate:now.slice(0,10),
+    });
+    const merged=applyReviewPatch(draft.draft_payload,composition.review_patch);
+    const validation=validateResearchStandard(merged);
+    const readiness=validatePromotionReadiness(merged);
+
+    const stored=await persistBuiltResearchPackagePg({
+      draft,
+      companyId:company.id,
+      composition,
+      engineVersion:RESEARCH_COMPOSER_VERSION,
+      contextPackId:inputs.context?.id ?? null,
+      validation,
+      readiness,
+      now,
+      reviewNotes:"Research package generated from the tracked evidence set. Human verification is required before publication.",
+    });
+
+    revalidatePath("/review");
+    revalidatePath("/review/"+draft.id);
+    redirect("/review/"+draft.id+"?built=1&composition="+stored.compositionId);
+  }
+
+  const supabase=getAdminSupabase();
+  if (!supabase) redirect("/review/login?setup=1");
 
   const [companyResult,marketResult,marketHistoryResult,fundamentalResult,filingResult,contextResult]=await Promise.all([
     supabase.from("companies").select("*").eq("id",companyId).single(),
@@ -268,9 +396,7 @@ export async function buildCompanyReviewAction(formData:FormData) {
       }).eq("id",contextResult.data.id);
       if (error) throw error;
     }
-  } catch {
-    // Peer enrichment is best-effort. Decision-grade validation will keep publication blocked if coverage remains insufficient.
-  }
+  } catch {}
 
   const history=buildCompanyHistory({
     company,
@@ -422,29 +548,30 @@ export async function prepareV2ReviewsAction() {
 
 export async function promoteReviewAction(formData:FormData) {
   await requireReviewAccess();
-  const supabase=getAdminSupabase();
-  if (!supabase) redirect("/review/login?setup=1");
   const draftId=String(formData.get("draft_id") ?? "");
-  const [draftResult,reviewResult]=await Promise.all([
-    supabase.from("baseline_drafts").select("*").eq("id",draftId).single(),
-    supabase.from("baseline_reviews").select("*").eq("draft_id",draftId).maybeSingle(),
-  ]);
-  const draft=draftResult.data, review=reviewResult.data;
-  if (draftResult.error || !draft) redirect("/review?error=draft-not-found");
-  if (reviewResult.error || !review) redirect("/review/"+draftId+"?error=save-review-first");
+
+  const {draft,review}=await getReviewDraftPair(draftId);
+  if (!draft) redirect("/review?error=draft-not-found");
+  if (!review) redirect("/review/"+draftId+"?error=save-review-first");
 
   const merged=applyReviewPatch(draft.draft_payload,review.review_payload);
   const readiness=validatePromotionReadiness(merged);
   if (!readiness.ready) {
-    await supabase.from("baseline_reviews").update({
-      status:"editing",validation_result:readiness.standard,
-      promotion_readiness:readiness,updated_at:new Date().toISOString(),
-    }).eq("id",review.id);
+    await updateReviewReadiness({
+      reviewId:review.id,
+      status:"editing",
+      validationResult:readiness.standard,
+      promotionReadiness:readiness,
+      now:new Date().toISOString(),
+    });
     redirect("/review/"+draftId+"?promotion=blocked");
   }
 
   const attestation=validateHumanReviewAttestation({draft,review,payload:merged});
   if (!attestation.valid) redirect("/review/"+draftId+"?promotion=verification-required");
+
+  const supabase=databaseConfigured()?null:getAdminSupabase();
+  if (!databaseConfigured() && !supabase) redirect("/review/login?setup=1");
 
   const result=await promoteReviewedBaseline({supabase,draft,review,payload:merged});
   revalidatePath("/");
