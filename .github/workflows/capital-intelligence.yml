@@ -2,34 +2,6 @@ name: Capital Intelligence Orchestrator
 
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths:
-      - "lib/capital-intelligence-engine.mjs"
-      - "lib/capital-intelligence-orchestrator.mjs"
-      - "lib/yahoo-capital-intelligence.mjs"
-      - "lib/quiver-political-intelligence.mjs"
-      - "lib/marketbeat-capital-intelligence.mjs"
-      - "scripts/sync-marketbeat-capital-intelligence.mjs"
-      - "scripts/test-marketbeat-capital-intelligence.mjs"
-      - "scripts/sync-quiver-political-intelligence.mjs"
-      - "scripts/test-quiver-political-intelligence.mjs"
-      - "scripts/sync-yahoo-capital-intelligence.mjs"
-      - "scripts/test-yahoo-capital-intelligence.mjs"
-      - "scripts/test-capital-coverage-verification.mjs"
-      - "scripts/export-pending-capital-coverage.mjs"
-      - "scripts/import-capital-coverage-batch.mjs"
-      - "scripts/sync-capital-intelligence.mjs"
-      - "scripts/audit-capital-intelligence.mjs"
-      - "scripts/import-capital-intelligence-batch.mjs"
-      - "scripts/test-capital-intelligence-engine.mjs"
-      - "scripts/test-capital-intelligence-orchestrator.mjs"
-      - "components/CompanyIntelligence.tsx"
-      - "data/monitor/companies.json"
-      - "data/monitor/managers.json"
-      - "data/monitor/capital-providers.json"
-      - ".github/workflows/capital-intelligence.yml"
-
 concurrency:
   group: capital-intelligence-orchestrator
   cancel-in-progress: false

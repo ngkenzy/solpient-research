@@ -2,14 +2,6 @@ name: SOLPIENT Coverage v2
 
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths:
-      - "lib/data-coverage-engine.mjs"
-      - "scripts/build-data-coverage.mjs"
-      - "scripts/test-data-coverage-engine.mjs"
-      - ".github/workflows/data-coverage-v2.yml"
-
 concurrency:
   group: solpient-coverage-v2
   cancel-in-progress: true

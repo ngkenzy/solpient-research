@@ -2,14 +2,6 @@ name: SOLPIENT Research Repair Center
 
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths:
-      - "scripts/build-research-repair-queue.mjs"
-      - "scripts/process-research-repairs.mjs"
-      - "lib/data-coverage-engine.mjs"
-      - ".github/workflows/research-repair-center.yml"
-
 concurrency:
   group: solpient-research-repair-center
   cancel-in-progress: false

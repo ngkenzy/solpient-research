@@ -7,17 +7,6 @@ on:
         description: Optional ticker
         required: false
         type: string
-  push:
-    branches: [main]
-    paths:
-      - "lib/evidence-provenance.mjs"
-      - "lib/evidence-provenance-db.mjs"
-      - "scripts/sync-evidence-provenance.mjs"
-      - "supabase/migrations/20260921203000_canonical_evidence_provenance_phase2.sql"
-      - "supabase/migrations/20260922134000_evidence_ingest_concurrency_hardening.sql"
-      - "supabase/tests/evidence_ingest_concurrency_hardening.sql"
-      - ".github/workflows/evidence-provenance.yml"
-
 concurrency:
   group: solpient-provenance-writer
   cancel-in-progress: false
