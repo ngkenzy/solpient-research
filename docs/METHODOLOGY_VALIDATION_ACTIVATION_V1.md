@@ -116,7 +116,7 @@ node scripts/validate-activate-universe-methodologies.mjs \
   --acknowledge-review-items \
   --acknowledge-classification-review-queue \
   --approve-manual-review \
-  --db-invariant-evidence="live-db-invariants-verified" \
+  --db-invariant-evidence="docs/validation/UNIVERSE_METHODOLOGY_DB_INVARIANT_2026-09-22.md" \
   --activate
 ```
 
@@ -126,7 +126,8 @@ node scripts/validate-activate-universe-methodologies.mjs \
 node scripts/run-universe-screen.mjs \
   --input=data/universe/sec-us-screening-full-v2.json \
   --limit=100 \
-  --acknowledge-review-items
+  --acknowledge-review-items \
+  --acknowledge-classification-review-queue
 ```
 
 The script refuses to materialize if the exact methodology stack is not active.
