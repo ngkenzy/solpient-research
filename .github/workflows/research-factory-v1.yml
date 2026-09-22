@@ -37,6 +37,10 @@ on:
       - "app/review/research-factory/page.tsx"
       - "app/review/research-candidates/page.tsx"
       - "docs/RESEARCH_FACTORY_V1.md"
+      - "scripts/run-research-factory-expansion-v1-1.mjs"
+      - "scripts/test-research-factory-v1-1.mjs"
+      - "supabase/migrations/20260922123000_research_factory_v1_1_auto_expansion.sql"
+      - "supabase/tests/research_factory_v1_1_auto_expansion.sql"
       - ".github/workflows/research-factory-v1.yml"
   workflow_dispatch:
     inputs:
