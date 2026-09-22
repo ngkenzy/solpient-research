@@ -15,13 +15,16 @@ import {
 const catalog=JSON.parse(fs.readFileSync(new URL("../methodologies/catalog.json",import.meta.url),"utf8"));
 const validation=validateCatalog(catalog.methodologies);
 assert.equal(validation.valid,true,validation.errors.join("\n"));
-assert.equal(validation.manifests.length,11);
+assert.equal(validation.manifests.length,14);
 assert.ok(validation.manifests.some(m=>m.version==="decision-ranking-v1"));
 assert.ok(validation.manifests.some(m=>m.version==="context-v2-provenance"));
 assert.ok(validation.manifests.some(m=>m.version==="evidence-provenance-v1"));
 assert.ok(validation.manifests.some(m=>m.version==="canonical-fact-v1"));
 assert.ok(validation.manifests.some(m=>m.version==="research-candidate-pipeline-v1"));
+assert.ok(validation.manifests.some(m=>m.version==="research-candidate-pipeline-v2"));
+assert.ok(validation.manifests.some(m=>m.version==="solpient-universe-sector-model-v2"));
 assert.ok(validation.manifests.some(m=>m.version==="solpient-universe-screen-v1"));
+assert.ok(validation.manifests.some(m=>m.version==="solpient-universe-screen-v2"));
 assert.ok(validation.manifests.some(m=>m.version==="solpient-valuation-methodology-v3"));
 
 const decision=validation.manifests.find(m=>m.version==="decision-ranking-v1");
