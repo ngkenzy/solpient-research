@@ -102,10 +102,18 @@ begin
       select 1 from public.methodology_validation_runs
       where methodology_definition_id=v_definition.id
         and validation_type='unit_tests' and status='pass'
+        and commit_sha=p_commit_sha
+        and details->>'validation_hash'=p_validation_hash
+        and details->>'universe_input_hash'=p_universe_input_hash
+        and details->>'implementation_hash'=v_definition.implementation_hash
     ) or not exists (
       select 1 from public.methodology_validation_runs
       where methodology_definition_id=v_definition.id
         and validation_type='build' and status='pass'
+        and commit_sha=p_commit_sha
+        and details->>'validation_hash'=p_validation_hash
+        and details->>'universe_input_hash'=p_universe_input_hash
+        and details->>'implementation_hash'=v_definition.implementation_hash
     ) then
       raise exception 'required unit/build evidence missing for % %',
         v_definition.methodology_key, v_definition.version;
@@ -128,6 +136,10 @@ begin
       select 1 from public.methodology_validation_runs
       where methodology_definition_id=v_definition.id
         and validation_type='historical_integrity' and status='pass'
+        and commit_sha=p_commit_sha
+        and details->>'validation_hash'=p_validation_hash
+        and details->>'universe_input_hash'=p_universe_input_hash
+        and details->>'implementation_hash'=v_definition.implementation_hash
     ) then
       raise exception 'historical integrity evidence missing for % %',
         v_definition.methodology_key, v_definition.version;
@@ -140,6 +152,10 @@ begin
       select 1 from public.methodology_validation_runs
       where methodology_definition_id=v_definition.id
         and validation_type='manual_review' and status='pass'
+        and commit_sha=p_commit_sha
+        and details->>'validation_hash'=p_validation_hash
+        and details->>'universe_input_hash'=p_universe_input_hash
+        and details->>'implementation_hash'=v_definition.implementation_hash
     ) then
       raise exception 'manual review evidence missing for % %',
         v_definition.methodology_key, v_definition.version;
@@ -310,6 +326,20 @@ begin
   where input_hash=p_run->>'input_hash';
 
   if v_existing is not null then
+    if not exists (
+      select 1
+      from public.universe_screen_runs r
+      where r.id=v_existing
+        and r.result_count=(
+          select count(*) from public.universe_screen_results x
+          where x.universe_screen_run_id=r.id
+        )
+        and r.result_count=v_expected_count
+        and r.metadata->>'validation_hash'=p_run->'metadata'->>'validation_hash'
+        and r.metadata->>'universe_input_hash'=p_run->'metadata'->>'universe_input_hash'
+    ) then
+      raise exception 'existing immutable screen run is incomplete or does not match requested package';
+    end if;
     return v_existing;
   end if;
 
