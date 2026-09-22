@@ -5,6 +5,7 @@ out/
 .env.local
 .env.*.local
 .env.local-stack
+.env.local.before-local-db
 backups/
 .vercel
 .DS_Store
