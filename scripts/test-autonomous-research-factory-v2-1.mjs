@@ -3,13 +3,170 @@ import {
   AUTONOMOUS_RESEARCH_FACTORY_VERSION,
   AUTONOMOUS_INDUSTRY_POLICY_VERSION,
   AUTONOMOUS_VALUATION_POLICY_VERSION,
+  AUTONOMOUS_SETTLED_QUEUE_VERSION,
   assignAutonomousIndustryModule,
   buildAutonomousValuationPolicy,
+  buildAutonomousSettlementHash,
+  selectAutonomousResearchFactoryCandidates,
 } from "../lib/autonomous-research-factory-v2-1.mjs";
 
 assert.equal(AUTONOMOUS_RESEARCH_FACTORY_VERSION,"autonomous-research-factory-v2.1");
 assert.equal(AUTONOMOUS_INDUSTRY_POLICY_VERSION,"industry-assignment-v2.1");
 assert.equal(AUTONOMOUS_VALUATION_POLICY_VERSION,"valuation-assumptions-v2.1.1");
+assert.equal(AUTONOMOUS_SETTLED_QUEUE_VERSION,"autonomous-settled-queue-v2.1.2");
+
+const settlementBase={
+  item:{
+    id:"item-q",
+    ticker:"QQQ",
+    source_screen_result_id:"screen-q",
+    state_hash:"state-q",
+    state_snapshot:{screen_result_hash:"screen-hash-q"},
+  },
+  coverage:{
+    status:"partial",
+    fundamentals_pct:80,
+    history_pct:75,
+    market_history_pct:90,
+    valuation_history_pct:80,
+    capital_allocation_pct:60,
+    consensus_pct:20,
+    industry_pct:70,
+    peer_pct:70,
+    overall_pct:70,
+    decision_readiness_pct:68,
+    normalized_quarters:12,
+    complete_fiscal_years:4,
+    market_days:800,
+    primary_source_quarters:0,
+    missing_fields:[{layer:"consensus",field:"point_in_time_snapshots"}],
+    provider_summary:{yahoo_fundamentals:9,fmp:5},
+  },
+  contextPack:{
+    industry_module:"software_platform",
+    history_coverage:{full_year_count:4},
+    peer_comparison:[
+      {ticker:"AAA",data_status:"available",metrics:{price_to_fcf:20}},
+      {ticker:"BBB",data_status:"available",metrics:{price_to_fcf:22}},
+      {ticker:"CCC",data_status:"available",metrics:{price_to_fcf:24}},
+    ],
+    summary:{
+      historical_metric_rows:40,
+      valuation_history_rows:800,
+      capital_allocation_rows:4,
+      configured_peers:3,
+      peers_with_local_data:3,
+      full_fiscal_years:4,
+    },
+    limitations:["Consensus history is still accumulating."],
+  },
+  consensus:null,
+  baselineDraft:{
+    industry_module:"software_platform",
+    evidence_completeness_pct:72,
+    standard_status:"partial",
+    draft_payload:{
+      metric_observations:[
+        {metric_key:"fcf_per_share",status:"available",value_numeric:8,period_end:"2026-06-30"},
+        {metric_key:"net_debt_to_fcf",status:"available",value_numeric:.5,period_end:"2026-06-30"},
+      ],
+    },
+  },
+  industryAssignment:{
+    policy_version:"industry-assignment-v2.1",
+    status:"applied",
+    module:"software_platform",
+    proposed_module:"software_platform",
+    decision_hash:"a".repeat(64),
+  },
+};
+const settlementHash=buildAutonomousSettlementHash(settlementBase);
+const settlementHashRepeat=buildAutonomousSettlementHash(settlementBase);
+assert.equal(settlementHash,settlementHashRepeat);
+assert.notEqual(
+  settlementHash,
+  buildAutonomousSettlementHash({
+    ...settlementBase,
+    consensus:{
+      analyst_count:8,
+      revenue_next_fy:100,
+      eps_next_fy:5,
+      revenue_growth_next_fy:9,
+      eps_growth_next_fy:10,
+    },
+  })
+);
+
+const queueItems=[
+  {id:"review-new",ticker:"AAA",ordinal:1,stage:"valuation_review",status:"needs_review"},
+  {id:"review-settled",ticker:"AAB",ordinal:2,stage:"valuation_review",status:"needs_review"},
+  {id:"queued",ticker:"AAC",ordinal:3,stage:"evidence_ingestion",status:"queued"},
+  {id:"quarantine-same",ticker:"AAD",ordinal:4,stage:"valuation_review",status:"quarantined"},
+  {id:"quarantine-changed",ticker:"AAE",ordinal:5,stage:"valuation_review",status:"quarantined"},
+  {id:"blocked",ticker:"AAF",ordinal:6,stage:"evidence_ingestion",status:"blocked"},
+  {id:"running",ticker:"AAG",ordinal:7,stage:"evidence_ingestion",status:"running"},
+  {id:"pipeline",ticker:"AAH",ordinal:8,stage:"pipeline_refresh",status:"queued"},
+  {id:"research-review",ticker:"AAI",ordinal:9,stage:"research_review",status:"needs_review"},
+  {id:"complete",ticker:"AAJ",ordinal:10,stage:"complete",status:"complete"},
+];
+const queueDecisions=[{
+  research_factory_item_id:"review-settled",
+  decision_type:"valuation_assumptions",
+  decision_status:"quarantined",
+  policy_version:AUTONOMOUS_VALUATION_POLICY_VERSION,
+}];
+const currentSettlementHashes=new Map([
+  ["quarantine-same","hash-same"],
+  ["quarantine-changed","hash-new"],
+]);
+const priorSettlementHashes=new Map([
+  ["quarantine-same","hash-same"],
+  ["quarantine-changed","hash-old"],
+]);
+
+const routineSelection=selectAutonomousResearchFactoryCandidates({
+  items:queueItems,
+  decisions:queueDecisions,
+  currentSettlementHashes,
+  priorSettlementHashes,
+  maxItems:10,
+});
+assert.deepEqual(
+  routineSelection.map(x=>[x.ticker,x.selection_reason]),
+  [
+    ["AAA","unattempted_review_gate"],
+    ["AAC","queued_unattempted"],
+    ["AAE","quarantine_evidence_changed"],
+  ]
+);
+
+const manualQuarantine=selectAutonomousResearchFactoryCandidates({
+  items:queueItems,
+  decisions:queueDecisions,
+  currentSettlementHashes,
+  priorSettlementHashes,
+  ticker:"AAD",
+  maxItems:1,
+});
+assert.equal(manualQuarantine.length,1);
+assert.equal(manualQuarantine[0].selection_reason,"manual_ticker_override");
+
+const manualBlocked=selectAutonomousResearchFactoryCandidates({
+  items:queueItems,
+  decisions:queueDecisions,
+  ticker:"AAF",
+  maxItems:1,
+});
+assert.equal(manualBlocked.length,1);
+assert.equal(manualBlocked[0].selection_reason,"manual_ticker_override");
+
+const manualRunning=selectAutonomousResearchFactoryCandidates({
+  items:queueItems,
+  decisions:queueDecisions,
+  ticker:"AAG",
+  maxItems:1,
+});
+assert.equal(manualRunning.length,0);
 
 const software=assignAutonomousIndustryModule({
   ticker:"INTU",
