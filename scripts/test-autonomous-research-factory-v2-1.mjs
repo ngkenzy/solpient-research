@@ -9,7 +9,7 @@ import {
 
 assert.equal(AUTONOMOUS_RESEARCH_FACTORY_VERSION,"autonomous-research-factory-v2.1");
 assert.equal(AUTONOMOUS_INDUSTRY_POLICY_VERSION,"industry-assignment-v2.1");
-assert.equal(AUTONOMOUS_VALUATION_POLICY_VERSION,"valuation-assumptions-v2.1");
+assert.equal(AUTONOMOUS_VALUATION_POLICY_VERSION,"valuation-assumptions-v2.1.1");
 
 const software=assignAutonomousIndustryModule({
   ticker:"INTU",
@@ -143,6 +143,57 @@ assert.ok(policy.valuation_input.multiples.historical.base>0);
 assert.ok(policy.valuation_input.multiples.peer.base>0);
 assert.ok(policy.valuation_input.returnScenarios.base.exitMultiple>0);
 
+const structuredYahoo=fundamentals.map((row)=>({
+  ...row,
+  provider:"yahoo_fundamentals",
+  source_url:"https://query1.finance.yahoo.com/example",
+  form:"10-Q",
+}));
+const structuredFmp=fundamentals.map((row)=>({
+  ...row,
+  provider:"fmp",
+  source_url:"https://financialmodelingprep.com/example",
+  form:"10-Q",
+  revenue:row.revenue*1.002,
+  free_cash_flow:row.free_cash_flow*.998,
+  shares_outstanding:row.shares_outstanding,
+  eps_diluted:row.eps_diluted*1.001,
+}));
+const corroborated=buildAutonomousValuationPolicy({
+  screenResult,
+  industryAssignment:{module:"software_platform",confidence:.95},
+  baselineDraft,
+  fundamentals:[...structuredYahoo,...structuredFmp],
+  market:{price:105,trading_date:"2026-09-22"},
+  consensus:null,
+  valuationHistory,
+  contextPack,
+  coverage:{overall_pct:80},
+});
+assert.equal(corroborated.status,"auto_approved");
+assert.equal(corroborated.evidence.primary_source_pct,0);
+assert.equal(corroborated.evidence.fundamental_evidence_mode,"structured_provider_corroboration");
+assert.equal(corroborated.evidence.structured_provider_count,2);
+assert.ok(corroborated.evidence.structured_corroboration_pct>=90);
+assert.ok(corroborated.evidence.growth_signal_count>=3);
+assert.ok(corroborated.confidence_pct>=78);
+assert.ok(corroborated.valuation_input.assumptions.base.initialGrowth<20);
+
+const oneProvider=buildAutonomousValuationPolicy({
+  screenResult,
+  industryAssignment:{module:"software_platform",confidence:.95},
+  baselineDraft,
+  fundamentals:structuredYahoo,
+  market:{price:105,trading_date:"2026-09-22"},
+  consensus:null,
+  valuationHistory,
+  contextPack,
+  coverage:{overall_pct:80},
+});
+assert.equal(oneProvider.status,"quarantined");
+assert.equal(oneProvider.evidence.fundamental_evidence_mode,"insufficient_source_corroboration");
+assert.ok(oneProvider.critical_issues.includes("insufficient_fundamental_source_corroboration"));
+
 const weak=buildAutonomousValuationPolicy({
   screenResult,
   industryAssignment:{module:"software_platform",confidence:.95},
@@ -160,5 +211,6 @@ assert.equal(weak.status,"quarantined");
 assert.equal(weak.preflight.complete,false);
 assert.ok(weak.critical_issues.includes("insufficient_historical_multiple_evidence"));
 assert.ok(weak.critical_issues.includes("insufficient_peer_multiple_evidence"));
+assert.ok(weak.critical_issues.includes("insufficient_fundamental_source_corroboration"));
 
 console.log("Autonomous Research Factory V2.1 policy tests passed.");
