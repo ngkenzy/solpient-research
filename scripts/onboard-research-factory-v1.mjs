@@ -1,9 +1,10 @@
+import fs from "node:fs/promises";
+import path from "node:path";
 import process from "node:process";
 import { createClient } from "@supabase/supabase-js";
 import { canonicalSha256 } from "../lib/integrity-hash.mjs";
 import {
   RESEARCH_FACTORY_VERSION,
-  parseSecTickerExchange,
   resolveSecIdentity,
   deriveResearchFactoryState,
   buildFactoryStateHash,
@@ -20,10 +21,12 @@ const secret=process.env.SUPABASE_SECRET_KEY??process.env.SUPABASE_SERVICE_ROLE_
 if(!url||!secret)throw new Error("Missing SUPABASE_URL and server secret.");
 const sb=createClient(url,secret,{auth:{persistSession:false,autoRefreshToken:false}});
 
-const secContact=process.env.SEC_CONTACT??"ngkenzy@users.noreply.github.com";
-const secUserAgent=process.env.SEC_USER_AGENT??("SOLPIENT Research "+secContact);
-const sourceUrl="https://www.sec.gov/files/company_tickers_exchange.json";
 const requestedRunId=arg("factory-run-id",process.env.RESEARCH_FACTORY_RUN_ID??null);
+const identitySnapshotPath=arg(
+  "identity-snapshot",
+  process.env.RESEARCH_FACTORY_SEC_IDENTITY_SNAPSHOT??
+    "data/research-factory/sec-identities-pipeline-run-1.json"
+);
 
 let factoryRun=null;
 if(requestedRunId){
@@ -62,18 +65,48 @@ const {data:screens,error:screenError}=screenIds.length
 if(screenError)throw screenError;
 const screenById=new Map((screens??[]).map(x=>[x.id,x]));
 
-const response=await fetch(sourceUrl,{
-  headers:{
-    "User-Agent":secUserAgent,
-    From:secContact,
-    Accept:"application/json",
-  },
-});
-if(!response.ok)throw new Error("SEC ticker/exchange mapping HTTP "+response.status);
-const secRows=parseSecTickerExchange(await response.json());
+const absoluteSnapshotPath=path.resolve(identitySnapshotPath);
+const identitySnapshot=JSON.parse(await fs.readFile(absoluteSnapshotPath,"utf8"));
+if(identitySnapshot?.snapshot_version!=="research-factory-sec-identities-pipeline-run-1-v1"){
+  throw new Error("Unsupported Research Factory SEC identity snapshot.");
+}
+if(identitySnapshot?.source_pipeline_run_id!==factoryRun.source_pipeline_run_id){
+  throw new Error(
+    "SEC identity snapshot is bound to pipeline run "+
+    identitySnapshot?.source_pipeline_run_id+
+    " but factory run uses "+factoryRun.source_pipeline_run_id+
+    ". Generate a new reviewed SEC identity snapshot before onboarding."
+  );
+}
+if(!Array.isArray(identitySnapshot?.identities)||
+   identitySnapshot.identities.length!==Number(identitySnapshot.candidate_count??-1)){
+  throw new Error("SEC identity snapshot candidate count is invalid.");
+}
+const snapshotTickers=new Set(identitySnapshot.identities.map(x=>String(x.ticker??"").toUpperCase()));
+const missingSnapshotTickers=(items??[])
+  .map(x=>String(x.ticker).toUpperCase())
+  .filter(ticker=>!snapshotTickers.has(ticker));
+if(missingSnapshotTickers.length){
+  throw new Error(
+    "SEC identity snapshot does not cover onboarding ticker(s): "+
+    missingSnapshotTickers.join(", ")
+  );
+}
+
+const secRows=identitySnapshot.identities.map(row=>({
+  cik:String(row.cik??"").replace(/\D/g,"").padStart(10,"0"),
+  company_name:row.sec_company_name??row.screen_company_name??row.ticker,
+  ticker:String(row.ticker??"").toUpperCase(),
+  exchange:row.exchange??null,
+}));
+const sourceUrl=identitySnapshot.source_url;
+const identitySnapshotHash=canonicalSha256(identitySnapshot);
 
 const result={
   factory_run_id:factoryRun.id,
+  identity_snapshot_path:identitySnapshotPath,
+  identity_snapshot_version:identitySnapshot.snapshot_version,
+  identity_snapshot_hash:identitySnapshotHash,
   source_url:sourceUrl,
   existing:0,
   created:0,
@@ -137,6 +170,8 @@ for(const item of items??[]){
         identity_resolution:{
           status:identity?.status??"missing",
           source_url:sourceUrl,
+          identity_snapshot_version:identitySnapshot.snapshot_version,
+          identity_snapshot_hash:identitySnapshotHash,
           candidate_count:identity?.candidates??0,
           options:(identity?.options??[]).map(x=>({
             cik:x.cik,company_name:x.company_name,ticker:x.ticker,exchange:x.exchange,
@@ -189,6 +224,8 @@ for(const item of items??[]){
         identity_resolution:{
           status:identity.status,
           source_url:sourceUrl,
+          identity_snapshot_version:identitySnapshot.snapshot_version,
+          identity_snapshot_hash:identitySnapshotHash,
           candidate_count:identity.candidates??0,
           options:(identity.options??[]).map(x=>({
             cik:x.cik,company_name:x.company_name,ticker:x.ticker,exchange:x.exchange,
@@ -258,7 +295,10 @@ for(const item of items??[]){
   const identityPayload={
     status:"matched",
     source_url:sourceUrl,
-    source_kind:"SEC company_tickers_exchange.json",
+    source_kind:"versioned SEC ticker/CIK/exchange identity snapshot",
+    identity_snapshot_version:identitySnapshot.snapshot_version,
+    identity_snapshot_hash:identitySnapshotHash,
+    identity_snapshot_generated_at:identitySnapshot.generated_at??null,
     observed_at:new Date().toISOString(),
     cik:company.cik??identity?.match?.cik??null,
     sec_company_name:identity?.match?.company_name??null,
