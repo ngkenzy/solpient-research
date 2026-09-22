@@ -16,6 +16,10 @@ on:
       - "app/review/research-factory/page.tsx"
       - "app/review/research-candidates/page.tsx"
       - "docs/RESEARCH_FACTORY_V1.md"
+      - "scripts/run-research-factory-expansion-v1-1.mjs"
+      - "scripts/test-research-factory-v1-1.mjs"
+      - "supabase/migrations/20260922123000_research_factory_v1_1_auto_expansion.sql"
+      - "supabase/tests/research_factory_v1_1_auto_expansion.sql"
       - ".github/workflows/research-factory-v1.yml"
   push:
     branches: [main]
@@ -39,7 +43,7 @@ on:
       max_companies:
         description: "Maximum automatic candidates to process"
         required: false
-        default: "5"
+        default: "10"
         type: string
       ticker:
         description: "Optional single ticker"
@@ -64,7 +68,9 @@ jobs:
           node-version: 22
       - run: npm install
       - name: Test Research Factory V1
-        run: npm run test:research-factory
+        run: |
+          npm run test:research-factory
+          npm run test:research-factory:v1.1
       - name: Syntax check Research Factory scripts
         run: |
           node --check scripts/materialize-research-factory-v1.mjs
@@ -72,6 +78,7 @@ jobs:
           node --check scripts/refresh-research-factory-v1.mjs
           node --check scripts/build-research-factory-valuation-drafts.mjs
           node --check scripts/run-research-factory-batch.mjs
+          node --check scripts/run-research-factory-expansion-v1-1.mjs
 
   operate:
     if: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' }}
@@ -82,7 +89,7 @@ jobs:
     env:
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-      RESEARCH_FACTORY_MAX_COMPANIES: ${{ github.event.inputs.max_companies || '5' }}
+      RESEARCH_FACTORY_MAX_COMPANIES: ${{ github.event.inputs.max_companies || '10' }}
       RESEARCH_FACTORY_TICKER: ${{ github.event.inputs.ticker || '' }}
       RESEARCH_FACTORY_SEC_IDENTITY_SNAPSHOT: "data/research-factory/sec-identities-pipeline-run-1.json"
     steps:
@@ -91,18 +98,10 @@ jobs:
         with:
           node-version: 22
       - run: npm install
-      - name: Materialize current factory run
-        run: npm run factory:research:materialize
-      - name: Resolve canonical company identities
-        run: npm run factory:research:onboard
-      - name: Refresh work queue
-        run: npm run factory:research:refresh
-      - name: Process bounded automatic batch
+      - name: Expand the next safe Research Factory batch
         run: |
           if [ -n "$RESEARCH_FACTORY_TICKER" ]; then
-            node scripts/run-research-factory-batch.mjs --ticker="$RESEARCH_FACTORY_TICKER" --max=1
+            node scripts/run-research-factory-expansion-v1-1.mjs --ticker="$RESEARCH_FACTORY_TICKER" --max=1
           else
-            node scripts/run-research-factory-batch.mjs --max="$RESEARCH_FACTORY_MAX_COMPANIES"
+            node scripts/run-research-factory-expansion-v1-1.mjs --max="$RESEARCH_FACTORY_MAX_COMPANIES"
           fi
-      - name: Refresh final factory state
-        run: npm run factory:research:refresh
