@@ -4,9 +4,7 @@ import { composeResearchV1, RESEARCH_COMPOSER_VERSION } from "../lib/research-co
 import { applyReviewPatch } from "../lib/review-workbench.mjs";
 import { validateResearchStandard } from "../lib/research-standard.mjs";
 
-const url=process.env.SUPABASE_URL;
-const secret=process.env.SUPABASE_SECRET_KEY||process.env.SUPABASE_SERVICE_ROLE_KEY;
-if(!url||!secret)throw new Error("Missing SUPABASE_URL and server secret.");
+if(!process.env.SOLPIENT_DATABASE_URL)throw new Error("Missing SOLPIENT_DATABASE_URL.");
 const sb=createPostgresCompatClient();
 
 const tickerArg=process.argv.find((v)=>v.startsWith("--ticker="))?.split("=")[1]?.toUpperCase()??null;
