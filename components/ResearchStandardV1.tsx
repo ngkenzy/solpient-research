@@ -1,4 +1,4 @@
-import { getSupabase } from "@/lib/supabase";
+import { loadResearchStandardV1Data } from "@/lib/repositories/research-standard";
 
 function pct(value: unknown) {
   const n = Number(value);
@@ -59,50 +59,17 @@ export async function ResearchStandardV1({
 }: {
   researchRunId: string;
 }) {
-  const supabase = getSupabase();
-  if (!supabase) return null;
+  const loaded = await loadResearchStandardV1Data(researchRunId);
+  if (!loaded) return null;
 
-  const [runResult, businessResult, metricResult, riskResult, returnResult, thesisResult] = await Promise.all([
-    supabase
-      .from("research_runs")
-      .select("standard_version,standard_status,data_cutoff_at,benchmark_ticker,completeness_pct,validation_notes")
-      .eq("id", researchRunId)
-      .maybeSingle(),
-    supabase
-      .from("business_assessments")
-      .select("*")
-      .eq("research_run_id", researchRunId)
-      .maybeSingle(),
-    supabase
-      .from("metric_observations")
-      .select("*")
-      .eq("research_run_id", researchRunId)
-      .order("metric_key"),
-    supabase
-      .from("risk_register")
-      .select("*")
-      .eq("research_run_id", researchRunId)
-      .order("severity", { ascending: false }),
-    supabase
-      .from("expected_return_scenarios")
-      .select("*")
-      .eq("research_run_id", researchRunId)
-      .order("horizon_years"),
-    supabase
-      .from("thesis_variables")
-      .select("id,variable_name,expectation,observed_value,status,metric_key,threshold_value,threshold_unit,review_frequency,breaker_condition")
-      .eq("research_run_id", researchRunId)
-      .order("created_at"),
-  ]);
-
-  const run = runResult.data;
+  const run = loaded.run;
   if (!run || run.standard_version !== "solpient-v1") return null;
 
-  const business = businessResult.data;
-  const metrics = metricResult.data ?? [];
-  const risks = riskResult.data ?? [];
-  const returns = returnResult.data ?? [];
-  const thesis = thesisResult.data ?? [];
+  const business = loaded.business;
+  const metrics = loaded.metrics;
+  const risks = loaded.risks;
+  const returns = loaded.returns;
+  const thesis = loaded.thesis;
   const scenarioOrder: Record<string, number> = { bear: 0, base: 1, bull: 2 };
   const fiveYear = returns
     .filter((row: any) => row.horizon_years === 5)
