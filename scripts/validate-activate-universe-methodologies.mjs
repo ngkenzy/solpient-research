@@ -107,6 +107,7 @@ async function verifyGitHubCI(){
   }else if(!token){
     const ghBody=git("gh",[
       "api",
+      "--method","GET",
       "repos/"+githubRepo+"/actions/runs",
       "-f","head_sha="+commitSha,
       "-f","per_page=100",
