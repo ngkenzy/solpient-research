@@ -1,7 +1,8 @@
 import process from "node:process";
 import { createPostgresCompatClient } from "../lib/pg-supabase-compat.mjs";
 
-if(!process.env.SOLPIENT_DATABASE_URL)throw new Error("Missing SOLPIENT_DATABASE_URL.");\nconst sb=createPostgresCompatClient();
+if(!process.env.SOLPIENT_DATABASE_URL)throw new Error("Missing SOLPIENT_DATABASE_URL.");
+const sb=createPostgresCompatClient();
 
 function n(v){const x=Number(v);return Number.isFinite(x)?x:null;}
 function clamp(v){return Math.max(0,Math.min(100,Math.round(v)));}
