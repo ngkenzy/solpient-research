@@ -72,7 +72,9 @@
     "factory:research:onboard": "node scripts/onboard-research-factory-v1.mjs",
     "factory:research:refresh": "node scripts/refresh-research-factory-v1.mjs",
     "factory:research:valuation-drafts": "node scripts/build-research-factory-valuation-drafts.mjs",
-    "factory:research:batch": "node scripts/run-research-factory-batch.mjs"
+    "factory:research:batch": "node scripts/run-research-factory-batch.mjs",
+    "factory:research:expand": "node scripts/run-research-factory-expansion-v1-1.mjs",
+    "test:research-factory:v1.1": "node scripts/test-research-factory-v1-1.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.4",
