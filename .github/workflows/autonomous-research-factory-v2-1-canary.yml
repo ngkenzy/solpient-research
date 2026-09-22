@@ -1,0 +1,196 @@
+name: Autonomous Research Factory V2.1 Production Canary
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/autonomous-research-factory-v2-1-canary.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: solpient-research-factory
+  cancel-in-progress: false
+
+jobs:
+  canary:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      RESEARCH_FACTORY_TICKER: "MSFT"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+
+      - name: Verify Autonomous Research Factory V2.1
+        run: |
+          npm run test:research-factory
+          npm run test:research-factory:v1.1
+          npm run test:research-factory:v2.1
+
+      - name: Open controlled autonomous run
+        run: |
+          node --input-type=module <<'NODE'
+          import { appendFileSync } from "node:fs";
+          import { createClient } from "@supabase/supabase-js";
+
+          const sb=createClient(
+            process.env.SUPABASE_URL,
+            process.env.SUPABASE_SERVICE_ROLE_KEY,
+            {auth:{persistSession:false,autoRefreshToken:false}}
+          );
+
+          const {data:factoryRun,error:factoryError}=await sb
+            .from("research_factory_runs")
+            .select("id")
+            .eq("factory_version","research-factory-v1")
+            .order("created_at",{ascending:false})
+            .limit(1)
+            .single();
+          if(factoryError)throw factoryError;
+
+          const {data:autoRun,error:autoError}=await sb
+            .from("research_factory_autonomous_runs")
+            .insert({
+              research_factory_run_id:factoryRun.id,
+              automation_version:"autonomous-research-factory-v2.1",
+              status:"running",
+              max_items:1,
+              summary:{
+                canary:true,
+                ticker:"MSFT",
+                scope:"industry_assignment_and_valuation_policy"
+              }
+            })
+            .select("id")
+            .single();
+          if(autoError)throw autoError;
+
+          appendFileSync(
+            process.env.GITHUB_ENV,
+            "RESEARCH_FACTORY_RUN_ID="+factoryRun.id+"\n"+
+            "AUTONOMOUS_FACTORY_RUN_ID="+autoRun.id+"\n"
+          );
+
+          console.log(JSON.stringify({
+            research_factory_run_id:factoryRun.id,
+            autonomous_run_id:autoRun.id,
+            ticker:"MSFT"
+          },null,2));
+          NODE
+
+      - name: Assign industry module
+        run: |
+          node scripts/assign-research-factory-industry-v2-1.mjs \
+            --factory-run-id="$RESEARCH_FACTORY_RUN_ID" \
+            --ticker=MSFT \
+            --autonomous-run-id="$AUTONOMOUS_FACTORY_RUN_ID"
+
+      - name: Build autonomous valuation
+        run: |
+          node scripts/build-autonomous-valuation-pack-v2-1.mjs \
+            --factory-run-id="$RESEARCH_FACTORY_RUN_ID" \
+            --ticker=MSFT \
+            --autonomous-run-id="$AUTONOMOUS_FACTORY_RUN_ID"
+
+      - name: Refresh MSFT factory state
+        run: |
+          node scripts/refresh-research-factory-v1.mjs \
+            --factory-run-id="$RESEARCH_FACTORY_RUN_ID" \
+            --ticker=MSFT
+
+      - name: Verify and close canary audit trail
+        run: |
+          node --input-type=module <<'NODE'
+          import { createClient } from "@supabase/supabase-js";
+
+          const sb=createClient(
+            process.env.SUPABASE_URL,
+            process.env.SUPABASE_SERVICE_ROLE_KEY,
+            {auth:{persistSession:false,autoRefreshToken:false}}
+          );
+
+          const {data:item,error:itemError}=await sb
+            .from("research_factory_items")
+            .select("id,ticker,stage,status,coverage_pct,company_id")
+            .eq("research_factory_run_id",process.env.RESEARCH_FACTORY_RUN_ID)
+            .eq("ticker","MSFT")
+            .single();
+          if(itemError)throw itemError;
+
+          const {data:decisions,error:decisionError}=await sb
+            .from("research_factory_autonomous_decisions")
+            .select("decision_type,decision_status,confidence,policy_version,decision_hash,created_at")
+            .eq("autonomous_run_id",process.env.AUTONOMOUS_FACTORY_RUN_ID)
+            .eq("research_factory_item_id",item.id)
+            .order("created_at",{ascending:true});
+          if(decisionError)throw decisionError;
+
+          const industry=(decisions??[]).find(x=>x.decision_type==="industry_assignment");
+          const valuation=(decisions??[]).find(x=>x.decision_type==="valuation_assumptions");
+          if(!industry)throw new Error("Canary did not record an industry assignment decision.");
+          if(!valuation)throw new Error("Canary did not record a valuation assumptions decision.");
+
+          const autoApproved=valuation.decision_status==="applied"?1:0;
+          const quarantined=valuation.decision_status==="quarantined"?1:0;
+
+          let reviewedPack=null;
+          if(autoApproved){
+            const {data,error}=await sb
+              .from("candidate_valuation_input_packs")
+              .select("id,status,reviewed_by,input_hash,reviewed_at,created_at")
+              .eq("company_id",item.company_id)
+              .eq("status","reviewed")
+              .order("reviewed_at",{ascending:false})
+              .limit(1)
+              .maybeSingle();
+            if(error)throw error;
+            reviewedPack=data;
+            if(!reviewedPack?.reviewed_by?.startsWith("autonomous-policy:")){
+              throw new Error("Applied valuation did not publish an autonomous reviewed valuation pack.");
+            }
+          }
+
+          const {error:closeError}=await sb
+            .from("research_factory_autonomous_runs")
+            .update({
+              status:"success",
+              processed_count:1,
+              auto_approved_count:autoApproved,
+              quarantined_count:quarantined,
+              summary:{
+                canary:true,
+                ticker:"MSFT",
+                outcome:valuation.decision_status,
+                industry_status:industry.decision_status,
+                factory_stage:item.stage,
+                factory_status:item.status,
+                reviewed_valuation_pack_id:reviewedPack?.id??null
+              },
+              completed_at:new Date().toISOString()
+            })
+            .eq("id",process.env.AUTONOMOUS_FACTORY_RUN_ID);
+          if(closeError)throw closeError;
+
+          console.log(JSON.stringify({
+            verified:true,
+            autonomous_run_id:process.env.AUTONOMOUS_FACTORY_RUN_ID,
+            ticker:item.ticker,
+            factory_stage:item.stage,
+            factory_status:item.status,
+            coverage_pct:item.coverage_pct,
+            reviewed_valuation_pack_id:reviewedPack?.id??null,
+            decisions:(decisions??[]).map(x=>({
+              decision_type:x.decision_type,
+              decision_status:x.decision_status,
+              confidence:x.confidence,
+              policy_version:x.policy_version,
+              decision_hash:x.decision_hash
+            }))
+          },null,2));
+          NODE
