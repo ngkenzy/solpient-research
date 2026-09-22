@@ -1,5 +1,4 @@
-import { getSupabase } from "@/lib/supabase";
-import { databaseConfigured, dbQuery } from "@/lib/db";
+import { loadDecisionTriggers } from "@/lib/repositories/decision-triggers";
 import styles from "./DecisionTriggerPanel.module.css";
 
 function n(value:unknown){
@@ -40,45 +39,8 @@ export async function DecisionTriggerPanel({
   ticker:string;
   asOf?:string|null;
 }) {
-  let triggers:any[]=[];
-  if(databaseConfigured()){
-    triggers=await dbQuery<any>(
-      asOf
-        ? `
-            select *
-            from public.decision_triggers
-            where company_id=$1
-              and research_run_id=$2
-              and created_at <= $3::timestamptz
-              and last_evaluated_at <= $3::timestamptz
-            order by trigger_group, severity desc, label
-          `
-        : `
-            select *
-            from public.decision_triggers
-            where company_id=$1
-              and research_run_id=$2
-            order by trigger_group, severity desc, label
-          `,
-      asOf?[companyId,researchRunId,asOf]:[companyId,researchRunId],
-    );
-  }else{
-    const supabase=getSupabase();
-    if(!supabase)return null;
-    let triggerQuery=supabase
-      .from("decision_triggers")
-      .select("*")
-      .eq("company_id",companyId)
-      .eq("research_run_id",researchRunId);
-    if(asOf)triggerQuery=triggerQuery
-      .lte("created_at",asOf)
-      .lte("last_evaluated_at",asOf);
-    const {data}=await triggerQuery
-      .order("trigger_group")
-      .order("severity",{ascending:false})
-      .order("label");
-    triggers=data??[];
-  }
+  const triggers=await loadDecisionTriggers(companyId,researchRunId,asOf);
+  if(!triggers)return null;
   if(!triggers.length)return null;
 
   const active=triggers.filter((t:any)=>["triggered","needs_review"].includes(t.evaluation_status));
