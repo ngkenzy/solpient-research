@@ -31,8 +31,10 @@ export default async function ResearchFactoryPage(){
   let items:any[]=[];
   let drafts:any[]=[];
   let workerRuns:any[]=[];
+  let autonomousRuns:any[]=[];
+  let autonomousDecisions:any[]=[];
   if(run){
-    const [itemsR,draftsR,workersR]=await Promise.all([
+    const [itemsR,draftsR,workersR,autonomousRunsR,autonomousDecisionsR]=await Promise.all([
       supabase.from("research_factory_items")
         .select("*")
         .eq("research_factory_run_id",run.id)
@@ -45,14 +47,27 @@ export default async function ResearchFactoryPage(){
         .eq("research_factory_run_id",run.id)
         .order("started_at",{ascending:false})
         .limit(10),
+      supabase.from("research_factory_autonomous_runs")
+        .select("*")
+        .eq("research_factory_run_id",run.id)
+        .order("started_at",{ascending:false})
+        .limit(10),
+      supabase.from("research_factory_autonomous_decisions")
+        .select("research_factory_item_id,decision_type,decision_status,confidence,policy_version,created_at")
+        .order("created_at",{ascending:false})
+        .limit(1000),
     ]);
     if(itemsR.error)throw itemsR.error;
     if(draftsR.error)throw draftsR.error;
     if(workersR.error)throw workersR.error;
+    if(autonomousRunsR.error)throw autonomousRunsR.error;
+    if(autonomousDecisionsR.error)throw autonomousDecisionsR.error;
     items=itemsR.data??[];
     const itemIds=new Set(items.map(x=>x.id));
     drafts=(draftsR.data??[]).filter(x=>itemIds.has(x.research_factory_item_id));
     workerRuns=workersR.data??[];
+    autonomousRuns=autonomousRunsR.data??[];
+    autonomousDecisions=(autonomousDecisionsR.data??[]).filter(x=>itemIds.has(x.research_factory_item_id));
   }
 
   const latestDraftByItem=new Map<string,any>();
@@ -71,6 +86,7 @@ export default async function ResearchFactoryPage(){
 
   const reviewCount=items.filter(x=>x.status==="needs_review").length;
   const blockedCount=items.filter(x=>x.status==="blocked").length;
+  const quarantinedCount=items.filter(x=>x.status==="quarantined").length;
   const completeCount=items.filter(x=>x.status==="complete").length;
   const pipelineRefreshCount=items.filter(x=>x.stage==="pipeline_refresh").length;
   const genuineReviewCount=items.filter(x=>
@@ -79,15 +95,20 @@ export default async function ResearchFactoryPage(){
     x.status==="complete"
   ).length;
   const automatedQueue=items.filter(x=>
-    ["queued","running"].includes(x.status)&&
-    ["evidence_ingestion","baseline_draft","research_draft"].includes(x.stage)
+    ["queued","running","needs_review","blocked"].includes(x.status)&&
+    ["evidence_ingestion","baseline_draft","research_draft","valuation_review"].includes(x.stage)
+  ).length;
+  const researchReviewCount=items.filter(x=>x.stage==="research_review").length;
+  const autoValuationCount=autonomousDecisions.filter(x=>
+    x.decision_type==="valuation_pack"&&x.decision_status==="applied"
   ).length;
 
   const latestWorker=workerRuns[0]??null;
+  const latestAutonomousRun=autonomousRuns[0]??null;
 
   return <>
     <header className={styles.header}>
-      <SolpientBrand subtitle="Research Factory V1.1" />
+      <SolpientBrand subtitle="Autonomous Research Factory V2.1" />
       <div>
         <Link href="/review/research-candidates">Candidate Pipeline</Link>
         <Link href="/review/readiness-repair">Readiness Repair</Link>
@@ -98,18 +119,19 @@ export default async function ResearchFactoryPage(){
     <main className={styles.shell}>
       <section className={styles.hero}>
         <div>
-          <span className={styles.kicker}>AUTOMATIC QUEUE EXPANSION · V1.1</span>
-          <h1>Drain safe research work into genuine human-review gates.</h1>
+          <span className={styles.kicker}>AUTONOMOUS RESEARCH OPERATIONS · V2.1</span>
+          <h1>Repair evidence, assign industry models, and build valuations automatically.</h1>
           <p>
-            Each weekday, Factory V1.1 claims the next ranked safe batch of up to 10 names,
-            advances only deterministic evidence and draft work, and stops a ticker as soon
-            as identity, evidence, industry-module, valuation, or research judgment is required.
+            Each weekday, V2.1 takes the next ranked unresolved names, refreshes source data,
+            reconstructs historical context and capital allocation, assigns a high-confidence
+            industry module, and generates explicit Valuation V3 assumptions. Unsupported cases
+            are quarantined so the rest of the factory keeps moving.
           </p>
         </div>
         <div className={styles.heroProgress}>
-          <span>At review / post-review gate</span>
-          <strong>{genuineReviewCount} / {items.length}</strong>
-          <small>{run?.status==="completed"?"Automatic queue complete":automatedQueue+" safe automatic names remain"}</small>
+          <span>Autonomous work remaining</span>
+          <strong>{automatedQueue}</strong>
+          <small>{quarantinedCount+" quarantined · "+researchReviewCount+" at research verification"}</small>
         </div>
       </section>
 
@@ -123,23 +145,23 @@ export default async function ResearchFactoryPage(){
         </section>
       ):<>
         <section className={styles.opsGrid}>
-          <div className={styles.opsCard}><span>Safe Automatic Queue</span><strong>{automatedQueue}</strong><small>next ranked work · max 10 / weekday</small></div>
-          <div className={styles.opsCard}><span>Genuine Review Gates</span><strong>{genuineReviewCount}</strong><small>human judgment or post-review state</small></div>
-          <div className={styles.opsCard}><span>Blocked</span><strong>{blockedCount}</strong><small>not counted as successful progress</small></div>
-          <div className={styles.opsCard}><span>Latest Batch</span><strong>{latestWorker?.selected_count??0}</strong><small>{latestWorker?label(latestWorker.status)+" · "+new Date(latestWorker.started_at).toLocaleString():"No V1.1 batch yet"}</small></div>
-          <div className={styles.opsCard}><span>Valuation Review</span><strong>{stageCounts.get("valuation_review")??0}</strong><small>draft only — never auto-reviewed</small></div>
-          <div className={styles.opsCard}><span>Post-review / Complete</span><strong>{pipelineRefreshCount+completeCount}</strong><small>pipeline refresh or complete</small></div>
+          <div className={styles.opsCard}><span>Autonomous Queue</span><strong>{automatedQueue}</strong><small>next ranked work · max 10 / weekday</small></div>
+          <div className={styles.opsCard}><span>Auto Valuations</span><strong>{autoValuationCount}</strong><small>policy-approved Valuation V3 packs</small></div>
+          <div className={styles.opsCard}><span>Quarantined</span><strong>{quarantinedCount}</strong><small>low-confidence exceptions · factory continues</small></div>
+          <div className={styles.opsCard}><span>Latest V2.1 Run</span><strong>{latestAutonomousRun?.processed_count??0}</strong><small>{latestAutonomousRun?label(latestAutonomousRun.status)+" · "+new Date(latestAutonomousRun.started_at).toLocaleString():"No V2.1 run yet"}</small></div>
+          <div className={styles.opsCard}><span>Research Verification</span><strong>{researchReviewCount}</strong><small>remaining publication gate after V2.1</small></div>
+          <div className={styles.opsCard}><span>Pipeline / Complete</span><strong>{pipelineRefreshCount+completeCount}</strong><small>ready for downstream refresh or complete</small></div>
         </section>
 
         <section className={styles.preparePanel}>
           <div>
-            <span className={styles.kicker}>WEEKDAY AUTOMATION</span>
-            <h2>{run?.status==="completed"?"Automatic queue is complete.":"Next safe names advance automatically."}</h2>
+            <span className={styles.kicker}>WEEKDAY AUTONOMY</span>
+            <h2>The next unresolved names advance without routine approvals.</h2>
             <p>
-              V1.1 uses transactional ranked claims, skips every item already requiring human
-              judgment, recovers stale claims after interrupted workers, and marks the factory
-              run complete only when all {items.length} candidates are at genuine review or
-              post-review gates.
+              V2.1 processes evidence repair, industry assignment, coverage rebuilds, research
+              composition, and valuation assumptions in rank order. Machine decisions are
+              append-only and confidence-scored; low-confidence cases enter quarantine instead
+              of blocking unrelated companies. Research publication remains a separate gate.
             </p>
           </div>
         </section>
@@ -168,8 +190,8 @@ export default async function ResearchFactoryPage(){
               <div className={styles.opsGrid}>
                 <div className={styles.opsCard}><span>Coverage</span><strong>{pct(item.coverage_pct)}</strong><small>Coverage V2 / readiness evidence</small></div>
                 <div className={styles.opsCard}><span>Repair Jobs</span><strong>{item.repair_job_count??0}</strong><small>unresolved evidence gaps</small></div>
-                <div className={styles.opsCard}><span>Manual Reviews</span><strong>{item.manual_review_count??0}</strong><small>factory cannot clear these</small></div>
-                <div className={styles.opsCard}><span>Valuation Draft</span><strong>{valuationDraft?"Yes":"—"}</strong><small>{missing.length?missing.length+" missing inputs":"not generated / no missing fields"}</small></div>
+                <div className={styles.opsCard}><span>Autonomy Status</span><strong>{item.status==="quarantined"?"Quarantine":item.stage==="research_review"?"Verify":"Active"}</strong><small>{item.status==="quarantined"?"waiting for stronger evidence":item.stage==="research_review"?"publication gate":"machine-processing eligible"}</small></div>
+                <div className={styles.opsCard}><span>Valuation Draft</span><strong>{valuationDraft?"Yes":"—"}</strong><small>{missing.length?missing.length+" unresolved inputs":"complete or not generated"}</small></div>
               </div>
 
               <section className={styles.preparePanel}>
