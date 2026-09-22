@@ -22,12 +22,15 @@ assert.ok(validation.manifests.some(m=>m.version==="evidence-provenance-v1"));
 assert.ok(validation.manifests.some(m=>m.version==="canonical-fact-v1"));
 assert.ok(validation.manifests.some(m=>m.version==="research-candidate-pipeline-v1"));
 assert.ok(validation.manifests.some(m=>m.version==="research-candidate-pipeline-v2"));
-assert.ok(validation.manifests.some(m=>m.version==="research-candidate-pipeline-v2.1"));\nassert.ok(validation.manifests.some(m=>m.version==="research-candidate-pipeline-v2.2"));
-assert.ok(validation.manifests.some(m=>m.version==="solpient-universe-sector-model-v2"));\nassert.ok(validation.manifests.some(m=>m.version==="solpient-universe-sector-model-v2.2"));
+assert.ok(validation.manifests.some(m=>m.version==="research-candidate-pipeline-v2.1"));
+assert.ok(validation.manifests.some(m=>m.version==="research-candidate-pipeline-v2.2"));
+assert.ok(validation.manifests.some(m=>m.version==="solpient-universe-sector-model-v2"));
+assert.ok(validation.manifests.some(m=>m.version==="solpient-universe-sector-model-v2.2"));
 assert.ok(validation.manifests.some(m=>m.version==="solpient-sector-evidence-model-v2.1"));
 assert.ok(validation.manifests.some(m=>m.version==="solpient-universe-screen-v1"));
 assert.ok(validation.manifests.some(m=>m.version==="solpient-universe-screen-v2"));
-assert.ok(validation.manifests.some(m=>m.version==="solpient-universe-screen-v2.1"));\nassert.ok(validation.manifests.some(m=>m.version==="solpient-universe-screen-v2.2"));
+assert.ok(validation.manifests.some(m=>m.version==="solpient-universe-screen-v2.1"));
+assert.ok(validation.manifests.some(m=>m.version==="solpient-universe-screen-v2.2"));
 assert.ok(validation.manifests.some(m=>m.version==="solpient-valuation-methodology-v3"));
 
 const decision=validation.manifests.find(m=>m.version==="decision-ranking-v1");
