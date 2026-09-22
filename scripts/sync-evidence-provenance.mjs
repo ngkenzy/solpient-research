@@ -282,12 +282,25 @@ for(const company of selected){
   );
   if(!rows.length)continue;
   const sourceRows=await fetchAll("evidence_sources",(q)=>q
-    .select("id,source_quality_class")
+    .select("id,provider,source_type,source_url,source_quality_class")
     .eq("company_id",company.id)
     .order("id",{ascending:true})
   );
-  const quality=new Map(sourceRows.map((r)=>[r.id,r.source_quality_class]));
-  allObs.push(...rows.map((r)=>({...r,source_quality_class:quality.get(r.source_id)??"verified_secondary"})));
+  const sourceById=new Map(sourceRows.map((r)=>[r.id,r]));
+  allObs.push(...rows.map((r)=>{
+    const source=sourceById.get(r.source_id)??{};
+    return{
+      ...r,
+      // Recompute effective authority from immutable source provenance rather than
+      // trusting legacy source_quality_class labels produced by older classifiers.
+      source_quality_class:sourceQualityClass({
+        provider:source.provider??r.provider,
+        sourceType:source.source_type,
+        url:source.source_url,
+        basis:r.basis,
+      }),
+    };
+  }));
 }
 
 const groups=new Map();

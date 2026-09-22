@@ -14,6 +14,11 @@ assert.equal(sourceQualityClass({
   provider:"sec_companyfacts",sourceType:"10-K",url:"https://www.sec.gov/example",basis:"reported"
 }),"primary_regulatory");
 assert.equal(sourceQualityClass({provider:"fmp",sourceType:"structured",basis:"reported"}),"structured_provider");
+assert.equal(sourceQualityClass({provider:"fmp",sourceType:"10-K",url:"https://financialmodelingprep.com/example",basis:"reported"}),"structured_provider");
+assert.equal(sourceQualityClass({provider:"yahoo_fundamentals",sourceType:"10-Q",url:"https://query1.finance.yahoo.com/example",basis:"reported"}),"structured_provider");
+assert.equal(sourceQualityClass({provider:"unknown",sourceType:"10-K",url:"https://example.com/filing",basis:"reported"}),"verified_secondary");
+assert.equal(sourceQualityClass({provider:"company_ir",sourceType:"company filing",url:"https://example.com/investor-relations/filing",basis:"reported"}),"company_direct");
+
 assert.equal(sourceQualityClass({provider:"solpient",sourceType:"calculation",basis:"derived"}),"derived_calculation");
 assert.equal(sourceQualityClass({provider:"solpient_analyst",basis:"assumption"}),"analyst_assumption");
 
