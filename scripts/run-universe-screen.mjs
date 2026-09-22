@@ -183,6 +183,8 @@ const resultRows=screened.map(result=>{
     score_detail:{
       dimensions:result.dimensions,
       sector_evidence:result.sectorEvidence,
+      sector_classification:result.sectorClassification,
+      sector_taxonomy_version:result.sectorTaxonomyVersion,
       raw_evidence_coverage_pct:result.rawEvidenceCoveragePct,
       effective_evidence_coverage_pct:result.evidenceCoveragePct,
       methodology_version:result.methodologyVersion,
