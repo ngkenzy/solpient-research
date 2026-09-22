@@ -203,12 +203,53 @@ Then open:
 /review
 ```
 
-Phase 3A intentionally leaves two high-impact operations on the legacy admin adapter until Phase 3B:
+Phase 3A originally left fresh factory builds and final publication on the legacy adapter. Phase 3B now migrates those paths, together with provenance and automation workers, to direct PostgreSQL.
 
-- building a fresh factory draft;
-- final promotion/publication of reviewed research.
+## Phase 3B checkpoint: publication, provenance, and automation
 
-Keep the temporary Supabase/PostgREST fallback available until those paths and the research-factory/provenance workers are migrated.
+Phase 3B moves the high-impact research pipeline and operational workers to Solpient-owned PostgreSQL.
+
+Direct PostgreSQL now covers:
+
+- fresh baseline/factory draft creation;
+- Research Composer persistence;
+- review preparation and human attestation;
+- final reviewed publication through `publish_reviewed_research_v2`;
+- provenance normalization, lineage, conflict checks, and research-input manifest staging;
+- research-factory materialization and state transitions;
+- autonomous industry assignment and valuation policy workers;
+- autonomous factory orchestration;
+- research repair-job processing;
+- SEC and Yahoo fundamentals/history ingestion;
+- research context, coverage, update planning, enrichment, and change-event workers;
+- capital-intelligence ingestion, provider auditing, and coverage workflows;
+- methodology activation/validation workers.
+
+The existing PostgreSQL functions remain authoritative for atomic state transitions and publication. The application now calls those functions directly through `pg`; it does not need PostgREST or Supabase service-role credentials for these local workflows.
+
+A small server-only compatibility client remains temporarily for legacy worker query syntax. It translates the existing `.from(...).select()/upsert()/rpc()` subset directly into SQL through `pg`; it does **not** call Supabase or PostgREST.
+
+Verify Phase 3B:
+
+```bash
+npm install
+npm run local:configure-app
+npm run local:verify-db
+npm run local:verify-research
+npm run local:verify-review
+npm run local:verify-phase3b
+npm run build
+```
+
+The Phase 3B verifier checks:
+
+- required publication/factory PostgreSQL functions;
+- required research/provenance/factory tables;
+- database write privileges;
+- a direct compatibility-layer smoke query;
+- all migrated operational worker files for leftover Supabase client imports or Supabase database credentials.
+
+Do not remove the hosted Supabase project yet. First verify the local review build/publish workflow and at least one factory/automation run against local PostgreSQL.
 
 ## Phase 5: remove the Supabase client package
 
