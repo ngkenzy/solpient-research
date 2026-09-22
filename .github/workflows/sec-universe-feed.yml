@@ -7,6 +7,8 @@ on:
       - "scripts/build-sec-universe-fundamentals.mjs"
       - "scripts/enrich-sec-universe-market.mjs"
       - "scripts/test-sec-universe-feed.mjs"
+      - "lib/universe-issuer-selection.mjs"
+      - "scripts/test-universe-issuer-selection.mjs"
       - "docs/SEC_FIRST_UNIVERSE_FEED.md"
       - ".github/workflows/sec-universe-feed.yml"
   workflow_dispatch:
@@ -23,6 +25,8 @@ jobs:
           node-version: 22
       - name: Test SEC-first feed against live screen contract
         run: node scripts/test-sec-universe-feed.mjs
+      - name: Test issuer canonicalization
+        run: node scripts/test-universe-issuer-selection.mjs
       - name: Syntax check bulk builders
         run: |
           node --check scripts/build-sec-universe-fundamentals.mjs

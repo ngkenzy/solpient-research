@@ -76,6 +76,27 @@ assert.ok(fundamental.roic>0);
 assert.ok(fundamental.positive_fcf_years>=4);
 assert.ok(fundamental.revenue_growth_3y_cagr>0);
 
+const sparseFacts=structuredClone(facts);
+for(const namespace of ["us-gaap"]){
+  for(const node of Object.values(sparseFacts.facts[namespace]??{})){
+    for(const [unit,rows] of Object.entries(node.units??{})){
+      node.units[unit]=rows.filter(r=>Number(r.fy)===2025&&String(r.fp)==="Q1");
+    }
+  }
+}
+sparseFacts.facts.dei.EntityCommonStockSharesOutstanding.units.shares=
+  sparseFacts.facts.dei.EntityCommonStockSharesOutstanding.units.shares.slice(-1);
+
+const sparseFundamental=buildSecScreenFundamentals({
+  companyFacts:sparseFacts,ticker:"SPARSE",cik:"2",companyName:"Sparse Filing Co",exchange:"Nasdaq",
+  sic:7372,sicDescription:"SERVICES-PREPACKAGED SOFTWARE",
+});
+assert.ok(sparseFundamental);
+assert.equal(sparseFundamental.revenue_ttm,null);
+assert.equal(sparseFundamental.roe,null);
+assert.equal(sparseFundamental.roic,null);
+assert.equal(sparseFundamental._sec_internal.ebitda_ttm,null);
+
 const now=Math.floor(new Date("2026-09-18T20:00:00Z").getTime()/1000);
 const timestamps=[],close=[],volume=[];
 for(let i=0;i<30;i++){timestamps.push(now-i*86400);close.push(100+i*.1);volume.push(500000);}
