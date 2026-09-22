@@ -1,14 +1,10 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
-import { createClient } from "@supabase/supabase-js";
+import { createPostgresCompatClient } from "../lib/pg-supabase-compat.mjs";
 import { normalizeCompanyFacts, SEC_PROVIDER } from "../lib/sec-companyfacts.mjs";
 
-const url=process.env.SUPABASE_URL;
-const secret=process.env.SUPABASE_SECRET_KEY??process.env.SUPABASE_SERVICE_ROLE_KEY;
-if(!url||!secret)throw new Error("Missing SUPABASE_URL and server secret.");
-
-const sb=createClient(url,secret,{auth:{persistSession:false,autoRefreshToken:false}});
+if(!process.env.SOLPIENT_DATABASE_URL)throw new Error("Missing SOLPIENT_DATABASE_URL.");\nconst sb=createPostgresCompatClient();
 const secContact=process.env.SEC_CONTACT??"ngkenzy@users.noreply.github.com";
 const userAgent=process.env.SEC_USER_AGENT??("SOLPIENT Research "+secContact);
 const outputFlag=process.argv.indexOf("--output");
