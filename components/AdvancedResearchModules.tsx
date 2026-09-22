@@ -1,4 +1,4 @@
-import { getSupabase } from "@/lib/supabase";
+import { loadAdvancedResearchData } from "@/lib/repositories/advanced-research";
 
 function n(value: unknown) {
   const parsed = Number(value);
@@ -43,68 +43,14 @@ export async function AdvancedResearchModules({
   ticker: string;
   asOf?: string | null;
 }) {
-  const supabase = getSupabase();
-  if (!supabase) return null;
+  const loaded = await loadAdvancedResearchData(companyId, researchRunId, asOf);
+  if (!loaded) return null;
 
-  const cutoffDate = asOf ? asOf.slice(0, 10) : null;
-
-  let moduleQuery = supabase
-    .from("company_metric_history")
-    .select("module,metric_key,label,period_end,fiscal_year,period_type,value_numeric,value_text,unit,source_title,source_url,observed_at")
-    .eq("company_id", companyId)
-    .in("module", [
-      "product_mix",
-      "segment_mix",
-      "geography_mix",
-      "biopharma_pipeline",
-      "biopharma_timeline",
-      "earnings_surprise",
-      "capital_safety",
-    ]);
-  let consensusQuery = supabase
-    .from("consensus_snapshots")
-    .select("observed_at,provider,revenue_next_fy,eps_next_fy,revenue_growth_next_fy,eps_growth_next_fy,analyst_count,raw_payload")
-    .eq("company_id", companyId);
-  let annualFcfQuery = supabase
-    .from("company_metric_history")
-    .select("fiscal_year,value_numeric,period_end,observed_at")
-    .eq("company_id", companyId)
-    .eq("module", "universal")
-    .eq("metric_key", "free_cash_flow")
-    .eq("period_type", "fiscal_year")
-    .gt("value_numeric", 0);
-
-  if (asOf) {
-    moduleQuery = moduleQuery.lte("observed_at", asOf);
-    consensusQuery = consensusQuery.lte("observed_at", asOf);
-    annualFcfQuery = annualFcfQuery.lte("observed_at", asOf);
-  }
-  if (cutoffDate) {
-    moduleQuery = moduleQuery.lte("period_end", cutoffDate);
-    annualFcfQuery = annualFcfQuery.lte("period_end", cutoffDate);
-  }
-
-  const [moduleResult, consensusResult, metricsResult, v2Result, annualFcfResult] =
-    await Promise.all([
-      moduleQuery.order("period_end", { ascending: true }),
-      consensusQuery.order("observed_at", { ascending: true }).limit(36),
-      supabase
-        .from("financial_metrics")
-        .select("cash,total_debt,free_cash_flow")
-        .eq("research_run_id", researchRunId)
-        .maybeSingle(),
-      supabase
-        .from("research_v2_sections")
-        .select("valuation_analysis")
-        .eq("research_run_id", researchRunId)
-        .maybeSingle(),
-      annualFcfQuery
-        .order("fiscal_year", { ascending: false })
-        .limit(1)
-        .maybeSingle(),
-    ]);
-
-  const rows = moduleResult.data ?? [];
+  const rows = loaded.rows;
+  const consensus = loaded.consensus;
+  const metricsData = loaded.metrics;
+  const v2Data = loaded.v2;
+  const annualFcfData = loaded.annualFcf;
   const products = rows
     .filter((row: any) => row.module === "product_mix")
     .sort((a: any, b: any) => Number(b.value_numeric ?? 0) - Number(a.value_numeric ?? 0));
@@ -137,7 +83,6 @@ export async function AdvancedResearchModules({
   );
   const maxPipeline = Math.max(...pipeline.map((row: any) => Number(row.value_numeric ?? 0)), 1);
 
-  const consensus = consensusResult.data ?? [];
   const latestConsensus = consensus.at(-1) ?? null;
   const priorConsensus = consensus.length > 1 ? consensus.at(-2) : null;
   const epsRevision =
@@ -150,7 +95,7 @@ export async function AdvancedResearchModules({
       : null;
 
   const normalized =
-    (v2Result.data as any)?.valuation_analysis?.normalized_earnings_context ?? {};
+    (v2Data as any)?.valuation_analysis?.normalized_earnings_context ?? {};
   const dividendPerShare = n(normalized.annualized_dividend_per_share);
   const adjustedEps = n(normalized.adjusted_eps_guidance_midpoint);
   const dividendPayout =
@@ -158,14 +103,14 @@ export async function AdvancedResearchModules({
       ? (dividendPerShare / adjustedEps) * 100
       : null;
 
-  const annualFcf = n((annualFcfResult.data as any)?.value_numeric);
+  const annualFcf = n((annualFcfData as any)?.value_numeric);
   const dividendsPaid = n((capitalSafety as any)?.value_numeric);
   const fcfDividendCoverage =
     annualFcf != null && dividendsPaid != null && dividendsPaid !== 0
       ? annualFcf / dividendsPaid
       : null;
-  const totalDebt = n((metricsResult.data as any)?.total_debt);
-  const cash = n((metricsResult.data as any)?.cash);
+  const totalDebt = n((metricsData as any)?.total_debt);
+  const cash = n((metricsData as any)?.cash);
   const netDebt =
     totalDebt != null && cash != null ? totalDebt - cash : null;
   const netDebtToFcf =
