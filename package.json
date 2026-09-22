@@ -88,7 +88,8 @@
     "local:verify-db": "node --env-file=.env.local scripts/verify-direct-postgres.mjs",
     "local:verify-research": "node --env-file=.env.local scripts/verify-research-postgres.mjs",
     "local:verify-review": "node --env-file=.env.local scripts/verify-review-postgres.mjs",
-    "local:verify-phase3b": "node --env-file=.env.local scripts/verify-phase3b-postgres.mjs"
+    "local:verify-phase3b": "node --env-file=.env.local scripts/verify-phase3b-postgres.mjs",
+    "local:sync-db-password": "bash scripts/sync-local-db-password.sh"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.109.0",
