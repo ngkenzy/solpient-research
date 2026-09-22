@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { SolpientBrand } from "@/components/SolpientBrand";
-import { getAdminSupabase } from "@/lib/admin-supabase";
+import { loadReviewQueueData } from "@/lib/repositories/review-workbench";
 import { requireReviewAccess } from "@/lib/review-auth";
 import { buildCompanyReviewAction, logoutReviewAction, prepareV2ReviewsAction } from "./actions";
 // @ts-expect-error Node ESM research helper
@@ -29,20 +29,17 @@ function stageFor(row:any) {
 export default async function ReviewQueue({searchParams}:{searchParams:Promise<{prepared?:string}>}) {
   await requireReviewAccess();
   const messages=await searchParams;
-  const supabase=getAdminSupabase();
-  if (!supabase) return null;
+  const data=await loadReviewQueueData();
+  if (!data) return null;
 
-  const [companyResult,draftResult,reviewResult,compositionResult,runResult,coverageResult]=await Promise.all([
-    supabase.from("companies").select("id,ticker,company_name").order("ticker"),
-    supabase.from("baseline_drafts").select("id,company_id,generation_version,generated_at,source_cutoff_at,industry_module,status,evidence_completeness_pct,standard_status,published_run_id").order("generated_at",{ascending:false}),
-    supabase.from("baseline_reviews").select("draft_id,status,promotion_readiness,reviewed_at,prepared_at,preparation_source,human_verified_at,human_verified_by,human_verified_payload_hash,attestation_version,published_run_id"),
-    supabase.from("research_compositions").select("id,draft_id,company_id,engine_version,status,validation_result,generated_at").order("generated_at",{ascending:false}),
-    supabase.from("research_runs").select("id,company_id,version,researched_at,standard_version,standard_status,completeness_pct").eq("status","published").order("version",{ascending:false}),
-    supabase.from("data_coverage_reports").select("company_id,status,overall_pct,generated_at").order("generated_at",{ascending:false}),
-  ]);
-  for (const result of [companyResult,draftResult,reviewResult,compositionResult,runResult,coverageResult]) {
-    if (result.error) throw result.error;
-  }
+  const {
+    companies,
+    drafts,
+    reviews,
+    compositions,
+    runs,
+    coverage,
+  }=data;
 
   const latestByCompany=<T extends {company_id:string}>(rows:T[])=>{
     const map=new Map<string,T>();
@@ -50,13 +47,13 @@ export default async function ReviewQueue({searchParams}:{searchParams:Promise<{
     return map;
   };
 
-  const draftByCompany=latestByCompany(draftResult.data ?? []);
-  const compositionByCompany=latestByCompany(compositionResult.data ?? []);
-  const runByCompany=latestByCompany(runResult.data ?? []);
-  const coverageByCompany=latestByCompany(coverageResult.data ?? []);
-  const reviewByDraft=new Map((reviewResult.data ?? []).map((row:any)=>[row.draft_id,row]));
+  const draftByCompany=latestByCompany(drafts);
+  const compositionByCompany=latestByCompany(compositions);
+  const runByCompany=latestByCompany(runs);
+  const coverageByCompany=latestByCompany(coverage);
+  const reviewByDraft=new Map(reviews.map((row:any)=>[row.draft_id,row]));
 
-  const rows=(companyResult.data ?? []).map((company:any)=>{
+  const rows=companies.map((company:any)=>{
     const draft:any=draftByCompany.get(company.id);
     return {
       company,
@@ -80,7 +77,7 @@ export default async function ReviewQueue({searchParams}:{searchParams:Promise<{
   const inReview=rows.filter((row:any)=>row.review && !row.review?.promotion_readiness?.ready && row.latestRun?.standard_version!=="solpient-v2").length;
   const composerReady=rows.filter((row:any)=>row.composition && !row.review && row.latestRun?.standard_version!=="solpient-v2").length;
   const backfill=rows.filter((row:any)=>row.latestRun && !row.draft && row.latestRun.standard_version!=="solpient-v2").length;
-  const prepareCount=(compositionResult.data ?? []).filter((row:any)=>row.status==="generated" && !reviewByDraft.has(row.draft_id)).length;
+  const prepareCount=compositions.filter((row:any)=>row.status==="generated" && !reviewByDraft.has(row.draft_id)).length;
 
   return <>
     <header className={styles.header}>
