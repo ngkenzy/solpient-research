@@ -164,6 +164,7 @@ for(const item of items??[]){
     publishedResearch,
     sourcePipelineItem:pipelineItem,
     repairJobs,
+    industryModuleKnown:baselineDraft?Boolean(baselineDraft.industry_module):null,
   });
 
   const screen=screenById.get(item.source_screen_result_id)??null;
