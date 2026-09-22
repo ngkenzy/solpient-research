@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getSupabase } from "@/lib/supabase";
+import { loadActiveDecisionTriggers } from "@/lib/repositories/active-decision-triggers";
 import styles from "./DecisionTriggerFeed.module.css";
 
 function n(value:unknown){const x=Number(value);return Number.isFinite(x)?x:null;}
@@ -20,19 +20,8 @@ function effect(value:string){
 }
 
 export async function DecisionTriggerFeed(){
-  const supabase=getSupabase();
-  if(!supabase)return null;
-
-  const {data:rows}=await supabase
-    .from("decision_triggers")
-    .select("id,company_id,research_run_id,trigger_key,trigger_group,label,metric_key,comparator,threshold_value,threshold_unit,current_value,current_text,decision_effect,severity,evaluation_status,rationale,last_evaluated_at,companies(ticker,company_name)")
-    .in("evaluation_status",["triggered","needs_review"])
-    .neq("trigger_group","data_quality")
-    .order("severity",{ascending:false})
-    .order("updated_at",{ascending:false})
-    .limit(40);
-
-  const triggers=rows??[];
+  const triggers=await loadActiveDecisionTriggers();
+  if(!triggers)return null;
   return(
     <section className={styles.section}>
       <div className={styles.header}>
@@ -50,7 +39,7 @@ export async function DecisionTriggerFeed(){
       {triggers.length?(
         <div className={styles.list}>
           {triggers.map((trigger:any)=>{
-            const company=Array.isArray(trigger.companies)?trigger.companies[0]:trigger.companies;
+            const company={ticker:trigger.ticker,company_name:trigger.company_name};
             return(
               <article className={styles.row} key={trigger.id}>
                 <div className={styles.ticker}>{company?.ticker??"—"}</div>
