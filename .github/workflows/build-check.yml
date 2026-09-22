@@ -54,6 +54,7 @@ jobs:
           npm run test:sector-classification:v2.2
           npm run test:sector-classification:v2.3
           npm run test:methodology
+          npm run test:methodology-activation
 
       - name: Check repair center scripts
         run: |
