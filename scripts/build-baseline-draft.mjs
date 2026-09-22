@@ -3,6 +3,7 @@ import path from "node:path";
 import process from "node:process";
 import { createClient } from "@supabase/supabase-js";
 import { buildBaselineDraft, BASELINE_FACTORY_VERSION } from "../lib/baseline-factory.mjs";
+import { latestAutonomousIndustryModule } from "../lib/autonomous-research-factory-db.mjs";
 
 const ticker = String(process.argv[2] ?? process.env.BASELINE_TICKER ?? "").trim().toUpperCase();
 const outputFlag = process.argv.indexOf("--output");
@@ -65,11 +66,17 @@ if (fundamentalResult.error) throw fundamentalResult.error;
 if (filingResult.error) throw filingResult.error;
 if (contextResult.error) throw contextResult.error;
 
+const autonomousIndustryModule=await latestAutonomousIndustryModule(
+  supabase,
+  {companyId:company.id}
+);
+
 const result = buildBaselineDraft({
   company,
   market: marketResult.data,
   fundamentals: fundamentalResult.data ?? [],
   filings: filingResult.data ?? [],
+  industryModuleOverride: autonomousIndustryModule,
 });
 
 if (contextResult.data) {
