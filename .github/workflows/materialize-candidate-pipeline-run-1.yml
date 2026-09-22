@@ -1,0 +1,102 @@
+name: Materialize Research Candidate Pipeline Run 1
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/materialize-candidate-pipeline-run-1.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: research-candidate-pipeline-run-1
+  cancel-in-progress: false
+
+jobs:
+  materialize:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - run: npm install
+
+      - name: Verify server credentials are available
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          test -n "$SUPABASE_URL"
+          test -n "$SUPABASE_SERVICE_ROLE_KEY"
+
+      - name: Materialize immutable Pipeline Run 1
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          node scripts/materialize-research-candidate-pipeline-v2-4.mjs \
+            --screen-run-id=d4b9e789-685f-444c-900c-ebf02a976489
+
+      - name: Verify immutable Pipeline Run 1
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          node --input-type=module <<'NODE'
+          import { createClient } from "@supabase/supabase-js";
+
+          const sb=createClient(
+            process.env.SUPABASE_URL,
+            process.env.SUPABASE_SERVICE_ROLE_KEY,
+            {auth:{persistSession:false,autoRefreshToken:false}}
+          );
+          const screenRunId="d4b9e789-685f-444c-900c-ebf02a976489";
+
+          const {data:run,error:runError}=await sb
+            .from("research_candidate_pipeline_runs")
+            .select("*")
+            .eq("universe_screen_run_id",screenRunId)
+            .eq("pipeline_version","research-candidate-pipeline-v2.4")
+            .order("created_at",{ascending:false})
+            .limit(1)
+            .maybeSingle();
+          if(runError)throw runError;
+          if(!run)throw new Error("Pipeline Run 1 was not created.");
+
+          const {count,error:countError}=await sb
+            .from("research_candidate_pipeline_items")
+            .select("id",{count:"exact",head:true})
+            .eq("research_candidate_pipeline_run_id",run.id);
+          if(countError)throw countError;
+          if(count!==run.candidate_count){
+            throw new Error(
+              "Pipeline Run 1 item-count mismatch: expected "+
+              run.candidate_count+", found "+count
+            );
+          }
+          if(run.candidate_count!==100){
+            throw new Error(
+              "Pipeline Run 1 expected the 100-name deep-research shortlist; found "+
+              run.candidate_count
+            );
+          }
+
+          console.log(JSON.stringify({
+            verified:true,
+            run_id:run.id,
+            universe_screen_run_id:run.universe_screen_run_id,
+            pipeline_version:run.pipeline_version,
+            evaluation_as_of:run.evaluation_as_of,
+            candidate_count:run.candidate_count,
+            decision_ready_count:run.decision_ready_count,
+            research_ready_count:run.research_ready_count,
+            building_count:run.building_count,
+            onboarding_count:run.onboarding_count,
+            valuation_building_count:run.valuation_building_count,
+            published_item_count:count,
+          },null,2));
+          NODE
