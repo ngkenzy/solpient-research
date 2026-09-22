@@ -1,6 +1,14 @@
 import "server-only";
 
-import { Pool, type QueryResultRow } from "pg";
+import { Pool, types, type QueryResultRow } from "pg";
+
+// node-postgres normally converts PostgreSQL date/time values to JavaScript Date
+// objects. Solpient's existing read models were built against PostgREST/Supabase,
+// which returns these fields as strings. Preserve that contract during migration
+// so code such as value.slice(0, 10) keeps receiving YYYY-MM-DD text.
+types.setTypeParser(1082, (value) => value); // date
+types.setTypeParser(1114, (value) => value.replace(" ", "T")); // timestamp
+types.setTypeParser(1184, (value) => value.replace(" ", "T")); // timestamptz
 
 declare global {
   // Reuse the pool across Next.js hot reloads in development.
