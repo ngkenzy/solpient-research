@@ -4,7 +4,8 @@ import process from "node:process";
 import { createPostgresCompatClient } from "../lib/pg-supabase-compat.mjs";
 import {industryModuleForTicker} from "../lib/industry-modules.mjs";
 import {YAHOO_FINANCIAL_KEYS,YAHOO_FUNDAMENTALS_PROVIDER,normalizeYahooFundamentals} from "../lib/yahoo-fundamentals.mjs";
-if(!process.env.SOLPIENT_DATABASE_URL)throw new Error("Missing SOLPIENT_DATABASE_URL.");\nconst sb=createPostgresCompatClient(),onlyTicker=process.env.COVERAGE_TICKER?String(process.env.COVERAGE_TICKER).toUpperCase():null,userAgent=process.env.YAHOO_DATA_USER_AGENT??"SOLPIENT Research/1.0",outIndex=process.argv.indexOf("--output"),outputPath=outIndex>=0?process.argv[outIndex+1]:null,period1=Math.floor(new Date("2014-01-01T00:00:00Z").getTime()/1000),period2=Math.floor(Date.now()/1000)+86400;
+if(!process.env.SOLPIENT_DATABASE_URL)throw new Error("Missing SOLPIENT_DATABASE_URL.");
+const sb=createPostgresCompatClient(),onlyTicker=process.env.COVERAGE_TICKER?String(process.env.COVERAGE_TICKER).toUpperCase():null,userAgent=process.env.YAHOO_DATA_USER_AGENT??"SOLPIENT Research/1.0",outIndex=process.argv.indexOf("--output"),outputPath=outIndex>=0?process.argv[outIndex+1]:null,period1=Math.floor(new Date("2014-01-01T00:00:00Z").getTime()/1000),period2=Math.floor(Date.now()/1000)+86400;
 function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
 async function cookieCrumb(){try{const boot=await fetch("https://fc.yahoo.com",{headers:{"User-Agent":userAgent},redirect:"manual"}),sets=typeof boot.headers.getSetCookie==="function"?boot.headers.getSetCookie():[boot.headers.get("set-cookie")].filter(Boolean),cookie=sets.map(v=>String(v).split(";")[0]).join("; ");if(!cookie)return null;const res=await fetch("https://query1.finance.yahoo.com/v1/test/getcrumb",{headers:{"User-Agent":userAgent,Cookie:cookie}});if(!res.ok)return null;const crumb=(await res.text()).trim();return crumb?{cookie,crumb}:null;}catch{return null;}}
 let auth=null;
