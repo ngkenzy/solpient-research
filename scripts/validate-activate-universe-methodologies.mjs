@@ -77,9 +77,12 @@ function verifyLocalCommit(){
   if(head&&head!==commitSha){
     throw new Error("Activation commit SHA does not match checked-out HEAD. expected="+commitSha+" head="+head);
   }
-  const dirty=git("git",["status","--porcelain"]);
-  if(dirty){
-    throw new Error("Activation requires a clean git worktree so implementation hashes match the audited commit.");
+  const unstaged=git("git",["diff","--name-only"]);
+  const staged=git("git",["diff","--cached","--name-only"]);
+  if(unstaged||staged){
+    throw new Error(
+      "Activation requires no tracked source changes so implementation hashes match the audited commit."
+    );
   }
 }
 
@@ -97,14 +100,27 @@ async function verifyGitHubCI(){
   const endpoint=
     "https://api.github.com/repos/"+githubRepo+
     "/actions/runs?head_sha="+encodeURIComponent(commitSha)+"&per_page=100";
+  let body=null;
   const response=await fetch(endpoint,{headers});
-  if(!response.ok){
+  if(response.ok){
+    body=await response.json();
+  }else if(!token){
+    const ghBody=git("gh",[
+      "api",
+      "repos/"+githubRepo+"/actions/runs",
+      "-f","head_sha="+commitSha,
+      "-f","per_page=100",
+    ]);
+    if(ghBody){
+      try{body=JSON.parse(ghBody);}catch{}
+    }
+  }
+  if(!body){
     throw new Error(
-      "Unable to verify GitHub Actions for "+commitSha+
-      ": HTTP "+response.status+" "+await response.text()
+      "Unable to verify GitHub Actions for private repository "+githubRepo+
+      " at "+commitSha+". Set GH_TOKEN/GITHUB_TOKEN or authenticate GitHub CLI with gh auth login."
     );
   }
-  const body=await response.json();
   const runs=Array.isArray(body.workflow_runs)?body.workflow_runs:[];
   const selected=[];
   const missing=[];
