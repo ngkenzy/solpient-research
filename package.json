@@ -65,7 +65,8 @@
     "test:sector-classification:v2.3": "node scripts/test-sector-classification-coverage-v2-3.mjs",
     "test:methodology-activation": "node scripts/test-methodology-activation-v1.mjs",
     "validate:universe-methodologies": "node scripts/validate-activate-universe-methodologies.mjs",
-    "test:screen-publish": "node scripts/test-universe-screen-publish-v1-2.mjs"
+    "test:screen-publish": "node scripts/test-universe-screen-publish-v1-2.mjs",
+    "test:candidate-pipeline:v2.4": "node scripts/test-research-candidate-pipeline-v2-4.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.4",
