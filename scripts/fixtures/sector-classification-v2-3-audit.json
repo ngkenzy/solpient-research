@@ -1,0 +1,172 @@
+{
+  "securities": [
+    {
+      "ticker": "UFI",
+      "company_name": "UNIFI INC",
+      "sic": "2200",
+      "sic_description": "Textile Mill Products",
+      "sector": "Unknown",
+      "screen_profile": "general"
+    },
+    {
+      "ticker": "UHAL",
+      "company_name": "U-Haul Holding Co /NV/",
+      "sic": "7510",
+      "sic_description": "Services-Auto Rental & Leasing (No Drivers)",
+      "sector": "Unknown",
+      "screen_profile": "general"
+    },
+    {
+      "ticker": "UNF",
+      "company_name": "UNIFIRST CORP",
+      "sic": "7200",
+      "sic_description": "Services-Personal Services",
+      "sector": "Unknown",
+      "screen_profile": "general"
+    },
+    {
+      "ticker": "VAI",
+      "company_name": "Senmiao Technology Ltd",
+      "sic": "7510",
+      "sic_description": "Services-Auto Rental & Leasing (No Drivers)",
+      "sector": "Unknown",
+      "screen_profile": "general"
+    },
+    {
+      "ticker": "VFF",
+      "company_name": "Village Farms International, Inc.",
+      "sic": "0100",
+      "sic_description": "Agricultural Production-Crops",
+      "sector": "Unknown",
+      "screen_profile": "general"
+    },
+    {
+      "ticker": "VLTO",
+      "company_name": "Veralto Corp",
+      "sic": "3825",
+      "sic_description": "Instruments For Meas & Testing of Electricity & Elec Signals",
+      "sector": "Unknown",
+      "screen_profile": "general"
+    },
+    {
+      "ticker": "VNT",
+      "company_name": "Vontier Corp",
+      "sic": "3824",
+      "sic_description": "Totalizing Fluid Meters & Counting Devices",
+      "sector": "Unknown",
+      "screen_profile": "general"
+    },
+    {
+      "ticker": "VRA",
+      "company_name": "Vera Bradley, Inc.",
+      "sic": "3100",
+      "sic_description": "Leather & Leather Products",
+      "sector": "Unknown",
+      "screen_profile": "general"
+    },
+    {
+      "ticker": "VTSI",
+      "company_name": "VirTra, Inc",
+      "sic": "3990",
+      "sic_description": "Miscellaneous Manufacturing Industries",
+      "sector": "Unknown",
+      "screen_profile": "general"
+    },
+    {
+      "ticker": "VVV",
+      "company_name": "VALVOLINE INC",
+      "sic": "2990",
+      "sic_description": "Miscellaneous Products of Petroleum & Coal",
+      "sector": "Unknown",
+      "screen_profile": "general"
+    },
+    {
+      "ticker": "WAT",
+      "company_name": "WATERS CORP /DE/",
+      "sic": "3826",
+      "sic_description": "Laboratory Analytical Instruments",
+      "sector": "Unknown",
+      "screen_profile": "general"
+    },
+    {
+      "ticker": "WBTN",
+      "company_name": "WEBTOON Entertainment Inc.",
+      "sic": "2741",
+      "sic_description": "Miscellaneous Publishing",
+      "sector": "Unknown",
+      "screen_profile": "general"
+    },
+    {
+      "ticker": "WHF",
+      "company_name": "WhiteHorse Finance, Inc.",
+      "sic": null,
+      "sic_description": "",
+      "sector": "Unknown",
+      "screen_profile": "general"
+    },
+    {
+      "ticker": "WLY",
+      "company_name": "JOHN WILEY & SONS, INC.",
+      "sic": "2731",
+      "sic_description": "Books: Publishing or Publishing & Printing",
+      "sector": "Unknown",
+      "screen_profile": "general"
+    },
+    {
+      "ticker": "WMS",
+      "company_name": "ADVANCED DRAINAGE SYSTEMS, INC.",
+      "sic": "3086",
+      "sic_description": "Plastics Foam Products",
+      "sector": "Unknown",
+      "screen_profile": "general"
+    },
+    {
+      "ticker": "WMT",
+      "company_name": "Walmart Inc.",
+      "sic": "5331",
+      "sic_description": "Retail-Variety Stores",
+      "sector": "Unknown",
+      "screen_profile": "general"
+    },
+    {
+      "ticker": "WW",
+      "company_name": "WW INTERNATIONAL, INC.",
+      "sic": "7200",
+      "sic_description": "Services-Personal Services",
+      "sector": "Unknown",
+      "screen_profile": "general"
+    },
+    {
+      "ticker": "XWEL",
+      "company_name": "XWELL, Inc.",
+      "sic": "7200",
+      "sic_description": "Services-Personal Services",
+      "sector": "Unknown",
+      "screen_profile": "general"
+    },
+    {
+      "ticker": "YETI",
+      "company_name": "YETI Holdings, Inc.",
+      "sic": "3949",
+      "sic_description": "Sporting & Athletic Goods, NEC",
+      "sector": "Unknown",
+      "screen_profile": "general"
+    },
+    {
+      "ticker": "YHGJ",
+      "company_name": "YUNHONG GREEN CTI LTD.",
+      "sic": "3060",
+      "sic_description": "Fabricated Rubber Products, NEC",
+      "sector": "Unknown",
+      "screen_profile": "general"
+    },
+    {
+      "ticker": "ZEO",
+      "company_name": "Zeo Energy Corp.",
+      "sic": "1700",
+      "sic_description": "Construction - Special Trade Contractors",
+      "sector": "Unknown",
+      "screen_profile": "general"
+    }
+  ]
+}
