@@ -66,6 +66,7 @@ for(const item of items??[]){
     screenR,
     baselineR,
     fundamentalsR,
+    marketR,
     consensusR,
     historyR,
     contextR,
@@ -76,6 +77,10 @@ for(const item of items??[]){
       .order("generated_at",{ascending:false}).limit(1).maybeSingle(),
     sb.from("fundamental_snapshots").select("*").eq("company_id",item.company_id)
       .order("period_end",{ascending:false}).limit(160),
+    sb.from("market_snapshots").select("trading_date,price,market_cap,provider,source_url,observed_at")
+      .eq("company_id",item.company_id)
+      .order("trading_date",{ascending:false})
+      .limit(1).maybeSingle(),
     sb.from("consensus_snapshots").select("*").eq("company_id",item.company_id)
       .order("observed_at",{ascending:false}).limit(1).maybeSingle(),
     sb.from("valuation_history")
@@ -91,7 +96,7 @@ for(const item of items??[]){
       .order("as_of_date",{ascending:false}).order("generated_at",{ascending:false})
       .limit(1).maybeSingle(),
   ]);
-  for(const r of [screenR,baselineR,fundamentalsR,consensusR,historyR,contextR,coverageR]){
+  for(const r of [screenR,baselineR,fundamentalsR,marketR,consensusR,historyR,contextR,coverageR]){
     if(r.error)throw r.error;
   }
 
@@ -100,6 +105,7 @@ for(const item of items??[]){
     industryAssignment:assignment,
     baselineDraft:baselineR.data??null,
     fundamentals:fundamentalsR.data??[],
+    market:marketR.data??null,
     consensus:consensusR.data??null,
     valuationHistory:historyR.data??[],
     contextPack:contextR.data??null,
