@@ -1,6 +1,6 @@
 import fs from "node:fs/promises";
 import process from "node:process";
-import { createClient } from "@supabase/supabase-js";
+import { createPostgresCompatClient } from "../lib/pg-supabase-compat.mjs";
 import {
   CAPITAL_ORCHESTRATOR_VERSION,
   dedupeCapitalRecords,
@@ -9,10 +9,11 @@ import {
   providerHealthRow,
 } from "../lib/capital-intelligence-orchestrator.mjs";
 
-const url=process.env.SUPABASE_URL;
-const secret=process.env.SUPABASE_SERVICE_ROLE_KEY??process.env.SUPABASE_SECRET_KEY;
-if(!url||!secret)throw new Error("Missing SUPABASE_URL and server secret.");
-const supabase=createClient(url,secret,{auth:{persistSession:false,autoRefreshToken:false}});
+if(!process.env.SOLPIENT_DATABASE_URL && typeof process.loadEnvFile==="function"){
+  try{process.loadEnvFile(".env.local");}catch{}
+}
+if(!process.env.SOLPIENT_DATABASE_URL)throw new Error("Missing SOLPIENT_DATABASE_URL.");
+const supabase=createPostgresCompatClient();
 
 const fileArg=process.argv.find((arg)=>arg.startsWith("--file="))?.split("=")[1];
 if(!fileArg)throw new Error("Use --file=/path/to/capital-intelligence.json");
