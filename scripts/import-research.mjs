@@ -2,7 +2,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
-import { createClient } from "@supabase/supabase-js";
+import { createPostgresCompatClient } from "../lib/pg-supabase-compat.mjs";
 import { buildResearchChanges } from "../lib/research-changes.mjs";
 import { validateResearchStandard } from "../lib/research-standard.mjs";
 
@@ -56,9 +56,7 @@ console.warn(
   "The database historical-integrity guard rejects normal published inserts outside the authoritative reviewed V2 RPC."
 );
 
-const supabase = createClient(supabaseUrl, serviceRoleKey, {
-  auth: { persistSession: false, autoRefreshToken: false },
-});
+const supabase = createPostgresCompatClient();
 
 const { data: existing } = await supabase
   .from("research_runs")
