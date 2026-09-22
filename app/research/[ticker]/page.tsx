@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getSupabase } from "@/lib/supabase";
 import { CompanyIntelligence } from "@/components/CompanyIntelligence";
 import { CompanyPerformanceHistory } from "@/components/CompanyPerformanceHistory";
 import { AdvancedResearchModules } from "@/components/AdvancedResearchModules";
@@ -13,6 +12,7 @@ import { PredictionHistory } from "@/components/PredictionHistory";
 import { SolpientBrand } from "@/components/SolpientBrand";
 import { ResearchStandardV1 } from "@/components/ResearchStandardV1";
 import { ResearchStandardV2 } from "@/components/ResearchStandardV2";
+import { loadCompanyResearchData } from "@/lib/repositories/company-research";
 
 export const dynamic = "force-dynamic";
 
@@ -140,43 +140,42 @@ export default async function CompanyResearch({
   const { ticker: rawTicker } = await params;
   const { version: requestedVersion } = await searchParams;
   const ticker = rawTicker.toUpperCase();
-  const supabase = getSupabase();
+  let version: number | null = null;
+  if (requestedVersion) {
+    const parsedVersion = Number(requestedVersion);
+    if (!Number.isInteger(parsedVersion) || parsedVersion < 1) notFound();
+    version = parsedVersion;
+  }
 
-  if (!supabase) {
+  const research = await loadCompanyResearchData(ticker, version);
+
+  if (!research) {
     return (
       <main className="researchShell">
         <Link className="backLink" href="/research">← Research</Link>
         <section className="emptyState">
-          <strong>Supabase is not configured.</strong>
-          <p>Add the public Supabase URL and publishable key to the app environment.</p>
+          <strong>No Solpient data source is configured.</strong>
+          <p>Configure direct PostgreSQL or the migration fallback to load research.</p>
         </section>
       </main>
     );
   }
 
-  const { data: company } = await supabase
-    .from("companies")
-    .select("*")
-    .eq("ticker", ticker)
-    .maybeSingle();
+  const {
+    company,
+    run,
+    scores,
+    valuation,
+    metrics,
+    thesis,
+    sources,
+    history,
+    changes,
+    v2,
+    latestMarket,
+  } = research;
 
   if (!company) notFound();
-
-  let runQuery = supabase
-    .from("research_runs")
-    .select("*")
-    .eq("company_id", company.id)
-    .eq("status", "published");
-
-  if (requestedVersion) {
-    const parsedVersion = Number(requestedVersion);
-    if (!Number.isInteger(parsedVersion) || parsedVersion < 1) notFound();
-    runQuery = runQuery.eq("version", parsedVersion);
-  } else {
-    runQuery = runQuery.order("version", { ascending: false }).limit(1);
-  }
-
-  const { data: run } = await runQuery.maybeSingle();
 
   if (!run) {
     return (
@@ -197,67 +196,11 @@ export default async function CompanyResearch({
     );
   }
 
-  const [
-    scoresResult,
-    valuationResult,
-    metricsResult,
-    thesisResult,
-    sourcesResult,
-    historyResult,
-    changesResult,
-    v2Result,
-  ] = await Promise.all([
-    supabase.from("scores").select("*").eq("research_run_id", run.id).maybeSingle(),
-    supabase.from("valuations").select("*").eq("research_run_id", run.id).maybeSingle(),
-    supabase.from("financial_metrics").select("*").eq("research_run_id", run.id).maybeSingle(),
-    supabase.from("thesis_variables").select("*").eq("research_run_id", run.id).order("created_at"),
-    supabase.from("sources").select("*").eq("research_run_id", run.id).order("retrieved_at", { ascending: false }),
-    supabase
-      .from("research_runs")
-      .select("id,version,researched_at,price_at_research,status")
-      .eq("company_id", company.id)
-      .eq("status", "published")
-      .order("version", { ascending: false }),
-    supabase
-      .from("research_changes")
-      .select("*")
-      .eq("current_run_id", run.id)
-      .order("category")
-      .order("created_at"),
-    supabase
-      .from("research_v2_sections")
-      .select("*")
-      .eq("research_run_id", run.id)
-      .maybeSingle(),
-  ]);
-
-  const frozenAsOf = requestedVersion
+  const frozenAsOf = version != null
     ? String(run.data_cutoff_at ?? run.researched_at ?? "")
     : null;
   const frozenDate = frozenAsOf ? frozenAsOf.slice(0, 10) : null;
 
-  let marketQuery = supabase
-    .from("market_snapshots")
-    .select("price,trading_date,provider,observed_at")
-    .eq("symbol", company.ticker);
-  if (frozenAsOf && frozenDate) {
-    marketQuery = marketQuery
-      .lte("trading_date", frozenDate)
-      .lte("observed_at", frozenAsOf);
-  }
-  const { data: latestMarket } = await marketQuery
-    .order("trading_date", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  const scores = scoresResult.data;
-  const valuation = valuationResult.data;
-  const metrics = metricsResult.data;
-  const thesis = thesisResult.data ?? [];
-  const sources = sourcesResult.data ?? [];
-  const history = historyResult.data ?? [];
-  const changes = changesResult.data ?? [];
-  const v2 = v2Result.data ?? null;
   const normalizedEarnings = v2?.valuation_analysis?.normalized_earnings_context ?? {};
   const adjustedEpsMultiple = asNumber(normalizedEarnings?.price_to_adjusted_eps_guidance);
   const isLatest = history[0]?.version === run.version;
