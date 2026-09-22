@@ -1,0 +1,97 @@
+name: Bootstrap Research Factory V1
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/research-factory-bootstrap-v1.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: solpient-research-factory-bootstrap-v1
+  cancel-in-progress: false
+
+jobs:
+  bootstrap:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      RESEARCH_FACTORY_PIPELINE_RUN_ID: "c7647ef1-92e0-46dc-ab1a-4c1bcb31314c"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+      - name: Test Research Factory
+        run: npm run test:research-factory
+      - name: Materialize Factory Run 1
+        run: |
+          node scripts/materialize-research-factory-v1.mjs \
+            --pipeline-run-id="$RESEARCH_FACTORY_PIPELINE_RUN_ID"
+      - name: Resolve canonical identities
+        run: npm run factory:research:onboard
+      - name: Refresh factory queue
+        run: npm run factory:research:refresh
+      - name: Process first five deep-research candidates
+        run: node scripts/run-research-factory-batch.mjs --max=5
+      - name: Verify Factory Run 1
+        run: |
+          node --input-type=module <<'NODE'
+          import { createClient } from "@supabase/supabase-js";
+
+          const sb=createClient(
+            process.env.SUPABASE_URL,
+            process.env.SUPABASE_SERVICE_ROLE_KEY,
+            {auth:{persistSession:false,autoRefreshToken:false}}
+          );
+
+          const {data:run,error:runError}=await sb
+            .from("research_factory_runs")
+            .select("*")
+            .eq("source_pipeline_run_id",process.env.RESEARCH_FACTORY_PIPELINE_RUN_ID)
+            .eq("factory_version","research-factory-v1")
+            .maybeSingle();
+          if(runError)throw runError;
+          if(!run)throw new Error("Research Factory Run 1 was not created.");
+
+          const {data:items,error:itemError}=await sb
+            .from("research_factory_items")
+            .select("stage,status")
+            .eq("research_factory_run_id",run.id);
+          if(itemError)throw itemError;
+          if((items??[]).length!==100){
+            throw new Error("Research Factory Run 1 expected 100 items; found "+(items??[]).length);
+          }
+
+          const counts={};
+          for(const item of items??[]){
+            const key=item.stage+"|"+item.status;
+            counts[key]=(counts[key]??0)+1;
+          }
+
+          const {data:drafts,error:draftError}=await sb
+            .from("research_factory_valuation_drafts")
+            .select("id,status")
+            .in("research_factory_item_id",(
+              await sb.from("research_factory_items")
+                .select("id")
+                .eq("research_factory_run_id",run.id)
+            ).data?.map(x=>x.id)??[]);
+          if(draftError)throw draftError;
+          if((drafts??[]).some(x=>x.status!=="draft")){
+            throw new Error("Research Factory created a non-draft valuation package.");
+          }
+
+          console.log(JSON.stringify({
+            verified:true,
+            research_factory_run_id:run.id,
+            candidate_count:(items??[]).length,
+            stage_status_counts:counts,
+            valuation_drafts:(drafts??[]).length,
+            auto_publish:false,
+          },null,2));
+          NODE
