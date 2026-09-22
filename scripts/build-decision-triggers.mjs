@@ -1,11 +1,12 @@
 import process from "node:process";
-import { createClient } from "@supabase/supabase-js";
+import { createPostgresCompatClient } from "../lib/pg-supabase-compat.mjs";
 import { buildDecisionTriggers, summarizeDecisionTriggers, DECISION_TRIGGER_VERSION } from "../lib/decision-trigger-engine.mjs";
 
-const url=process.env.SUPABASE_URL;
-const secret=process.env.SUPABASE_SECRET_KEY??process.env.SUPABASE_SERVICE_ROLE_KEY;
-if(!url||!secret)throw new Error("Missing SUPABASE_URL and server secret.");
-const sb=createClient(url,secret,{auth:{persistSession:false,autoRefreshToken:false}});
+if(!process.env.SOLPIENT_DATABASE_URL && typeof process.loadEnvFile==="function"){
+  try{process.loadEnvFile(".env.local");}catch{}
+}
+if(!process.env.SOLPIENT_DATABASE_URL)throw new Error("Missing SOLPIENT_DATABASE_URL.");
+const sb=createPostgresCompatClient();
 const onlyTicker=process.env.DECISION_TRIGGER_TICKER?String(process.env.DECISION_TRIGGER_TICKER).toUpperCase():null;
 const now=new Date().toISOString();
 
