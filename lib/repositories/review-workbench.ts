@@ -424,3 +424,30 @@ export async function commitPreparedReview(args:{
   }).eq("id",args.draftId);
   if(d)throw d;
 }
+
+export async function updateReviewReadiness(args:{
+  reviewId:string;
+  status:string;
+  validationResult:any;
+  promotionReadiness:any;
+  now:string;
+}){
+  if(databaseConfigured()){
+    await dbQuery(
+      `update public.baseline_reviews
+       set status=$2,validation_result=$3::jsonb,promotion_readiness=$4::jsonb,updated_at=$5::timestamptz
+       where id=$1`,
+      [args.reviewId,args.status,j(args.validationResult),j(args.promotionReadiness),args.now],
+    );
+    return;
+  }
+  const supabase=getAdminSupabase();
+  if(!supabase)throw new Error("Admin data source is not configured.");
+  const {error}=await supabase.from("baseline_reviews").update({
+    status:args.status,
+    validation_result:args.validationResult,
+    promotion_readiness:args.promotionReadiness,
+    updated_at:args.now,
+  }).eq("id",args.reviewId);
+  if(error)throw error;
+}
