@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { buildUniverseQAReport } from "@/lib/universe-qa-engine.mjs";
-import styles from "./universe-qa.module.css";
+import styles from "./UniverseQAWorkbench.module.css";
 
 const pct=(v:unknown)=>v!==null&&v!==undefined&&Number.isFinite(Number(v))?Number(v).toFixed(1)+"%":"—";
 const num=(v:unknown)=>v!==null&&v!==undefined&&Number.isFinite(Number(v))?Number(v).toFixed(1):"—";
