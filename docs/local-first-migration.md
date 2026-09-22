@@ -62,6 +62,8 @@ Then export the schema and data:
 bash scripts/export-supabase-public.sh
 ```
 
+The export is explicitly limited to Solpient's `public` and `private` schemas. Supabase-managed Auth, Storage, Realtime, Cron, and extension schemas are not part of this application-data backup.
+
 The export is written to:
 
 ```text
@@ -69,7 +71,7 @@ backups/supabase-export/schema.sql
 backups/supabase-export/data.sql
 ```
 
-The default Supabase dump excludes managed schemas such as Auth and Storage. Solpient currently needs the application-facing `public` schema and its data for this migration.
+Solpient currently uses two application schemas: `public` and `private`. The export command selects exactly those schemas so managed platform objects cannot leak into the plain-PostgreSQL restore.
 
 ## Phase 3: restore into Solpient-owned PostgreSQL
 
