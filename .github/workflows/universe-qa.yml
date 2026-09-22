@@ -4,9 +4,11 @@ on:
   pull_request:
     paths:
       - "lib/universe-qa-engine.mjs"
+      - "lib/methodology-activation-v1.mjs"
       - "types/universe-qa-engine-mjs.d.ts"
       - "scripts/test-universe-qa.mjs"
       - "scripts/audit-universe-screen.mjs"
+      - "scripts/test-methodology-activation-v1.mjs"
       - "components/UniverseQAWorkbench.tsx"
       - "components/UniverseQAWorkbench.module.css"
       - "app/review/universe-qa/page.tsx"
@@ -35,5 +37,7 @@ jobs:
       - run: npm install
       - name: Test Universe QA
         run: node scripts/test-universe-qa.mjs
+      - name: Test Methodology Activation V1
+        run: node scripts/test-methodology-activation-v1.mjs
       - name: Syntax check QA CLI
         run: node --check scripts/audit-universe-screen.mjs
