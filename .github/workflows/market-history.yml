@@ -2,12 +2,6 @@ name: Market History Refresh
 
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths:
-      - "scripts/sync-market-history.mjs"
-      - ".github/workflows/market-history.yml"
-
 concurrency:
   group: market-history-refresh
   cancel-in-progress: false
