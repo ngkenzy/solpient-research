@@ -6,6 +6,7 @@ import {
   validateCatalog,
   manifestHash,
 } from "../lib/methodology-governance.mjs";
+import { buildMethodologyImplementationFingerprint } from "../lib/methodology-implementation-hash.mjs";
 
 const dryRun=process.argv.includes("--dry-run");
 const catalogPath=process.env.METHODOLOGY_CATALOG_PATH??"methodologies/catalog.json";
@@ -20,6 +21,7 @@ const preview=validation.manifests.map(m=>({
   risk_class:m.risk_class,
   legacy_bootstrap:m.legacy_bootstrap,
   manifest_hash:manifestHash(m),
+  implementation_hash:buildMethodologyImplementationFingerprint(m).implementation_hash,
 }));
 
 if(dryRun){
@@ -41,17 +43,24 @@ let insertedDefinitions=0,insertedEvents=0;
 for(const m of validation.manifests){
   const hash=manifestHash(m);
   const {data:existing,error:existingError}=await sb.from("methodology_definitions")
-    .select("id,manifest_hash,legacy_bootstrap")
+    .select("id,manifest_hash,implementation_hash,legacy_bootstrap")
     .eq("methodology_key",m.methodology_key)
     .eq("version",m.version)
     .maybeSingle();
   if(existingError)throw existingError;
 
   let definition=existing;
+  const implementation=buildMethodologyImplementationFingerprint(m);
   if(existing&&existing.manifest_hash!==hash){
     throw new Error(
       "Methodology "+m.methodology_key+" "+m.version+
       " already exists with a different manifest hash. Create a new version instead of mutating it."
+    );
+  }
+  if(existing&&existing.implementation_hash&&existing.implementation_hash!==implementation.implementation_hash){
+    throw new Error(
+      "Methodology "+m.methodology_key+" "+m.version+
+      " already exists with a different implementation hash. Create a new methodology version."
     );
   }
 
@@ -79,7 +88,8 @@ for(const m of validation.manifests){
       registry_version:METHODOLOGY_REGISTRY_VERSION,
       manifest:m,
       manifest_hash:hash,
-    }).select("id,manifest_hash,legacy_bootstrap").single();
+      implementation_hash:implementation.implementation_hash,
+    }).select("id,manifest_hash,implementation_hash,legacy_bootstrap").single();
     if(error)throw error;
     definition=data;
     insertedDefinitions+=1;
