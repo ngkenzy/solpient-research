@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
 import { createClient } from "@supabase/supabase-js";
+import { buildMethodologyValidationBundle, SCREEN_MATERIALIZATION_STACK, methodologyStackStatus } from "../lib/methodology-activation-v1.mjs";
 import { canonicalSha256, CANONICALIZATION_VERSION } from "../lib/integrity-hash.mjs";
 import {
   UNIVERSE_SCREENING_VERSION,
@@ -17,6 +18,7 @@ function arg(name, fallback=null){
 }
 const inputPath=arg("input",process.env.UNIVERSE_INPUT_PATH??null);
 const dryRun=process.argv.includes("--dry-run");
+const acknowledgeReviewItems=process.argv.includes("--acknowledge-review-items");
 const limit=Math.max(1,Number(arg("limit",process.env.SOLPIENT_100_LIMIT??100))||100);
 const providerArg=arg("provider",process.env.UNIVERSE_PROVIDER??null);
 const asOfArg=arg("as-of",process.env.UNIVERSE_AS_OF_AT??null);
@@ -63,6 +65,10 @@ const normalizedRows=[...parsed.rows]
   .map(row=>({...row,ticker:String(row.ticker).trim().toUpperCase()}))
   .sort((a,b)=>a.ticker.localeCompare(b.ticker));
 
+const validationBundle=buildMethodologyValidationBundle(normalizedRows,{
+  limit,
+  acknowledgeReviewItems,
+});
 const screened=selectSolpient100Candidates(normalizedRows,{limit});
 const inputHash=canonicalSha256({
   methodology_version:UNIVERSE_SCREENING_VERSION,
@@ -91,6 +97,17 @@ const preview={
   input_hash:inputHash,
   input_count:normalizedRows.length,
   counts,
+  validation_gate:{
+    ready:validationBundle.ready,
+    validation_hash:validationBundle.validation_hash,
+    qa_status:validationBundle.qa_status,
+    qa_blockers:validationBundle.qa_blockers,
+    qa_review_items:validationBundle.qa_review_items,
+    classification_review_required_count:validationBundle.classification.review_required_count,
+    classification_unresolved_count:validationBundle.classification.unresolved_count,
+    classification_obvious_unknown_count:validationBundle.classification.obvious_unknown_count,
+    blocking_reasons:validationBundle.blocking_reasons,
+  },
   top:screened.slice(0,Math.min(25,screened.length)).map(r=>({
     rank:r.universeRank,
     ticker:r.ticker,
@@ -108,13 +125,43 @@ const preview={
 
 if(dryRun){
   console.log(JSON.stringify(preview,null,2));
-  process.exit(0);
+  process.exit(validationBundle.ready?0:2);
 }
 
 const url=process.env.SUPABASE_URL;
 const secret=process.env.SUPABASE_SECRET_KEY??process.env.SUPABASE_SERVICE_ROLE_KEY;
 if(!url||!secret)throw new Error("Missing SUPABASE_URL and server secret for materialization.");
+if(!validationBundle.ready){
+  throw new Error(
+    "Universe materialization blocked by validation gate: "+
+    validationBundle.blocking_reasons.join(" ")
+  );
+}
 const sb=createClient(url,secret,{auth:{persistSession:false,autoRefreshToken:false}});
+
+const stackKeys=[...new Set(SCREEN_MATERIALIZATION_STACK.map(x=>x.methodology_key))];
+const {data:methodologyDefinitions,error:methodologyDefinitionsError}=await sb
+  .from("methodology_definitions")
+  .select("*")
+  .in("methodology_key",stackKeys);
+if(methodologyDefinitionsError)throw methodologyDefinitionsError;
+const methodologyDefinitionIds=(methodologyDefinitions??[]).map(x=>x.id);
+const {data:methodologyEvents,error:methodologyEventsError}=methodologyDefinitionIds.length
+  ?await sb.from("methodology_lifecycle_events").select("*").in("methodology_definition_id",methodologyDefinitionIds)
+  :{data:[],error:null};
+if(methodologyEventsError)throw methodologyEventsError;
+const activeStack=methodologyStackStatus(
+  methodologyDefinitions??[],
+  methodologyEvents??[],
+  SCREEN_MATERIALIZATION_STACK
+);
+if(!activeStack.ready){
+  throw new Error(
+    "Universe materialization requires the exact active methodology stack. Missing="+
+    activeStack.missing.join(",")+
+    " inactive="+JSON.stringify(activeStack.inactive)
+  );
+}
 
 const {data:existing,error:existingError}=await sb
   .from("universe_screen_runs")
@@ -153,6 +200,20 @@ const {data:run,error:runError}=await sb.from("universe_screen_runs").insert({
     canonicalization_version:CANONICALIZATION_VERSION,
     shortlist_limit:limit,
     sector_evidence_model_version:screened[0]?.sectorEvidenceModelVersion??null,
+    methodology_activation_version:"methodology-validation-activation-v1",
+    validation_hash:validationBundle.validation_hash,
+    qa_version:validationBundle.qa_version,
+    qa_status:validationBundle.qa_status,
+    qa_blockers:validationBundle.qa_blockers,
+    qa_review_items:validationBundle.qa_review_items,
+    classification_review_required_count:validationBundle.classification.review_required_count,
+    classification_unresolved_count:validationBundle.classification.unresolved_count,
+    classification_obvious_unknown_count:validationBundle.classification.obvious_unknown_count,
+    active_methodology_stack:activeStack.rows.map(x=>({
+      methodology_key:x.methodology_key,
+      version:x.version,
+      lifecycle_state:x.lifecycle_state,
+    })),
   },
 }).select("id").single();
 if(runError)throw runError;
