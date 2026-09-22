@@ -1,22 +1,25 @@
 import process from "node:process";
 import { spawn } from "node:child_process";
-import { createClient } from "@supabase/supabase-js";
+import {
+  createAutomationRunPg,
+  loadPendingRepairJobsPg,
+  loadCompanyTickersPg,
+  updateRepairJobsPg,
+  updateAutomationRunPg,
+} from "../lib/factory-worker-pg.mjs";
+import { postgresConfigured } from "../lib/postgres-node.mjs";
 
-const url=process.env.SUPABASE_URL;
-const secret=process.env.SUPABASE_SECRET_KEY??process.env.SUPABASE_SERVICE_ROLE_KEY;
-if(!url||!secret)throw new Error("Missing SUPABASE_URL and server secret.");
-const sb=createClient(url,secret,{auth:{persistSession:false,autoRefreshToken:false}});
+if(!postgresConfigured())throw new Error("Missing SOLPIENT_DATABASE_URL.");
 const maxJobs=Math.max(1,Math.min(12,Number(process.env.REPAIR_MAX_JOBS??6)));
 const startedAt=new Date().toISOString();
-const {data:automationRun,error:automationRunError}=await sb.from("automation_runs").insert({
+const automationRun=await createAutomationRunPg({
   pipeline:"research_repair_center",
   started_at:startedAt,
   status:"running",
   records_written:0,
   message:"Processing automatic research repair jobs.",
-  details:{max_jobs:maxJobs}
-}).select("id").single();
-if(automationRunError)throw automationRunError;
+  details:{max_jobs:maxJobs},
+});
 
 function runNode(script,extraEnv={}){
   return new Promise((resolve,reject)=>{
@@ -37,48 +40,34 @@ function runNode(script,extraEnv={}){
 }
 async function updateJobs(ids,patch){
   if(!ids.length)return;
-  const {error}=await sb.from("research_repair_jobs").update({...patch,updated_at:new Date().toISOString()}).in("id",ids);
-  if(error)throw error;
+  await updateRepairJobsPg(ids,{...patch,updated_at:new Date().toISOString()});
 }
 
-const {data:jobs,error}=await sb
-  .from("research_repair_jobs")
-  .select("id,company_id,layer,field,repair_type,runner,status,priority,attempt_count,details")
-  .eq("automation_mode","auto")
-  .eq("status","pending")
-  .lt("attempt_count",3)
-  .order("priority",{ascending:false})
-  .limit(maxJobs);
-if(error)throw error;
-
-if(!(jobs??[]).length){
-  await sb.from("automation_runs").update({
+const jobs=await loadPendingRepairJobsPg(maxJobs);
+if(!jobs.length){
+  await updateAutomationRunPg(automationRun.id,{
     status:"success",
     completed_at:new Date().toISOString(),
     records_written:0,
     message:"No automatic research repair jobs were pending.",
-    details:{max_jobs:maxJobs,processed:0}
-  }).eq("id",automationRun.id);
-  console.log(JSON.stringify({processed:0,message:"No automatic repair jobs are pending."},null,2));
+    details:{max_jobs:maxJobs,processed:0},
+  });
+  console.log(JSON.stringify({processed:0,message:"No automatic repair jobs are pending.",database:"postgres"},null,2));
   process.exit(0);
 }
 
 const companyIds=[...new Set(jobs.map(j=>j.company_id))];
-const {data:companies,error:companyError}=await sb.from("companies").select("id,ticker").in("id",companyIds);
-if(companyError)throw companyError;
-const tickerById=new Map((companies??[]).map(c=>[c.id,c.ticker]));
-const ids=jobs.map(j=>j.id);
+const companies=await loadCompanyTickersPg(companyIds);
+const tickerById=new Map(companies.map(c=>[c.id,c.ticker]));
 const now=new Date().toISOString();
 
 for(const job of jobs){
-  const {error:e}=await sb.from("research_repair_jobs").update({
+  await updateJobs([job.id],{
     status:"running",
     attempt_count:Number(job.attempt_count??0)+1,
     last_attempt_at:now,
     last_error:null,
-    updated_at:now,
-  }).eq("id",job.id);
-  if(e)throw e;
+  });
 }
 
 const grouped=new Map();
@@ -86,7 +75,6 @@ for(const job of jobs){
   if(!grouped.has(job.runner))grouped.set(job.runner,[]);
   grouped.get(job.runner).push(job);
 }
-
 const results=[];
 let contextNeeded=false;
 const failures=new Map();
@@ -105,112 +93,79 @@ async function attempt(name,fn,jobIds){
 for(const job of grouped.get("fundamentals")??[]){
   const ticker=tickerById.get(job.company_id);
   if(!ticker){failures.set(job.id,"Company ticker unavailable.");continue;}
-  await attempt("sec_fundamentals:"+ticker,
-    ()=>runNode("scripts/sync-sec-companyfacts-backfill.mjs",{COVERAGE_TICKER:ticker}),[job.id]);
-  await attempt("yahoo_fundamentals:"+ticker,
-    ()=>runNode("scripts/sync-yahoo-fundamentals-fallback.mjs",{COVERAGE_TICKER:ticker}),[job.id]);
+  await attempt("sec_fundamentals:"+ticker,()=>runNode("scripts/sync-sec-companyfacts-backfill.mjs",{COVERAGE_TICKER:ticker}),[job.id]);
+  await attempt("yahoo_fundamentals:"+ticker,()=>runNode("scripts/sync-yahoo-fundamentals-fallback.mjs",{COVERAGE_TICKER:ticker}),[job.id]);
   contextNeeded=true;
 }
-
 for(const job of grouped.get("market_context")??[]){
   const ticker=tickerById.get(job.company_id);
   if(!ticker){failures.set(job.id,"Company ticker unavailable.");continue;}
-  await attempt("market_history:"+ticker,
-    ()=>runNode("scripts/sync-market-history.mjs",{COVERAGE_TICKER:ticker}),[job.id]);
+  await attempt("market_history:"+ticker,()=>runNode("scripts/sync-market-history.mjs",{COVERAGE_TICKER:ticker}),[job.id]);
   contextNeeded=true;
 }
-
 if((grouped.get("peer_context")??[]).length)contextNeeded=true;
 if((grouped.get("capital_history")??[]).length)contextNeeded=true;
 
 if(contextNeeded){
   const contextJobs=jobs.filter(j=>["fundamentals","market_context","peer_context","capital_history"].includes(j.runner));
-  await attempt("historical_peer_context",
-    ()=>runNode("scripts/build-historical-peer-context.mjs"),
-    contextJobs.map(j=>j.id));
+  await attempt("historical_peer_context",()=>runNode("scripts/build-historical-peer-context.mjs"),contextJobs.map(j=>j.id));
 }
 
 for(const job of grouped.get("autonomous_industry")??[]){
   const ticker=tickerById.get(job.company_id);
   if(!ticker){failures.set(job.id,"Company ticker unavailable.");continue;}
-  await attempt(
-    "autonomous_industry:"+ticker,
-    ()=>runNode("scripts/assign-research-factory-industry-v2-1.mjs",{
-      RESEARCH_FACTORY_TICKER:ticker,
-    }),
-    [job.id]
-  );
-  contextNeeded=true;
+  await attempt("autonomous_industry:"+ticker,()=>runNode("scripts/assign-research-factory-industry-v2-1.mjs",{RESEARCH_FACTORY_TICKER:ticker}),[job.id]);
 }
-
 if((grouped.get("autonomous_industry")??[]).length){
   const industryJobs=grouped.get("autonomous_industry")??[];
-  await attempt(
-    "historical_peer_context_after_industry",
-    ()=>runNode("scripts/build-historical-peer-context.mjs"),
-    industryJobs.map(j=>j.id)
-  );
+  await attempt("historical_peer_context_after_industry",()=>runNode("scripts/build-historical-peer-context.mjs"),industryJobs.map(j=>j.id));
   for(const job of industryJobs){
     const ticker=tickerById.get(job.company_id);
     if(!ticker)continue;
-    await attempt(
-      "coverage_after_industry:"+ticker,
-      ()=>runNode("scripts/build-data-coverage.mjs",{COVERAGE_TICKER:ticker}),
-      [job.id]
-    );
+    await attempt("coverage_after_industry:"+ticker,()=>runNode("scripts/build-data-coverage.mjs",{COVERAGE_TICKER:ticker}),[job.id]);
   }
 }
-
 for(const job of grouped.get("autonomous_valuation")??[]){
   const ticker=tickerById.get(job.company_id);
   if(!ticker){failures.set(job.id,"Company ticker unavailable.");continue;}
-  await attempt(
-    "autonomous_valuation:"+ticker,
-    ()=>runNode("scripts/build-autonomous-valuation-pack-v2-1.mjs",{
-      RESEARCH_FACTORY_TICKER:ticker,
-    }),
-    [job.id]
-  );
+  await attempt("autonomous_valuation:"+ticker,()=>runNode("scripts/build-autonomous-valuation-pack-v2-1.mjs",{RESEARCH_FACTORY_TICKER:ticker}),[job.id]);
 }
 
 for(const job of jobs){
   const attempts=Number(job.attempt_count??0)+1;
   const message=failures.get(job.id);
   if(message){
-    await updateJobs([job.id],{
-      status:attempts>=3?"blocked":"pending",
-      last_error:message,
-    });
+    await updateJobs([job.id],{status:attempts>=3?"blocked":"pending",last_error:message});
   }else{
     await updateJobs([job.id],{
       status:"verifying",
       last_error:null,
-      details:{...(job.details??{}),last_worker_result:"Data refresh completed; awaiting coverage verification."}
+      details:{...(job.details??{}),last_worker_result:"Data refresh completed; awaiting coverage verification."},
     });
   }
 }
 
 const completedAt=new Date().toISOString();
 const runStatus=failures.size===jobs.length?"failed":failures.size?"partial":"success";
-await sb.from("automation_runs").update({
+await updateAutomationRunPg(automationRun.id,{
   status:runStatus,
   completed_at:completedAt,
   records_written:jobs.filter(j=>!failures.has(j.id)).length,
   message:failures.size
-    ? "Research repair worker completed with "+failures.size+" failed job(s)."
-    : "Research repair worker completed successfully.",
+    ?"Research repair worker completed with "+failures.size+" failed job(s)."
+    :"Research repair worker completed successfully.",
   details:{
-    max_jobs:maxJobs,
-    processed:jobs.length,
+    max_jobs:maxJobs,processed:jobs.length,
     verifying:jobs.filter(j=>!failures.has(j.id)).length,
     failed:failures.size,
-    results:results.map(r=>({name:r.name,status:r.status,error:r.error??null}))
-  }
-}).eq("id",automationRun.id);
+    results:results.map(r=>({name:r.name,status:r.status,error:r.error??null})),
+  },
+});
 
 console.log(JSON.stringify({
   processed:jobs.length,
   verifying:jobs.filter(j=>!failures.has(j.id)).length,
   failed:failures.size,
-  results:results.map(r=>({name:r.name,status:r.status,error:r.error??null}))
+  results:results.map(r=>({name:r.name,status:r.status,error:r.error??null})),
+  database:"postgres",
 },null,2));
