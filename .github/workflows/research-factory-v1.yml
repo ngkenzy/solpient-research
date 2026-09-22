@@ -1,4 +1,4 @@
-name: SOLPIENT Research Factory V1.1
+name: SOLPIENT Autonomous Research Factory V2.1
 
 on:
   pull_request:
@@ -23,6 +23,22 @@ on:
       - "supabase/migrations/20260922124500_research_factory_v1_1_index_cleanup.sql"
       - ".github/workflows/research-factory-v1-1-kickoff.yml"
       - ".github/workflows/research-factory-v1.yml"
+      - "lib/autonomous-research-factory-v2-1.mjs"
+      - "lib/autonomous-research-factory-db.mjs"
+      - "scripts/assign-research-factory-industry-v2-1.mjs"
+      - "scripts/build-autonomous-valuation-pack-v2-1.mjs"
+      - "scripts/run-autonomous-research-factory-v2-1.mjs"
+      - "scripts/test-autonomous-research-factory-v2-1.mjs"
+      - "supabase/migrations/20260922133000_autonomous_research_factory_v2_1.sql"
+      - "supabase/tests/autonomous_research_factory_v2_1.sql"
+      - "lib/autonomous-research-factory-v2-1.mjs"
+      - "lib/autonomous-research-factory-db.mjs"
+      - "scripts/assign-research-factory-industry-v2-1.mjs"
+      - "scripts/build-autonomous-valuation-pack-v2-1.mjs"
+      - "scripts/run-autonomous-research-factory-v2-1.mjs"
+      - "scripts/test-autonomous-research-factory-v2-1.mjs"
+      - "supabase/migrations/20260922133000_autonomous_research_factory_v2_1.sql"
+      - "supabase/tests/autonomous_research_factory_v2_1.sql"
   push:
     branches: [main]
     paths:
@@ -79,6 +95,7 @@ jobs:
         run: |
           npm run test:research-factory
           npm run test:research-factory:v1.1
+          npm run test:research-factory:v2.1
       - name: Syntax check Research Factory scripts
         run: |
           node --check scripts/materialize-research-factory-v1.mjs
@@ -87,6 +104,9 @@ jobs:
           node --check scripts/build-research-factory-valuation-drafts.mjs
           node --check scripts/run-research-factory-batch.mjs
           node --check scripts/run-research-factory-expansion-v1-1.mjs
+          node --check scripts/assign-research-factory-industry-v2-1.mjs
+          node --check scripts/build-autonomous-valuation-pack-v2-1.mjs
+          node --check scripts/run-autonomous-research-factory-v2-1.mjs
 
   operate:
     if: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' }}
@@ -106,10 +126,10 @@ jobs:
         with:
           node-version: 22
       - run: npm install
-      - name: Expand the next safe Research Factory batch
+      - name: Run Autonomous Research Factory V2.1
         run: |
           if [ -n "$RESEARCH_FACTORY_TICKER" ]; then
-            node scripts/run-research-factory-expansion-v1-1.mjs --ticker="$RESEARCH_FACTORY_TICKER" --max=1
+            node scripts/run-autonomous-research-factory-v2-1.mjs --ticker="$RESEARCH_FACTORY_TICKER" --max=1
           else
-            node scripts/run-research-factory-expansion-v1-1.mjs --max="$RESEARCH_FACTORY_MAX_COMPANIES"
+            node scripts/run-autonomous-research-factory-v2-1.mjs --max="$RESEARCH_FACTORY_MAX_COMPANIES"
           fi
