@@ -56,7 +56,8 @@ for(const row of rows)counts[row.method]=(counts[row.method]??0)+1;
 const repaired=rows.filter(r=>
   r.method==="issuer_override"||
   r.method==="sic_rule"||
-  r.method==="description_rule"
+  r.method==="description_rule"||
+  r.method==="sic_family_rule"
 );
 const reviewQueue=rows.filter(r=>r.method==="review_required"||r.review_required===true);
 const unresolved=rows.filter(r=>r.method==="unresolved");
