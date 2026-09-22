@@ -47,6 +47,7 @@ export default async function UniverseScreeningPage(){
       <SolpientBrand subtitle="Solpient 100 Universe Screening" />
       <div>
         <Link href="/review">Research Review</Link>
+        <Link href="/review/universe-qa">Universe QA</Link>
         <Link href="/review/readiness-repair">Readiness Repair</Link>
         <Link href="/review/track-record">Track Record</Link>
       </div>
@@ -76,8 +77,8 @@ export default async function UniverseScreeningPage(){
             <span className={styles.kicker}>ENGINE READY</span>
             <h2>No broad-universe snapshot has been materialized yet.</h2>
             <p>
-              Run the provider-normalized input through the screening CLI with --dry-run first.
-              This dashboard will populate after the first approved materialization.
+              Audit the normalized universe in Universe QA first, then run the screening CLI with
+              --dry-run. This dashboard will populate after the first approved materialization.
             </p>
           </div>
         </section>
