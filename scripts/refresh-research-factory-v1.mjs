@@ -203,7 +203,6 @@ for(const item of items??[]){
       automation_mode:x.automation_mode,reason:x.reason,
     })),
     derived,
-    refreshed_at:new Date().toISOString(),
   };
   const stateHash=buildFactoryStateHash(stateSnapshot);
 
