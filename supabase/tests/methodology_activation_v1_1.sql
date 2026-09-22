@@ -53,13 +53,18 @@ begin
     (v_new,'validated','fixture','test','2026-09-22T00:00:02Z');
 
   insert into public.methodology_validation_runs(
-    methodology_definition_id,validation_type,status,validator,evidence_ref
+    methodology_definition_id,validation_type,status,validator,evidence_ref,commit_sha,details
   ) values
-    (v_new,'unit_tests','pass','test','fixture'),
-    (v_new,'build','pass','test','fixture'),
-    (v_new,'db_invariant','pass','test','fixture'),
-    (v_new,'historical_integrity','pass','test','fixture'),
-    (v_new,'methodology_regression','pass','test','fixture');
+    (v_new,'unit_tests','pass','test','fixture',repeat('1',40),
+      jsonb_build_object('validation_hash',repeat('e',64),'universe_input_hash',repeat('f',64),'implementation_hash',repeat('d',64))),
+    (v_new,'build','pass','test','fixture',repeat('1',40),
+      jsonb_build_object('validation_hash',repeat('e',64),'universe_input_hash',repeat('f',64),'implementation_hash',repeat('d',64))),
+    (v_new,'db_invariant','pass','test','fixture',repeat('1',40),
+      jsonb_build_object('validation_hash',repeat('e',64),'universe_input_hash',repeat('f',64),'implementation_hash',repeat('d',64))),
+    (v_new,'historical_integrity','pass','test','fixture',repeat('1',40),
+      jsonb_build_object('validation_hash',repeat('e',64),'universe_input_hash',repeat('f',64),'implementation_hash',repeat('d',64))),
+    (v_new,'methodology_regression','pass','test','fixture',repeat('1',40),
+      jsonb_build_object('validation_hash',repeat('e',64),'universe_input_hash',repeat('f',64),'implementation_hash',repeat('d',64)));
 
   select public.activate_universe_methodology_stack_v1_1(
     jsonb_build_array(jsonb_build_object(
