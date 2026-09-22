@@ -44,6 +44,14 @@ awk '
     if ($0 !~ /;[[:space:]]*$/) skip = 1
     next
   }
+  /^[[:space:]]*(CREATE|ALTER|DROP)[[:space:]]+PUBLICATION/ {
+    if ($0 !~ /;[[:space:]]*$/) skip = 1
+    next
+  }
+  /^[[:space:]]*COMMENT[[:space:]]+ON[[:space:]]+PUBLICATION/ {
+    if ($0 !~ /;[[:space:]]*$/) skip = 1
+    next
+  }
   { print }
 ' "$SCHEMA" > "$SANITIZED_SCHEMA"
 
