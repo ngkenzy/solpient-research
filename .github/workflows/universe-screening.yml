@@ -6,6 +6,7 @@ on:
       - "lib/universe-screening-engine.mjs"
       - "lib/methodology-activation-v1.mjs"
       - "lib/methodology-implementation-hash.mjs"
+      - "lib/universe-screen-publish-v1-2.mjs"
       - "lib/universe-screening-engine-v1.mjs"
       - "lib/universe-sector-model-v2.mjs"
       - "lib/universe-sector-model-v2-2.mjs"
@@ -23,11 +24,14 @@ on:
       - "scripts/test-universe-screening-engine.mjs"
       - "scripts/run-universe-screen.mjs"
       - "scripts/test-methodology-activation-v1.mjs"
+      - "scripts/test-universe-screen-publish-v1-2.mjs"
       - "scripts/fixtures/universe-screen-sample.json"
       - "supabase/migrations/20260921223000_solpient_100_universe_screening.sql"
       - "supabase/tests/universe_screening.sql"
       - "supabase/migrations/20260922032500_methodology_activation_v1_1_hardening.sql"
       - "supabase/tests/methodology_activation_v1_1.sql"
+      - "supabase/migrations/20260922044000_universe_screen_staged_publish_v1_2.sql"
+      - "supabase/tests/universe_screen_staged_publish_v1_2.sql"
       - "app/review/universe-screening/page.tsx"
       - "docs/SOLPIENT_100_UNIVERSE_SCREENING.md"
       - ".github/workflows/universe-screening.yml"
@@ -75,6 +79,8 @@ jobs:
         run: node scripts/test-sector-classification-coverage-v2-3.mjs
       - name: Test Methodology Activation V1
         run: node scripts/test-methodology-activation-v1.mjs
+      - name: Test staged screen publication
+        run: node scripts/test-universe-screen-publish-v1-2.mjs
       - name: Audit V2.3 taxonomy coverage
         run: node scripts/audit-sector-classification.mjs --input=scripts/fixtures/sector-classification-v2-3-audit.json --fail-on-obvious-unknown=true --fail-on-unresolved=true
       - name: Syntax check materializer
