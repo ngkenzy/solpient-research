@@ -59,7 +59,9 @@
     "test:provenance": "node scripts/test-evidence-provenance.mjs",
     "test:universe-sector:v2": "node scripts/test-universe-sector-model-v2.mjs",
     "test:methodology": "node scripts/test-methodology-governance.mjs",
-    "test:sector-evidence:v2.1": "node scripts/test-sector-evidence-model-v2-1.mjs"
+    "test:sector-evidence:v2.1": "node scripts/test-sector-evidence-model-v2-1.mjs",
+    "test:sector-classification:v2.2": "node scripts/test-sector-classification-repair-v2-2.mjs",
+    "audit:sector-classification": "node scripts/audit-sector-classification.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.4",

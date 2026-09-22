@@ -5,7 +5,9 @@ on:
     paths:
       - "lib/universe-feed-sec.mjs"
       - "lib/universe-sector-model-v2.mjs"
+      - "lib/universe-sector-model-v2-2.mjs"
       - "scripts/test-universe-sector-model-v2.mjs"
+      - "scripts/test-sector-classification-repair-v2-2.mjs"
       - "scripts/build-sec-universe-fundamentals.mjs"
       - "scripts/enrich-sec-universe-market.mjs"
       - "scripts/test-sec-universe-feed.mjs"
@@ -31,6 +33,8 @@ jobs:
         run: node scripts/test-universe-issuer-selection.mjs
       - name: Test Sector Model V2
         run: node scripts/test-universe-sector-model-v2.mjs
+      - name: Test Sector Classification Repair V2.2
+        run: node scripts/test-sector-classification-repair-v2-2.mjs
       - name: Syntax check bulk builders
         run: |
           node --check scripts/build-sec-universe-fundamentals.mjs

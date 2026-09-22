@@ -1,6 +1,6 @@
 {
   "registry_version": "methodology-registry-v1",
-  "generated_for": "sector-evidence-model-v2.1-candidate",
+  "generated_for": "sector-classification-repair-v2.2-candidate",
   "methodologies": [
     {
       "methodology_key": "historical_integrity",
@@ -991,7 +991,7 @@
       "purpose": "Screen the broad investable universe using Sector Model V2 economic profiles while applying Sector Evidence Model V2.1 confidence ceilings so incomplete sector-critical evidence cannot masquerade as complete research coverage.",
       "owner": "Solpient",
       "source_files": [
-        "lib/universe-screening-engine.mjs",
+        "lib/universe-screening-engine-v2-1.mjs",
         "lib/sector-evidence-model-v2-1.mjs",
         "docs/SOLPIENT_SECTOR_EVIDENCE_MODEL_V2_1.md"
       ],
@@ -1067,7 +1067,7 @@
       "purpose": "Carry Universe Screening V2.1 candidates into research, valuation and readiness while preserving sector-evidence blockers and preventing unsupported generic valuation fallbacks.",
       "owner": "Solpient",
       "source_files": [
-        "lib/research-candidate-pipeline.mjs",
+        "lib/research-candidate-pipeline-v2-1.mjs",
         "scripts/materialize-research-candidate-pipeline.mjs"
       ],
       "input_contract": {
@@ -1114,6 +1114,209 @@
       ],
       "change_summary": "Advances the candidate pipeline to consume V2.1 evidence-adjusted screening results while preserving existing valuation safety gates.",
       "predecessor_version": "research-candidate-pipeline-v2",
+      "impacts": {
+        "database": true,
+        "public_ui": true,
+        "publication": false,
+        "ranking": false,
+        "capital_decision": true,
+        "historical_interpretation": true
+      },
+      "legacy_bootstrap": false
+    },
+    {
+      "methodology_key": "universe_sector_model",
+      "version": "solpient-universe-sector-model-v2.2",
+      "name": "Solpient Sector Classification Repair V2.2",
+      "category": "screening",
+      "risk_class": "high",
+      "purpose": "Repair unresolved or economically misleading sector classifications through a deterministic hierarchy without destabilizing the broad Sector Model V2 taxonomy.",
+      "owner": "Solpient",
+      "source_files": [
+        "lib/universe-sector-model-v2-2.mjs",
+        "lib/universe-feed-sec.mjs",
+        "scripts/audit-sector-classification.mjs",
+        "docs/SOLPIENT_SECTOR_CLASSIFICATION_REPAIR_V2_2.md"
+      ],
+      "input_contract": {
+        "ticker": "issuer ticker",
+        "cik": "SEC issuer identifier when available",
+        "company_name": "issuer name",
+        "sic": "SEC SIC code when available",
+        "sic_description": "SEC SIC description when available",
+        "existing_sector": "provider/base classification fallback"
+      },
+      "output_contract": {
+        "sector": "repaired economic sector",
+        "industry": "repaired industry",
+        "screen_profile": "screening profile",
+        "classification_method": "issuer_override/sic_rule/description_rule/base_v2/provider_existing/unresolved",
+        "classification_rule": "deterministic rule identifier",
+        "classification_confidence": "reviewed/high/medium/low"
+      },
+      "weights": {},
+      "thresholds": {},
+      "assumptions": {
+        "hierarchy": "issuer override -> targeted SIC repair -> description repair -> Sector Model V2 -> valid provider fallback -> unresolved",
+        "broad_v2_taxonomy_preserved": true,
+        "sector_quotas": false
+      },
+      "dependencies": [
+        {
+          "methodology_key": "universe_sector_model",
+          "version": "solpient-universe-sector-model-v2",
+          "required": true
+        }
+      ],
+      "known_limitations": [
+        "Issuer overrides require periodic review when business models or tickers materially change.",
+        "SEC SIC remains coarse and description rules are intentionally narrow.",
+        "Unresolved issuers remain Unknown rather than being guessed into a sector."
+      ],
+      "change_summary": "Repairs known Unknown/general classifications, adds reviewed issuer overrides, targeted SIC/description rules, and explicit classification audit metadata.",
+      "predecessor_version": "solpient-universe-sector-model-v2",
+      "impacts": {
+        "database": false,
+        "public_ui": true,
+        "publication": false,
+        "ranking": false,
+        "capital_decision": false,
+        "historical_interpretation": true
+      },
+      "legacy_bootstrap": false
+    },
+    {
+      "methodology_key": "universe_screening",
+      "version": "solpient-universe-screen-v2.2",
+      "name": "Solpient 100 Universe Screening V2.2",
+      "category": "screening",
+      "risk_class": "high",
+      "purpose": "Apply Classification Repair V2.2 before V2.1 evidence-confidence screening so repaired sector profiles are evaluated with the correct economic and evidence model.",
+      "owner": "Solpient",
+      "source_files": [
+        "lib/universe-screening-engine.mjs",
+        "lib/universe-sector-model-v2-2.mjs",
+        "lib/sector-evidence-model-v2-1.mjs",
+        "docs/SOLPIENT_SECTOR_CLASSIFICATION_REPAIR_V2_2.md"
+      ],
+      "input_contract": {
+        "universe_row": "normalized broad-universe row including ticker/SIC metadata where available",
+        "sector_model": "solpient-universe-sector-model-v2.2",
+        "sector_evidence_model": "solpient-sector-evidence-model-v2.1"
+      },
+      "output_contract": {
+        "screen_state": "excluded/watch/research_candidate/solpient_100_candidate/solpient_100",
+        "sector_classification": "method/rule/confidence/rationale",
+        "raw_evidence_coverage_pct": "broad technical coverage",
+        "evidence_coverage_pct": "sector-adjusted effective coverage",
+        "deep_research_shortlist": "deterministic top-N eligible names"
+      },
+      "weights": {
+        "score_dimensions": "unchanged from solpient-universe-screen-v2.1",
+        "evidence_confidence": "solpient-sector-evidence-model-v2.1"
+      },
+      "thresholds": {
+        "research_candidate": {
+          "score": 60,
+          "quality_core": 60,
+          "coverage": 60
+        },
+        "solpient_100_candidate": {
+          "score": 75,
+          "quality_core": 72,
+          "coverage": 70
+        },
+        "unresolved_classification_candidate_block": true
+      },
+      "assumptions": {
+        "score_thresholds_unchanged": true,
+        "financial_evidence_ceilings_unchanged": true,
+        "sector_quotas": false
+      },
+      "dependencies": [
+        {
+          "methodology_key": "universe_sector_model",
+          "version": "solpient-universe-sector-model-v2.2",
+          "required": true
+        },
+        {
+          "methodology_key": "sector_evidence_model",
+          "version": "solpient-sector-evidence-model-v2.1",
+          "required": true
+        }
+      ],
+      "known_limitations": [
+        "Classification repair does not replace full qualitative industry review.",
+        "A small unresolved set may remain until a defensible issuer/SIC/description rule is reviewed."
+      ],
+      "change_summary": "Applies V2.2 classification repair at screen time while leaving V2.1 scoring thresholds and evidence ceilings unchanged.",
+      "predecessor_version": "solpient-universe-screen-v2.1",
+      "impacts": {
+        "database": true,
+        "public_ui": true,
+        "publication": false,
+        "ranking": false,
+        "capital_decision": false,
+        "historical_interpretation": true
+      },
+      "legacy_bootstrap": false
+    },
+    {
+      "methodology_key": "research_candidate_pipeline",
+      "version": "research-candidate-pipeline-v2.2",
+      "name": "Research Candidate Pipeline V2.2",
+      "category": "repair",
+      "risk_class": "high",
+      "purpose": "Carry V2.2 classified candidates into valuation/readiness while preserving V2.1 sector-evidence blockers and unsupported-sector valuation safeguards.",
+      "owner": "Solpient",
+      "source_files": [
+        "lib/research-candidate-pipeline.mjs",
+        "scripts/materialize-research-candidate-pipeline.mjs"
+      ],
+      "input_contract": {
+        "screen_result": "eligible Universe Screening V2.2 result",
+        "valuation_input_pack": "reviewed Valuation V3 inputs",
+        "research_scores": "published reviewed scores",
+        "coverage": "Coverage V2 evidence"
+      },
+      "output_contract": {
+        "stage": "onboarding/valuation_building/research_building/research_ready/decision_ready",
+        "next_actions": "ordered blockers and repair actions",
+        "valuation_profile_gate": "explicit supported valuation module or blocker"
+      },
+      "weights": {},
+      "thresholds": {
+        "research_ready": "Readiness V1",
+        "decision_ready": "Readiness V1"
+      },
+      "assumptions": {
+        "screen_score_reuse": false,
+        "valuation_requires_reviewed_inputs": true,
+        "unsupported_sector_valuation": "block rather than generic fallback"
+      },
+      "dependencies": [
+        {
+          "methodology_key": "universe_screening",
+          "version": "solpient-universe-screen-v2.2",
+          "required": true
+        },
+        {
+          "methodology_key": "valuation_v3",
+          "version": "solpient-valuation-methodology-v3",
+          "required": true
+        },
+        {
+          "methodology_key": "decision_readiness",
+          "version": "readiness-v1",
+          "required": true
+        }
+      ],
+      "known_limitations": [
+        "Sector-specific evidence collection is still required for financial and real-estate candidates.",
+        "Unsupported insurer/asset-manager/real-estate valuation remains blocked."
+      ],
+      "change_summary": "Advances the research-candidate handoff to consume V2.2 classification-repaired screen results.",
+      "predecessor_version": "research-candidate-pipeline-v2.1",
       "impacts": {
         "database": true,
         "public_ui": true,
