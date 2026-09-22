@@ -11,6 +11,7 @@ import {
 } from "../lib/universe-screening-engine.mjs";
 import {
   RESEARCH_CANDIDATE_PIPELINE_VERSION,
+  buildResearchCandidatePipeline,
 } from "../lib/research-candidate-pipeline.mjs";
 
 assert.equal(SECTOR_EVIDENCE_MODEL_VERSION,"solpient-sector-evidence-model-v2.1");
@@ -54,6 +55,14 @@ assert.equal(broadOnlyInsurer.sectorEvidence.evidenceCoverageCeilingPct,60);
 assert.equal(broadOnlyInsurer.evidenceCoveragePct,60);
 assert.equal(broadOnlyInsurer.state,SCREEN_STATE.RESEARCH_CANDIDATE);
 assert.notEqual(broadOnlyInsurer.state,SCREEN_STATE.SOLPIENT_100_CANDIDATE);
+const insurerPipeline=buildResearchCandidatePipeline({
+  screenResult:{...broadOnlyInsurer,proposedForDeepResearch:true},
+  companyExists:true,
+  valuationInput:{currentPrice:75},
+  researchInput:{scores:{},coverage:{}},
+});
+assert.ok(insurerPipeline.nextActions.some(a=>a.type==="sector_evidence"));
+assert.ok(insurerPipeline.nextActions.find(a=>a.type==="sector_evidence").missing.includes("Combined ratio / underwriting profitability"));
 
 const insurerWithCritical=screenCompany({
   ...insurer,
