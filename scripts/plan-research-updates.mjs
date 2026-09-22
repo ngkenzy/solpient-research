@@ -1,6 +1,7 @@
-import fs from "node:fs/promises";import process from "node:process";import{createClient}from"@supabase/supabase-js";import{planCompanyUpdate}from"../lib/update-planner.mjs";
-const url=process.env.SUPABASE_URL,secret=process.env.SUPABASE_SECRET_KEY??process.env.SUPABASE_SERVICE_ROLE_KEY;if(!url||!secret)throw new Error("Missing SUPABASE_URL and server secret.");
-const sb=createClient(url,secret,{auth:{persistSession:false,autoRefreshToken:false}}),asOf=new Date(),asOfDate=asOf.toISOString().slice(0,10),idx=process.argv.indexOf("--output"),outputPath=idx>=0?process.argv[idx+1]:null;
+import fs from "node:fs/promises";import process from "node:process";import { createPostgresCompatClient } from "../lib/pg-supabase-compat.mjs";import{planCompanyUpdate}from"../lib/update-planner.mjs";
+if(!process.env.SOLPIENT_DATABASE_URL && typeof process.loadEnvFile==="function"){try{process.loadEnvFile(".env.local");}catch{}}
+if(!process.env.SOLPIENT_DATABASE_URL)throw new Error("Missing SOLPIENT_DATABASE_URL.");
+const sb=createPostgresCompatClient();
 const rs=await Promise.all([sb.from("companies").select("id,ticker,company_name"),sb.from("market_snapshots").select("company_id,trading_date,price,observed_at").order("trading_date",{ascending:false}),sb.from("fundamental_snapshots").select("company_id,period_end,observed_at").order("observed_at",{ascending:false}),sb.from("filing_events").select("company_id,form_type,filed_at,accepted_at").in("form_type",["10-K","10-Q","8-K"]).order("filed_at",{ascending:false}),sb.from("research_runs").select("company_id,researched_at,price_at_research,status").eq("status","published").order("researched_at",{ascending:false}),sb.from("baseline_drafts").select("id,company_id,draft_payload,published_run_id,updated_at"),sb.from("baseline_reviews").select("draft_id,reviewed_at,status,updated_at")]);for(const r of rs)if(r.error)throw r.error;
 const[companiesR,marketR,fundR,filingR,runsR,draftsR,reviewsR]=rs;
 function latestMap(rows,k,s){const m=new Map();for(const row of rows??[]){const id=row[k];if(!m.has(id)||String(row[s]??"")>String(m.get(id)[s]??""))m.set(id,row);}return m;}
