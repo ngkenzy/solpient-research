@@ -2,7 +2,6 @@ import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
 import { execFileSync } from "node:child_process";
-import { fileURLToPath } from "node:url";
 import { createClient } from "@supabase/supabase-js";
 import {
   UNIVERSE_METHOD_STACK,
@@ -12,7 +11,7 @@ import {
   activationReadinessForStack,
   requiredValidationEvidence,
 } from "../lib/methodology-activation-v1.mjs";
-import { deriveLifecycle, canTransition } from "../lib/methodology-governance.mjs";
+import { deriveLifecycle, canTransition, validateCatalog, manifestHash } from "../lib/methodology-governance.mjs";
 
 function arg(name,fallback=null){
   const prefix="--"+name+"=";
@@ -104,12 +103,100 @@ const url=process.env.SUPABASE_URL;
 const secret=process.env.SUPABASE_SECRET_KEY??process.env.SUPABASE_SERVICE_ROLE_KEY;
 if(!url||!secret)throw new Error("Missing SUPABASE_URL and server secret.");
 
-const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),"..");
-execFileSync(process.execPath,[path.join(root,"scripts/register-methodologies.mjs")],{
-  cwd:root,stdio:"inherit",env:process.env,
-});
-
 const sb=createClient(url,secret,{auth:{persistSession:false,autoRefreshToken:false}});
+
+const catalogPath=path.resolve("methodologies/catalog.json");
+const catalog=JSON.parse(fs.readFileSync(catalogPath,"utf8"));
+const catalogValidation=validateCatalog(catalog.methodologies??[]);
+if(!catalogValidation.valid){
+  throw new Error("Invalid methodology catalog: "+catalogValidation.errors.join(" "));
+}
+const catalogByIdentity=new Map(catalogValidation.manifests.map(m=>[
+  m.methodology_key+"|"+m.version,m
+]));
+const targetIdentitySet=new Set(UNIVERSE_METHOD_STACK.map(x=>x.methodology_key+"|"+x.version));
+
+function requiredCatalogManifests(){
+  const required=new Map();
+  const visit=(identity)=>{
+    if(required.has(identity))return;
+    const manifest=catalogByIdentity.get(identity);
+    if(!manifest)throw new Error("Required methodology missing from catalog: "+identity);
+    required.set(identity,manifest);
+    for(const dep of manifest.dependencies??[]){
+      if(dep.required!==false)visit(dep.methodology_key+"|"+dep.version);
+    }
+  };
+  for(const spec of UNIVERSE_METHOD_STACK)visit(spec.methodology_key+"|"+spec.version);
+  return [...required.values()];
+}
+
+async function registerMissingRequiredDefinitions(){
+  for(const manifest of requiredCatalogManifests()){
+    const {data:existing,error:existingError}=await sb.from("methodology_definitions")
+      .select("id,methodology_key,version,manifest_hash")
+      .eq("methodology_key",manifest.methodology_key)
+      .eq("version",manifest.version)
+      .maybeSingle();
+    if(existingError)throw existingError;
+
+    let definition=existing;
+    const expectedHash=manifestHash(manifest);
+    if(existing&&targetIdentitySet.has(manifest.methodology_key+"|"+manifest.version)&&existing.manifest_hash!==expectedHash){
+      throw new Error(
+        "Target methodology already exists with a different immutable manifest hash: "+
+        manifest.methodology_key+" "+manifest.version
+      );
+    }
+
+    if(!definition){
+      const {data,error}=await sb.from("methodology_definitions").insert({
+        methodology_key:manifest.methodology_key,
+        version:manifest.version,
+        name:manifest.name,
+        category:manifest.category,
+        risk_class:manifest.risk_class,
+        purpose:manifest.purpose,
+        owner:manifest.owner,
+        source_files:manifest.source_files,
+        input_contract:manifest.input_contract,
+        output_contract:manifest.output_contract,
+        weights:manifest.weights,
+        thresholds:manifest.thresholds,
+        assumptions:manifest.assumptions,
+        dependencies:manifest.dependencies,
+        known_limitations:manifest.known_limitations,
+        change_summary:manifest.change_summary,
+        predecessor_version:manifest.predecessor_version,
+        impacts:manifest.impacts,
+        legacy_bootstrap:manifest.legacy_bootstrap,
+        registry_version:catalog.registry_version??"methodology-registry-v1",
+        manifest,
+        manifest_hash:expectedHash,
+      }).select("id,methodology_key,version,manifest_hash").single();
+      if(error)throw error;
+      definition=data;
+    }
+
+    const {data:events,error:eventsError}=await sb.from("methodology_lifecycle_events")
+      .select("id,event_type")
+      .eq("methodology_definition_id",definition.id);
+    if(eventsError)throw eventsError;
+    if(!(events??[]).some(e=>e.event_type==="registered")){
+      const {error}=await sb.from("methodology_lifecycle_events").insert({
+        methodology_definition_id:definition.id,
+        event_type:"registered",
+        reason:"Registered by "+METHODOLOGY_ACTIVATION_VERSION+" as a required target/dependency version.",
+        actor,
+        commit_sha:commitSha,
+        metadata:{activation_version:METHODOLOGY_ACTIVATION_VERSION},
+      });
+      if(error)throw error;
+    }
+  }
+}
+
+await registerMissingRequiredDefinitions();
 
 async function loadRegistry(){
   const {data:definitions,error:defError}=await sb.from("methodology_definitions")
