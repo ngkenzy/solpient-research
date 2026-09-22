@@ -1,14 +1,18 @@
 import assert from "node:assert/strict";
 import {
   METHODOLOGY_ACTIVATION_VERSION,
+  DEFAULT_FULL_UNIVERSE_MIN_INPUT_COUNT,
   UNIVERSE_METHOD_STACK,
   SCREEN_MATERIALIZATION_STACK,
   buildMethodologyValidationBundle,
+  universeInputHash,
   methodologyStackStatus,
+  methodologyDependencyStatus,
   requiredValidationEvidence,
 } from "../lib/methodology-activation-v1.mjs";
 
-assert.equal(METHODOLOGY_ACTIVATION_VERSION,"methodology-validation-activation-v1");
+assert.equal(METHODOLOGY_ACTIVATION_VERSION,"methodology-validation-activation-v1.1");
+assert.equal(DEFAULT_FULL_UNIVERSE_MIN_INPUT_COUNT,1000);
 assert.equal(UNIVERSE_METHOD_STACK.length,4);
 assert.equal(SCREEN_MATERIALIZATION_STACK.length,3);
 
@@ -53,6 +57,26 @@ assert.match(accepted.validation_hash,/^[0-9a-f]{64}$/);
 assert.equal(accepted.classification.obvious_unknown_count,0);
 assert.equal(accepted.classification.unresolved_count,0);
 assert.equal(accepted.shortlist_count,10);
+assert.match(accepted.universe_input_hash,/^[0-9a-f]{64}$/);
+assert.equal(
+  accepted.universe_input_hash,
+  universeInputHash([...rows].reverse()),
+  "universe input hash must be independent of row order"
+);
+assert.notEqual(
+  accepted.universe_input_hash,
+  universeInputHash(rows.map((row,i)=>i===0?{...row,price:101}:row)),
+  "universe input hash must change when input content changes"
+);
+
+const defaultMinimum=buildMethodologyValidationBundle(rows,{
+  limit:10,
+  acknowledgeReviewItems:true,
+  acknowledgeClassificationReviewQueue:true,
+});
+assert.equal(defaultMinimum.ready,false);
+assert.equal(defaultMinimum.min_input_count,1000);
+assert.equal(defaultMinimum.acceptance.full_universe_size,false);
 
 const tooSmall=buildMethodologyValidationBundle(rows,{
   limit:10,
@@ -110,6 +134,38 @@ const activeStatus=methodologyStackStatus(
   }))
 );
 assert.equal(activeStatus.ready,true);
+
+const depOwner={
+  id:"dep-owner",
+  methodology_key:"universe_screening",
+  version:"fixture-screen-v1",
+  manifest:{
+    methodology_key:"universe_screening",
+    dependencies:[
+      {methodology_key:"sector_evidence_model",version:"sector-evidence-v2.1",required:true},
+    ],
+  },
+};
+const depWrong={id:"dep-wrong",methodology_key:"sector_evidence_model",version:"sector-evidence-v2.0"};
+const depExact={id:"dep-exact",methodology_key:"sector_evidence_model",version:"sector-evidence-v2.1"};
+const wrongDependencyStatus=methodologyDependencyStatus(
+  [depOwner,depWrong,depExact],
+  [
+    {id:"dw",methodology_definition_id:depWrong.id,event_type:"active",effective_at:"2026-09-22T00:00:00Z"},
+    {id:"de",methodology_definition_id:depExact.id,event_type:"registered",effective_at:"2026-09-22T00:00:01Z"},
+  ],
+  depOwner.manifest
+);
+assert.equal(wrongDependencyStatus.ready,false);
+assert.equal(wrongDependencyStatus.inactive[0].version,"sector-evidence-v2.1");
+
+const atomicDependencyStatus=methodologyDependencyStatus(
+  [depOwner,depExact],
+  [{id:"de2",methodology_definition_id:depExact.id,event_type:"validated",effective_at:"2026-09-22T00:00:01Z"}],
+  depOwner.manifest,
+  {activationIdentities:new Set(["sector_evidence_model|sector-evidence-v2.1"])}
+);
+assert.equal(atomicDependencyStatus.ready,true);
 
 const evidence=requiredValidationEvidence(accepted);
 assert.ok(evidence["universe_screening|solpient-universe-screen-v2.3"]
