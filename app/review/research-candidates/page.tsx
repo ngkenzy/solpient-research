@@ -52,6 +52,7 @@ export default async function ResearchCandidatesPage(){
       <SolpientBrand subtitle="Research Candidate Pipeline" />
       <div>
         <Link href="/review/universe-screening">Universe Screening</Link>
+        <Link href="/review/research-factory">Research Factory</Link>
         <Link href="/review/readiness-repair">Readiness Repair</Link>
         <Link href="/review/methodologies">Methodologies</Link>
       </div>

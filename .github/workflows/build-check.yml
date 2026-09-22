@@ -56,6 +56,7 @@ jobs:
           npm run test:methodology
           npm run test:methodology-activation
           npm run test:candidate-pipeline:v2.4
+          npm run test:research-factory
           npm run test:screen-publish
 
       - name: Check repair center scripts
@@ -63,6 +64,11 @@ jobs:
           node --check scripts/build-research-repair-queue.mjs
           node --check scripts/process-research-repairs.mjs
           node --check scripts/sync-evidence-provenance.mjs
+          node --check scripts/materialize-research-factory-v1.mjs
+          node --check scripts/onboard-research-factory-v1.mjs
+          node --check scripts/refresh-research-factory-v1.mjs
+          node --check scripts/build-research-factory-valuation-drafts.mjs
+          node --check scripts/run-research-factory-batch.mjs
 
       - name: Build Next.js
         env:

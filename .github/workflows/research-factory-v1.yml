@@ -1,0 +1,105 @@
+name: SOLPIENT Research Factory V1
+
+on:
+  pull_request:
+    paths:
+      - "lib/research-factory-v1.mjs"
+      - "scripts/materialize-research-factory-v1.mjs"
+      - "scripts/onboard-research-factory-v1.mjs"
+      - "scripts/refresh-research-factory-v1.mjs"
+      - "scripts/build-research-factory-valuation-drafts.mjs"
+      - "scripts/run-research-factory-batch.mjs"
+      - "scripts/test-research-factory-v1.mjs"
+      - "supabase/migrations/20260922060000_research_factory_v1.sql"
+      - "supabase/tests/research_factory_v1.sql"
+      - "app/review/research-factory/page.tsx"
+      - "app/review/research-candidates/page.tsx"
+      - "docs/RESEARCH_FACTORY_V1.md"
+      - ".github/workflows/research-factory-v1.yml"
+  push:
+    branches: [main]
+    paths:
+      - "lib/research-factory-v1.mjs"
+      - "scripts/materialize-research-factory-v1.mjs"
+      - "scripts/onboard-research-factory-v1.mjs"
+      - "scripts/refresh-research-factory-v1.mjs"
+      - "scripts/build-research-factory-valuation-drafts.mjs"
+      - "scripts/run-research-factory-batch.mjs"
+      - "scripts/test-research-factory-v1.mjs"
+      - "supabase/migrations/20260922060000_research_factory_v1.sql"
+      - "supabase/tests/research_factory_v1.sql"
+      - "app/review/research-factory/page.tsx"
+      - "app/review/research-candidates/page.tsx"
+      - "docs/RESEARCH_FACTORY_V1.md"
+      - ".github/workflows/research-factory-v1.yml"
+  workflow_dispatch:
+    inputs:
+      max_companies:
+        description: "Maximum automatic candidates to process"
+        required: false
+        default: "5"
+        type: string
+      ticker:
+        description: "Optional single ticker"
+        required: false
+        type: string
+  schedule:
+    - cron: "29 14 * * 1-5"
+
+concurrency:
+  group: solpient-research-factory-v1
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+      - name: Test Research Factory V1
+        run: npm run test:research-factory
+      - name: Syntax check Research Factory scripts
+        run: |
+          node --check scripts/materialize-research-factory-v1.mjs
+          node --check scripts/onboard-research-factory-v1.mjs
+          node --check scripts/refresh-research-factory-v1.mjs
+          node --check scripts/build-research-factory-valuation-drafts.mjs
+          node --check scripts/run-research-factory-batch.mjs
+
+  operate:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' }}
+    needs: verify
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      RESEARCH_FACTORY_MAX_COMPANIES: ${{ github.event.inputs.max_companies || '5' }}
+      RESEARCH_FACTORY_TICKER: ${{ github.event.inputs.ticker || '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+      - name: Materialize current factory run
+        run: npm run factory:research:materialize
+      - name: Resolve canonical company identities
+        run: npm run factory:research:onboard
+      - name: Refresh work queue
+        run: npm run factory:research:refresh
+      - name: Process bounded automatic batch
+        run: |
+          if [ -n "$RESEARCH_FACTORY_TICKER" ]; then
+            node scripts/run-research-factory-batch.mjs --ticker="$RESEARCH_FACTORY_TICKER" --max=1
+          else
+            node scripts/run-research-factory-batch.mjs --max="$RESEARCH_FACTORY_MAX_COMPANIES"
+          fi
+      - name: Refresh final factory state
+        run: npm run factory:research:refresh
