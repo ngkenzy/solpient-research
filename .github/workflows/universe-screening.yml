@@ -6,7 +6,10 @@ on:
       - "lib/universe-screening-engine.mjs"
       - "lib/universe-screening-engine-v1.mjs"
       - "lib/universe-sector-model-v2.mjs"
+      - "lib/sector-evidence-model-v2-1.mjs"
+      - "lib/universe-screening-engine-v2.mjs"
       - "scripts/test-universe-sector-model-v2.mjs"
+      - "scripts/test-sector-evidence-model-v2-1.mjs"
       - "scripts/test-universe-screening-engine.mjs"
       - "scripts/run-universe-screen.mjs"
       - "scripts/fixtures/universe-screen-sample.json"
@@ -19,7 +22,9 @@ on:
     branches: [main]
     paths:
       - "lib/universe-screening-engine.mjs"
+      - "lib/sector-evidence-model-v2-1.mjs"
       - "scripts/test-universe-screening-engine.mjs"
+      - "scripts/test-sector-evidence-model-v2-1.mjs"
       - "scripts/run-universe-screen.mjs"
       - ".github/workflows/universe-screening.yml"
   workflow_dispatch:
@@ -39,6 +44,8 @@ jobs:
         run: node scripts/test-universe-screening-engine.mjs
       - name: Test Sector Model V2 regression
         run: node scripts/test-universe-sector-model-v2.mjs
+      - name: Test Sector Evidence Model V2.1
+        run: node scripts/test-sector-evidence-model-v2-1.mjs
       - name: Syntax check materializer
         run: node --check scripts/run-universe-screen.mjs
       - name: Dry-run provider contract
