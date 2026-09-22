@@ -14,8 +14,8 @@ on:
       - "supabase/migrations/0016_historical_peer_context_engine.sql"
 
 concurrency:
-  group: solpient-provenance-writer
-  cancel-in-progress: false
+  group: solpient-historical-peer-context
+  cancel-in-progress: true
 
 jobs:
   build-context:
@@ -29,12 +29,6 @@ jobs:
           node-version: 22
       - run: npm install
       - run: npm run test:context
-      - name: Synchronize raw provenance before context
-        env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-        run: npm run sync:provenance
       - name: Build historical and peer context
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
@@ -42,12 +36,6 @@ jobs:
         run: |
           mkdir -p artifacts/context
           npm run context:build -- --output artifacts/context/context-summary.json
-      - name: Synchronize derived provenance after context
-        env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-        run: npm run sync:provenance
       - name: Generate missing private baselines
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
