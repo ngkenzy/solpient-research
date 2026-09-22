@@ -23,6 +23,18 @@ set +a
 DB_USER="${SOLPIENT_DB_USER:-solpient}"
 DB_NAME="${SOLPIENT_DB_NAME:-solpient}"
 
+echo "Ensuring local compatibility roles exist..."
+docker compose -f docker-compose.local.yml --env-file .env.local-stack exec -T db \
+  psql --username="$DB_USER" --dbname="$DB_NAME" -v ON_ERROR_STOP=1 <<'SQL'
+DO $
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'postgres') THEN
+    CREATE ROLE postgres NOLOGIN;
+  END IF;
+END
+$;
+SQL
+
 echo "Preparing schema for plain PostgreSQL..."
 awk '
   BEGIN { skip = 0 }
