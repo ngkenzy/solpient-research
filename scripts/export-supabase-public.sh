@@ -7,11 +7,11 @@ mkdir -p "$OUT_DIR"
 
 cd "$ROOT"
 
-echo "Exporting hosted Supabase schema to $OUT_DIR/schema.sql ..."
-supabase db dump --linked -f "$OUT_DIR/schema.sql"
+echo "Exporting Solpient schemas (public, private) to $OUT_DIR/schema.sql ..."
+supabase db dump --linked --schema public,private -f "$OUT_DIR/schema.sql"
 
-echo "Exporting hosted Supabase data to $OUT_DIR/data.sql ..."
-supabase db dump --linked -f "$OUT_DIR/data.sql" --use-copy --data-only
+echo "Exporting Solpient data (public, private) to $OUT_DIR/data.sql ..."
+supabase db dump --linked --schema public,private -f "$OUT_DIR/data.sql" --use-copy --data-only
 
 echo "Export complete."
 echo "Files:"
