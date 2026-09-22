@@ -1,0 +1,97 @@
+name: Autonomous Research Factory V2.1 Production Canary
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/autonomous-research-factory-v2-1-canary.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: solpient-research-factory
+  cancel-in-progress: false
+
+jobs:
+  canary:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      RESEARCH_FACTORY_SEC_IDENTITY_SNAPSHOT: "data/research-factory/sec-identities-pipeline-run-1.json"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+      - name: Verify Autonomous Research Factory V2.1
+        run: |
+          npm run test:research-factory
+          npm run test:research-factory:v1.1
+          npm run test:research-factory:v2.1
+      - name: Run one controlled production candidate
+        run: node scripts/run-autonomous-research-factory-v2-1.mjs --ticker=MSFT --max=1
+      - name: Verify canary audit trail
+        run: |
+          node --input-type=module <<'NODE'
+          import { createClient } from "@supabase/supabase-js";
+
+          const sb=createClient(
+            process.env.SUPABASE_URL,
+            process.env.SUPABASE_SERVICE_ROLE_KEY,
+            {auth:{persistSession:false,autoRefreshToken:false}}
+          );
+
+          const {data:run,error:runError}=await sb
+            .from("research_factory_autonomous_runs")
+            .select("*")
+            .order("started_at",{ascending:false})
+            .limit(1)
+            .single();
+          if(runError)throw runError;
+
+          const {data:item,error:itemError}=await sb
+            .from("research_factory_items")
+            .select("id,ticker,stage,status,coverage_pct,company_id")
+            .eq("ticker","MSFT")
+            .order("created_at",{ascending:false})
+            .limit(1)
+            .single();
+          if(itemError)throw itemError;
+
+          const {data:decisions,error:decisionError}=await sb
+            .from("research_factory_autonomous_decisions")
+            .select("decision_type,decision_status,confidence,policy_version,decision_hash,created_at")
+            .eq("research_factory_item_id",item.id)
+            .order("created_at",{ascending:false});
+          if(decisionError)throw decisionError;
+
+          if(!(decisions??[]).some(x=>x.decision_type==="industry_assignment")){
+            throw new Error("Canary did not record an industry assignment decision.");
+          }
+          if(!(decisions??[]).some(x=>x.decision_type==="valuation_pack")){
+            throw new Error("Canary did not record a valuation policy decision.");
+          }
+
+          console.log(JSON.stringify({
+            verified:true,
+            autonomous_run_id:run.id,
+            run_status:run.status,
+            processed_count:run.processed_count,
+            auto_approved_count:run.auto_approved_count,
+            quarantined_count:run.quarantined_count,
+            ticker:item.ticker,
+            factory_stage:item.stage,
+            factory_status:item.status,
+            coverage_pct:item.coverage_pct,
+            decisions:(decisions??[]).map(x=>({
+              decision_type:x.decision_type,
+              decision_status:x.decision_status,
+              confidence:x.confidence,
+              policy_version:x.policy_version,
+              decision_hash:x.decision_hash
+            }))
+          },null,2));
+          NODE
