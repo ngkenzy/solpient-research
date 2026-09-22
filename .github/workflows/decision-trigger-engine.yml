@@ -2,8 +2,6 @@ name: SOLPIENT Decision Trigger Engine
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: "52 */6 * * *"
   push:
     branches: [main]
     paths:

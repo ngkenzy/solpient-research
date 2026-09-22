@@ -7,8 +7,6 @@ on:
         description: Optional ticker
         required: false
         type: string
-  schedule:
-    - cron: "35 10 * * *"
   push:
     branches: [main]
     paths:

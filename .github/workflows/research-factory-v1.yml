@@ -87,8 +87,6 @@ on:
         description: "Optional single ticker"
         required: false
         type: string
-  schedule:
-    - cron: "29 14 * * 1-5"
 
 concurrency:
   group: solpient-research-factory

@@ -24,8 +24,6 @@ on:
         description: "Optional single tracked ticker for SEC backfill"
         required: false
         type: string
-  schedule:
-    - cron: "10 3 * * 2-6"
 
 concurrency:
   group: solpient-data-coverage
