@@ -1,6 +1,6 @@
 {
   "registry_version": "methodology-registry-v1",
-  "generated_for": "current-main-baseline",
+  "generated_for": "sector-model-v2-candidate",
   "methodologies": [
     {
       "methodology_key": "historical_integrity",
@@ -593,7 +593,7 @@
       "purpose": "Screen a broad investable equity universe for companies that merit deeper Solpient research without treating the pre-research score as an investment decision.",
       "owner": "Solpient",
       "source_files": [
-        "lib/universe-screening-engine.mjs",
+        "lib/universe-screening-engine-v1.mjs",
         "docs/SOLPIENT_100_UNIVERSE_SCREENING.md"
       ],
       "input_contract": {
@@ -653,7 +653,7 @@
       "purpose": "Connect shortlisted Solpient 100 candidates to explicit Valuation V3 inputs and Readiness V1 gates without substituting screening scores for reviewed research.",
       "owner": "Solpient",
       "source_files": [
-        "lib/research-candidate-pipeline.mjs",
+        "lib/research-candidate-pipeline-v1.mjs",
         "scripts/materialize-research-candidate-pipeline.mjs"
       ],
       "input_contract": {
@@ -698,6 +698,202 @@
       ],
       "change_summary": "Adds governed shortlist-to-valuation-to-readiness handoff.",
       "predecessor_version": null,
+      "impacts": {
+        "database": true,
+        "public_ui": true,
+        "publication": false,
+        "ranking": false,
+        "capital_decision": true,
+        "historical_interpretation": true
+      },
+      "legacy_bootstrap": false
+    },
+    {
+      "methodology_key": "universe_sector_model",
+      "version": "solpient-universe-sector-model-v2",
+      "name": "Solpient Universe Sector Model V2",
+      "category": "screening",
+      "risk_class": "high",
+      "purpose": "Classify the U.S. equity universe into economically distinct sectors and screening profiles so broad-universe evidence is evaluated with sector-appropriate accounting logic without forced sector quotas.",
+      "owner": "Solpient",
+      "source_files": [
+        "lib/universe-sector-model-v2.mjs",
+        "lib/universe-feed-sec.mjs",
+        "docs/SOLPIENT_100_UNIVERSE_SECTOR_MODEL_V2.md"
+      ],
+      "input_contract": {
+        "sic": "SEC SIC code",
+        "sic_description": "SEC SIC description",
+        "normalized_sec_facts": "SEC-derived screening facts"
+      },
+      "output_contract": {
+        "sector": "economic sector",
+        "industry": "screening industry group",
+        "screen_profile": "sector-specific screening profile",
+        "sector_taxonomy_version": "solpient-universe-sector-model-v2"
+      },
+      "weights": {},
+      "thresholds": {},
+      "assumptions": {
+        "classification": "deterministic SIC and SIC-description mapping",
+        "sector_quotas": false,
+        "financial_debt_treatment": "generic corporate leverage rules are not applied to financial profiles",
+        "reit_ffo_proxy": "net income plus depreciation/amortization is screening-only and is not reviewed FFO/AFFO"
+      },
+      "dependencies": [
+        {
+          "methodology_key": "canonical_fact_normalization",
+          "version": "canonical-fact-v1",
+          "required": true
+        }
+      ],
+      "known_limitations": [
+        "SEC SIC is coarse and may not fully describe diversified business mixes.",
+        "Foreign/IFRS issuers without usable US-GAAP companyfacts can remain outside the SEC-first normalized universe.",
+        "Bank equity/assets does not replace CET1; insurer equity/assets does not replace statutory solvency/RBC review.",
+        "REIT FFO proxy is screening-only and does not replace reviewed NAREIT FFO or AFFO."
+      ],
+      "change_summary": "Replaces V1 catch-all Services and bank-like Financials treatment with deterministic sector/subsector classification and sector-appropriate SEC-derived screening fields.",
+      "predecessor_version": null,
+      "impacts": {
+        "database": false,
+        "public_ui": true,
+        "publication": false,
+        "ranking": false,
+        "capital_decision": false,
+        "historical_interpretation": true
+      },
+      "legacy_bootstrap": false
+    },
+    {
+      "methodology_key": "universe_screening",
+      "version": "solpient-universe-screen-v2",
+      "name": "Solpient 100 Universe Screening V2",
+      "category": "screening",
+      "risk_class": "high",
+      "purpose": "Screen a broad investable equity universe for deep-research candidates using sector-aware evidence and valuation measures while keeping missing evidence explicit and preserving human review for Solpient 100 membership.",
+      "owner": "Solpient",
+      "source_files": [
+        "lib/universe-screening-engine.mjs",
+        "docs/SOLPIENT_100_UNIVERSE_SECTOR_MODEL_V2.md"
+      ],
+      "input_contract": {
+        "universe_row": "normalized investability, sector profile, quality, durability, balance sheet, growth and valuation fields",
+        "sector_model": "solpient-universe-sector-model-v2"
+      },
+      "output_contract": {
+        "screen_state": "excluded/watch/research_candidate/solpient_100_candidate/solpient_100",
+        "deep_research_shortlist": "deterministic top-N eligible names",
+        "screen_profile": "sector-aware profile"
+      },
+      "weights": {
+        "default": {
+          "quality": 35,
+          "durability": 20,
+          "balance_sheet": 15,
+          "growth": 15,
+          "valuation": 15
+        },
+        "sector_specific": true
+      },
+      "thresholds": {
+        "research_candidate": {
+          "score": 60,
+          "quality_core": 60,
+          "coverage": 60
+        },
+        "solpient_100_candidate": {
+          "score": 75,
+          "quality_core": 72,
+          "coverage": 70
+        }
+      },
+      "assumptions": {
+        "missing_data": "reduces evidence coverage; never mapped to neutral 50",
+        "sector_quotas": false,
+        "financial_valuation": "trailing P/E and price/book for bank/insurance broad screening",
+        "reit_valuation": "screening FFO proxy is non-authoritative and must be replaced by reviewed FFO/AFFO in deep research"
+      },
+      "dependencies": [
+        {
+          "methodology_key": "universe_sector_model",
+          "version": "solpient-universe-sector-model-v2",
+          "required": true
+        }
+      ],
+      "known_limitations": [
+        "Broad quantitative screening does not replace qualitative moat, management or industry research.",
+        "SEC taxonomy and companyfacts coverage can still affect evidence completeness.",
+        "Financial capital/solvency and property FFO/AFFO require reviewed deep-research evidence before Decision Ready."
+      ],
+      "change_summary": "Adds sector-aware screening profiles for banks, insurance, asset managers, real estate/REITs, communication services, consumer staples/discretionary and technology while preserving V1 historical reproducibility.",
+      "predecessor_version": "solpient-universe-screen-v1",
+      "impacts": {
+        "database": true,
+        "public_ui": true,
+        "publication": false,
+        "ranking": false,
+        "capital_decision": false,
+        "historical_interpretation": true
+      },
+      "legacy_bootstrap": false
+    },
+    {
+      "methodology_key": "research_candidate_pipeline",
+      "version": "research-candidate-pipeline-v2",
+      "name": "Research Candidate Pipeline V2",
+      "category": "repair",
+      "risk_class": "high",
+      "purpose": "Connect Sector Model V2 screening candidates to Valuation V3 and Readiness without silently applying generic corporate FCF valuation to financial or real-estate profiles that lack a reviewed industry-specific valuation module.",
+      "owner": "Solpient",
+      "source_files": [
+        "lib/research-candidate-pipeline.mjs",
+        "scripts/materialize-research-candidate-pipeline.mjs"
+      ],
+      "input_contract": {
+        "screen_result": "eligible Sector Model V2 shortlist company",
+        "valuation_input_pack": "reviewed V3 inputs",
+        "research_scores": "published reviewed scores",
+        "coverage": "Coverage V2 evidence"
+      },
+      "output_contract": {
+        "stage": "onboarding/valuation_building/research_building/research_ready/decision_ready",
+        "next_actions": "ordered blockers and repair actions",
+        "valuation_profile_gate": "explicit industry-specific valuation support or blocker"
+      },
+      "weights": {},
+      "thresholds": {
+        "research_ready": "Readiness V1",
+        "decision_ready": "Readiness V1"
+      },
+      "assumptions": {
+        "screen_score_reuse": false,
+        "valuation_requires_reviewed_inputs": true,
+        "unsupported_sector_valuation": "block rather than fall back to generic corporate FCF"
+      },
+      "dependencies": [
+        {
+          "methodology_key": "universe_screening",
+          "version": "solpient-universe-screen-v2",
+          "required": true
+        },
+        {
+          "methodology_key": "valuation_v3",
+          "version": "solpient-valuation-methodology-v3",
+          "required": true
+        },
+        {
+          "methodology_key": "decision_readiness",
+          "version": "readiness-v1",
+          "required": true
+        }
+      ],
+      "known_limitations": [
+        "Insurance, asset-manager/diversified-financial and real-estate/REIT candidates remain valuation-blocked until a reviewed Valuation V3 sector module or explicit reviewed override exists.",
+        "Readiness quality scores still come from reviewed research, never screening proxies."
+      ],
+      "change_summary": "Updates the shortlist handoff for Sector Model V2 and blocks unsupported generic-FCF valuation paths.",
+      "predecessor_version": "research-candidate-pipeline-v1",
       "impacts": {
         "database": true,
         "public_ui": true,

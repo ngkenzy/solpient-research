@@ -34,6 +34,7 @@ const qualitySoftware={
   eps_growth_3y_cagr:22,
   fcf_growth_3y_cagr:20,
   price_to_fcf:45,
+  trailing_pe:40,
   forward_pe:42,
   ev_to_ebitda:30,
   peg_ratio:2.2,
@@ -68,6 +69,7 @@ const cheapJunk=screenCompany({
   eps_growth_3y_cagr:-30,
   fcf_growth_3y_cagr:-30,
   price_to_fcf:4,
+  trailing_pe:5,
   forward_pe:5,
   ev_to_ebitda:4,
   peg_ratio:.5,
@@ -81,31 +83,28 @@ const bank=screenCompany({
   company_name:"Good Bank",
   sector:"Financials",
   industry:"Banks",
+  screen_profile:"bank",
   market_cap:30_000_000_000,
   avg_dollar_volume_30d:100_000_000,
   price:80,
   roe:17,
+  roa:1.3,
   positive_eps_years:5,
-  efficiency_ratio:48,
-  nonperforming_assets_pct:.7,
+  positive_revenue_growth_years:4,
   positive_book_value_growth_years:5,
-  credit_loss_volatility_pct:.8,
   share_dilution_3y_pct:0,
-  cet1_ratio:14,
-  tangible_common_equity_ratio:9,
-  liquidity_coverage_ratio:135,
-  payout_ratio:35,
+  equity_to_assets_pct:10,
   eps_growth_3y_cagr:12,
   book_value_growth_3y_cagr:8,
   revenue_growth_3y_cagr:7,
-  forward_pe:11,
-  price_to_tangible_book:1.8,
-  peg_ratio:1.2,
+  trailing_pe:11,
+  price_to_book:1.8,
   net_debt_to_ebitda:99, // irrelevant for bank profile
 });
-assert.equal(bank.profile,"financial");
+assert.equal(bank.profile,"bank");
 assert.equal(bank.gates.some(g=>g.key==="leverage_extreme"),false);
 assert.ok(bank.screenScore>=70);
+assert.ok(bank.evidenceCoveragePct>=90);
 
 const missing=screenCompany({
   ticker:"MISS",
@@ -155,14 +154,14 @@ const notAutoMember=screenCompany({
 assert.notEqual(notAutoMember.state,SCREEN_STATE.SOLPIENT_100);
 assert.equal(notAutoMember.state,SCREEN_STATE.SOLPIENT_100_CANDIDATE);
 
-assert.equal(resolveScreenProfile({sector:"Real Estate"}),"reit");
+assert.equal(resolveScreenProfile({sector:"Real Estate"}),"real_estate");
 assert.equal(resolveScreenProfile({industry:"Medical Devices"}),"healthcare");
 assert.equal(resolveScreenProfile({sector:"Energy"}),"cyclical");
 
 const universe=[
-  {...qualitySoftware,ticker:"AAA",price_to_fcf:20,forward_pe:20,ev_to_ebitda:15,peg_ratio:1.5},
-  {...qualitySoftware,ticker:"BBB",price_to_fcf:25,forward_pe:25,ev_to_ebitda:18,peg_ratio:1.8},
-  {...qualitySoftware,ticker:"CCC",price_to_fcf:30,forward_pe:30,ev_to_ebitda:20,peg_ratio:2},
+  {...qualitySoftware,ticker:"AAA",price_to_fcf:20,trailing_pe:18,forward_pe:20,ev_to_ebitda:15,peg_ratio:1.5},
+  {...qualitySoftware,ticker:"BBB",price_to_fcf:25,trailing_pe:22,forward_pe:25,ev_to_ebitda:18,peg_ratio:1.8},
+  {...qualitySoftware,ticker:"CCC",price_to_fcf:30,trailing_pe:26,forward_pe:30,ev_to_ebitda:20,peg_ratio:2},
   {...qualitySoftware,ticker:"DDD",market_cap:100_000_000},
 ];
 const ranked=rankUniverse(universe);

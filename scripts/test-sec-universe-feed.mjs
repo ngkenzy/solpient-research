@@ -69,7 +69,9 @@ const fundamental=buildSecScreenFundamentals({
 });
 assert.ok(fundamental);
 assert.equal(fundamental.sector,"Information Technology");
-assert.equal(fundamental.industry,"Software");
+assert.equal(fundamental.industry,"Software & IT Services");
+assert.equal(fundamental.screen_profile,"software");
+assert.equal(fundamental.sector_taxonomy_version,"solpient-universe-sector-model-v2");
 assert.ok(fundamental.revenue_ttm>0);
 assert.ok(fundamental.fcf_margin>10);
 assert.ok(fundamental.roic>0);

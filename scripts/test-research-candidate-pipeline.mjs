@@ -7,6 +7,8 @@ import {
   valuationProfileForScreen,
 } from "../lib/research-candidate-pipeline.mjs";
 
+assert.equal(RESEARCH_CANDIDATE_PIPELINE_VERSION,"research-candidate-pipeline-v2");
+
 const screened=selectSolpient100Candidates([{
   ticker:"TEST",
   company_name:"Test Compounder",
@@ -33,6 +35,7 @@ const screened=selectSolpient100Candidates([{
   eps_growth_3y_cagr:18,
   fcf_growth_3y_cagr:17,
   price_to_fcf:20,
+  trailing_pe:20,
   forward_pe:22,
   ev_to_ebitda:16,
   peg_ratio:1.3,
@@ -170,6 +173,31 @@ assert.equal(notSelected.valuation.result,null);
 assert.equal(notSelected.readiness.decision,null);
 assert.equal(notSelected.nextActions.length,1);
 assert.equal(notSelected.nextActions[0].type,"screening");
+
+
+const insurerScreen={
+  ticker:"INS",
+  companyName:"Fixture Insurer",
+  profile:"insurance",
+  state:SCREEN_STATE.SOLPIENT_100_CANDIDATE,
+  proposedForDeepResearch:true,
+  screenScore:82,
+  qualityCoreScore:84,
+  evidenceCoveragePct:92,
+};
+const insurerPipeline=buildResearchCandidatePipeline({
+  screenResult:insurerScreen,
+  companyExists:true,
+  valuationInput:{currentPrice:50,fcfPerShare:4},
+  researchInput:{scores:{},coverage:{}},
+});
+assert.equal(insurerPipeline.stage,"valuation_building");
+assert.equal(insurerPipeline.valuation.preflight.complete,false);
+assert.equal(insurerPipeline.valuation.result,null);
+assert.match(insurerPipeline.valuation.preflight.blockedReason,/does not permit generic corporate FCF/);
+assert.ok(insurerPipeline.nextActions.some(a=>
+  a.type==="valuation_inputs"&&/does not permit generic corporate FCF/.test(a.reason)
+));
 
 // Screening quality is never substituted into readiness research scores.
 assert.notEqual(screened.qualityCoreScore,fullyReady.readiness.decision.businessQuality.score);

@@ -56,7 +56,9 @@
     "test:integrity": "node scripts/test-integrity-hash.mjs",
     "test:publication-integrity": "node scripts/test-publication-integrity.mjs",
     "sync:provenance": "node scripts/sync-evidence-provenance.mjs",
-    "test:provenance": "node scripts/test-evidence-provenance.mjs"
+    "test:provenance": "node scripts/test-evidence-provenance.mjs",
+    "test:universe-sector:v2": "node scripts/test-universe-sector-model-v2.mjs",
+    "test:methodology": "node scripts/test-methodology-governance.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.4",

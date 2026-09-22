@@ -49,6 +49,8 @@ jobs:
           npm run test:integrity
           npm run test:publication-integrity
           npm run test:provenance
+          npm run test:universe-sector:v2
+          npm run test:methodology
 
       - name: Check repair center scripts
         run: |

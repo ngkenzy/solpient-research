@@ -4,6 +4,9 @@ on:
   pull_request:
     paths:
       - "lib/universe-screening-engine.mjs"
+      - "lib/universe-screening-engine-v1.mjs"
+      - "lib/universe-sector-model-v2.mjs"
+      - "scripts/test-universe-sector-model-v2.mjs"
       - "scripts/test-universe-screening-engine.mjs"
       - "scripts/run-universe-screen.mjs"
       - "scripts/fixtures/universe-screen-sample.json"
@@ -34,6 +37,8 @@ jobs:
       - run: npm install
       - name: Test screening methodology
         run: node scripts/test-universe-screening-engine.mjs
+      - name: Test Sector Model V2 regression
+        run: node scripts/test-universe-sector-model-v2.mjs
       - name: Syntax check materializer
         run: node --check scripts/run-universe-screen.mjs
       - name: Dry-run provider contract
