@@ -9,6 +9,8 @@ function arg(name,fallback=null){
   return found?found.slice(prefix.length):fallback;
 }
 const inputPath=arg("input",process.env.UNIVERSE_INPUT_PATH??null);
+const failOnObviousUnknown=String(arg("fail-on-obvious-unknown","false")).toLowerCase()==="true";
+const failOnUnresolved=String(arg("fail-on-unresolved","false")).toLowerCase()==="true";
 if(!inputPath)throw new Error("Provide --input=/path/to/universe.json.");
 
 function parse(filePath){
@@ -71,7 +73,7 @@ const changed=rows.filter(r=>
   String(r.previous_profile??"")!==String(r.profile??"")
 );
 
-console.log(JSON.stringify({
+const report={
   input_count:rows.length,
   method_counts:Object.fromEntries(Object.entries(counts).sort((a,b)=>b[1]-a[1])),
   repaired_count:repaired.length,
@@ -83,4 +85,13 @@ console.log(JSON.stringify({
   review_queue:reviewQueue.sort((a,b)=>a.ticker.localeCompare(b.ticker)),
   unresolved:unresolved.sort((a,b)=>a.ticker.localeCompare(b.ticker)),
   obvious_unknown:obviousUnknown.sort((a,b)=>a.ticker.localeCompare(b.ticker)),
-},null,2));
+};
+console.log(JSON.stringify(report,null,2));
+if(failOnObviousUnknown&&report.obvious_unknown_count>0){
+  console.error("Sector classification audit failed: obvious_unknown_count="+report.obvious_unknown_count);
+  process.exitCode=1;
+}
+if(failOnUnresolved&&report.unresolved_count>0){
+  console.error("Sector classification audit failed: unresolved_count="+report.unresolved_count);
+  process.exitCode=1;
+}
