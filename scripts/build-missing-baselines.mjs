@@ -3,6 +3,7 @@ import path from "node:path";
 import process from "node:process";
 import { createClient } from "@supabase/supabase-js";
 import { buildBaselineDraft, BASELINE_FACTORY_VERSION } from "../lib/baseline-factory.mjs";
+import { latestAutonomousIndustryModule } from "../lib/autonomous-research-factory-db.mjs";
 
 const url=process.env.SUPABASE_URL;
 const secret=process.env.SUPABASE_SECRET_KEY??process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -33,8 +34,13 @@ for(const company of companiesR.data??[]){
   ]);
   for(const r of [marketR,fundR,filingR,contextR])if(r.error)throw r.error;
 
+  const autonomousIndustryModule=await latestAutonomousIndustryModule(
+    sb,
+    {companyId:company.id}
+  );
   const result=buildBaselineDraft({
-    company,market:marketR.data,fundamentals:fundR.data??[],filings:filingR.data??[]
+    company,market:marketR.data,fundamentals:fundR.data??[],filings:filingR.data??[],
+    industryModuleOverride:autonomousIndustryModule
   });
   if(contextR.data){
     result.payload.factory.research_context={

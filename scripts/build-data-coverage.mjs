@@ -4,6 +4,7 @@ import process from "node:process";
 import { createClient } from "@supabase/supabase-js";
 import { buildCoverageReport, COVERAGE_ENGINE_VERSION } from "../lib/data-coverage-engine.mjs";
 import { buildBaselineDraft } from "../lib/baseline-factory.mjs";
+import { latestAutonomousIndustryModule } from "../lib/autonomous-research-factory-db.mjs";
 
 const url=process.env.SUPABASE_URL;
 const secret=process.env.SUPABASE_SECRET_KEY??process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -68,11 +69,17 @@ for(const company of (companies??[]).filter(c=>!onlyTicker||c.ticker===onlyTicke
     valuationFormulaPersisted=Boolean(data?.valuation_analysis?.valuation_bridge?.formula);
   }
 
+  const autonomousIndustryModule=await latestAutonomousIndustryModule(
+    sb,
+    {companyId:company.id}
+  );
+
   const temporaryBaseline=buildBaselineDraft({
     company,
     market:marketLatestR.data??null,
     fundamentals:fundR.data??[],
     filings:filingR.data??[],
+    industryModuleOverride:autonomousIndustryModule,
   });
 
   const valuationFirst=valuationFirstR.data?.trading_date??null;

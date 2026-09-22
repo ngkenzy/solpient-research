@@ -143,6 +143,10 @@ const counts={};
 
 for(const item of items??[]){
   const ticker=String(item.ticker).toUpperCase();
+  if(item.status==="quarantined"){
+    counts["quarantined"]=(counts["quarantined"]??0)+1;
+    continue;
+  }
   const company=companyByTicker.get(ticker)??null;
   const coverage=company?coverageByCompany.get(company.id)??null:null;
   const baselineDraft=company?baselineByCompany.get(company.id)??null:null;
