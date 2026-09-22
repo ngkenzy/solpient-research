@@ -6,7 +6,8 @@ import { buildCoverageReport, COVERAGE_ENGINE_VERSION } from "../lib/data-covera
 import { buildBaselineDraft } from "../lib/baseline-factory.mjs";
 import { latestAutonomousIndustryModule } from "../lib/autonomous-research-factory-db.mjs";
 
-if(!process.env.SOLPIENT_DATABASE_URL)throw new Error("Missing SOLPIENT_DATABASE_URL.");\nconst sb=createPostgresCompatClient();
+if(!process.env.SOLPIENT_DATABASE_URL)throw new Error("Missing SOLPIENT_DATABASE_URL.");
+const sb=createPostgresCompatClient();
 const asOfDate=process.env.COVERAGE_AS_OF_DATE??new Date().toISOString().slice(0,10);
 const outputFlag=process.argv.indexOf("--output");
 const outputPath=outputFlag>=0?process.argv[outputFlag+1]:null;
