@@ -4,6 +4,8 @@ out/
 .env
 .env.local
 .env.*.local
+.env.local-stack
+backups/
 .vercel
 .DS_Store
 npm-debug.log*
