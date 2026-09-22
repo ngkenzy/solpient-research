@@ -120,6 +120,7 @@ const policy=buildAutonomousValuationPolicy({
   },
   baselineDraft,
   fundamentals,
+  market:{price:105,trading_date:"2026-09-22"},
   consensus,
   valuationHistory,
   contextPack,
@@ -127,6 +128,8 @@ const policy=buildAutonomousValuationPolicy({
 });
 assert.equal(policy.status,"auto_approved");
 assert.equal(policy.preflight.complete,true);
+assert.equal(policy.valuation_input.currentPrice,105);
+assert.equal(policy.evidence.market_price_source,"latest_market_snapshot");
 assert.ok(policy.confidence_pct>=78);
 assert.ok(policy.valuation_input.assumptions.base.initialGrowth!=null);
 assert.ok(policy.valuation_input.assumptions.base.discountRate>=7.5);
