@@ -61,7 +61,8 @@
     "test:methodology": "node scripts/test-methodology-governance.mjs",
     "test:sector-evidence:v2.1": "node scripts/test-sector-evidence-model-v2-1.mjs",
     "test:sector-classification:v2.2": "node scripts/test-sector-classification-repair-v2-2.mjs",
-    "audit:sector-classification": "node scripts/audit-sector-classification.mjs"
+    "audit:sector-classification": "node scripts/audit-sector-classification.mjs",
+    "test:sector-classification:v2.3": "node scripts/test-sector-classification-coverage-v2-3.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.4",

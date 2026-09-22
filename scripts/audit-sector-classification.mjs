@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
-import { classifyIssuerSector } from "../lib/universe-sector-model-v2-2.mjs";
+import { classifyIssuerSector } from "../lib/universe-sector-model-v2-3.mjs";
 
 function arg(name,fallback=null){
   const prefix="--"+name+"=";
@@ -9,6 +9,8 @@ function arg(name,fallback=null){
   return found?found.slice(prefix.length):fallback;
 }
 const inputPath=arg("input",process.env.UNIVERSE_INPUT_PATH??null);
+const failOnObviousUnknown=String(arg("fail-on-obvious-unknown","false")).toLowerCase()==="true";
+const failOnUnresolved=String(arg("fail-on-unresolved","false")).toLowerCase()==="true";
 if(!inputPath)throw new Error("Provide --input=/path/to/universe.json.");
 
 function parse(filePath){
@@ -46,6 +48,8 @@ const rows=parse(inputPath).map(row=>{
     rule:classification.classification_rule,
     confidence:classification.classification_confidence,
     rationale:classification.classification_rationale??null,
+    review_required:Boolean(classification.classification_review_required),
+    review_reason:classification.classification_review_reason??null,
   };
 });
 
@@ -54,20 +58,40 @@ for(const row of rows)counts[row.method]=(counts[row.method]??0)+1;
 const repaired=rows.filter(r=>
   r.method==="issuer_override"||
   r.method==="sic_rule"||
-  r.method==="description_rule"
+  r.method==="description_rule"||
+  r.method==="sic_family_rule"
 );
-const unresolved=rows.filter(r=>r.method==="unresolved"||r.sector==="Unknown");
+const reviewQueue=rows.filter(r=>r.method==="review_required"||r.review_required===true);
+const unresolved=rows.filter(r=>r.method==="unresolved");
+const obviousUnknown=rows.filter(r=>
+  r.sector==="Unknown"&&
+  r.method!=="review_required"&&
+  r.method!=="unresolved"
+);
 const changed=rows.filter(r=>
   String(r.previous_sector??"")!==String(r.sector??"")||
   String(r.previous_profile??"")!==String(r.profile??"")
 );
 
-console.log(JSON.stringify({
+const report={
   input_count:rows.length,
   method_counts:Object.fromEntries(Object.entries(counts).sort((a,b)=>b[1]-a[1])),
   repaired_count:repaired.length,
   changed_count:changed.length,
+  review_required_count:reviewQueue.length,
   unresolved_count:unresolved.length,
+  obvious_unknown_count:obviousUnknown.length,
   repaired:repaired.sort((a,b)=>a.ticker.localeCompare(b.ticker)),
+  review_queue:reviewQueue.sort((a,b)=>a.ticker.localeCompare(b.ticker)),
   unresolved:unresolved.sort((a,b)=>a.ticker.localeCompare(b.ticker)),
-},null,2));
+  obvious_unknown:obviousUnknown.sort((a,b)=>a.ticker.localeCompare(b.ticker)),
+};
+console.log(JSON.stringify(report,null,2));
+if(failOnObviousUnknown&&report.obvious_unknown_count>0){
+  console.error("Sector classification audit failed: obvious_unknown_count="+report.obvious_unknown_count);
+  process.exitCode=1;
+}
+if(failOnUnresolved&&report.unresolved_count>0){
+  console.error("Sector classification audit failed: unresolved_count="+report.unresolved_count);
+  process.exitCode=1;
+}

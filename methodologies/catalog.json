@@ -1,6 +1,6 @@
 {
   "registry_version": "methodology-registry-v1",
-  "generated_for": "sector-classification-repair-v2.2-candidate",
+  "generated_for": "sector-classification-coverage-v2.3-candidate",
   "methodologies": [
     {
       "methodology_key": "historical_integrity",
@@ -1194,7 +1194,7 @@
       "purpose": "Apply Classification Repair V2.2 before V2.1 evidence-confidence screening so repaired sector profiles are evaluated with the correct economic and evidence model.",
       "owner": "Solpient",
       "source_files": [
-        "lib/universe-screening-engine.mjs",
+        "lib/universe-screening-engine-v2-2.mjs",
         "lib/universe-sector-model-v2-2.mjs",
         "lib/sector-evidence-model-v2-1.mjs",
         "docs/SOLPIENT_SECTOR_CLASSIFICATION_REPAIR_V2_2.md"
@@ -1270,7 +1270,7 @@
       "purpose": "Carry V2.2 classified candidates into valuation/readiness while preserving V2.1 sector-evidence blockers and unsupported-sector valuation safeguards.",
       "owner": "Solpient",
       "source_files": [
-        "lib/research-candidate-pipeline.mjs",
+        "lib/research-candidate-pipeline-v2-2.mjs",
         "scripts/materialize-research-candidate-pipeline.mjs"
       ],
       "input_contract": {
@@ -1317,6 +1317,216 @@
       ],
       "change_summary": "Advances the research-candidate handoff to consume V2.2 classification-repaired screen results.",
       "predecessor_version": "research-candidate-pipeline-v2.1",
+      "impacts": {
+        "database": true,
+        "public_ui": true,
+        "publication": false,
+        "ranking": false,
+        "capital_decision": true,
+        "historical_interpretation": true
+      },
+      "legacy_bootstrap": false
+    },
+    {
+      "methodology_key": "universe_sector_model",
+      "version": "solpient-universe-sector-model-v2.3",
+      "name": "Solpient Sector Classification Coverage V2.3",
+      "category": "screening",
+      "risk_class": "high",
+      "purpose": "Eliminate obvious operating-company Unknown classifications while routing genuinely ambiguous or insufficient-data issuers to an explicit review queue rather than guessing a sector.",
+      "owner": "Solpient",
+      "source_files": [
+        "lib/universe-sector-model-v2-3.mjs",
+        "lib/universe-feed-sec.mjs",
+        "scripts/audit-sector-classification.mjs",
+        "scripts/test-sector-classification-coverage-v2-3.mjs",
+        "docs/SOLPIENT_SECTOR_CLASSIFICATION_COVERAGE_V2_3.md"
+      ],
+      "input_contract": {
+        "ticker": "issuer ticker",
+        "cik": "SEC issuer identifier when available",
+        "company_name": "issuer name",
+        "sic": "SEC SIC code when available",
+        "sic_description": "SEC SIC description when available",
+        "existing_sector": "provider/base classification fallback"
+      },
+      "output_contract": {
+        "sector": "economic sector or Unknown only when review-required",
+        "industry": "industry group when classified",
+        "screen_profile": "sector-specific screen profile",
+        "classification_method": "issuer_override/base_v2/sic_family_rule/description_rule/review_required",
+        "classification_review_required": "true only for genuinely ambiguous or insufficient-data issuers",
+        "classification_review_reason": "human-readable reason for review queue"
+      },
+      "weights": {},
+      "thresholds": {
+        "obvious_unknown_target": 0
+      },
+      "assumptions": {
+        "hierarchy": "reviewed issuer override -> reviewed issuer queue -> V2.2 classifier -> safe SIC/description coverage -> review_required",
+        "no_catch_all_guess": true,
+        "sector_quotas": false,
+        "scoring_unchanged": true,
+        "evidence_ceilings_unchanged": true
+      },
+      "dependencies": [
+        {
+          "methodology_key": "universe_sector_model",
+          "version": "solpient-universe-sector-model-v2.2",
+          "required": true
+        }
+      ],
+      "known_limitations": [
+        "Some transitional or conglomerate business models still require human classification review.",
+        "Issuer overrides must be re-reviewed after material business-model changes, acquisitions, or divestitures.",
+        "Safe SIC-family coverage is intentionally conservative and does not attempt to emulate a complete commercial taxonomy."
+      ],
+      "change_summary": "Adds safe SIC-family coverage, current-economics issuer overrides, an explicit review_required state, and a zero-obvious-Unknown audit target.",
+      "predecessor_version": "solpient-universe-sector-model-v2.2",
+      "impacts": {
+        "database": false,
+        "public_ui": true,
+        "publication": false,
+        "ranking": false,
+        "capital_decision": false,
+        "historical_interpretation": true
+      },
+      "legacy_bootstrap": false
+    },
+    {
+      "methodology_key": "universe_screening",
+      "version": "solpient-universe-screen-v2.3",
+      "name": "Solpient 100 Universe Screening V2.3",
+      "category": "screening",
+      "risk_class": "high",
+      "purpose": "Apply Sector Classification Coverage V2.3 before unchanged Sector Evidence V2.1 screening so obvious operating companies receive the correct profile and ambiguous names remain explicitly review-blocked.",
+      "owner": "Solpient",
+      "source_files": [
+        "lib/universe-screening-engine.mjs",
+        "lib/universe-sector-model-v2-3.mjs",
+        "lib/sector-evidence-model-v2-1.mjs",
+        "docs/SOLPIENT_SECTOR_CLASSIFICATION_COVERAGE_V2_3.md"
+      ],
+      "input_contract": {
+        "universe_row": "normalized broad-universe row",
+        "sector_model": "solpient-universe-sector-model-v2.3",
+        "sector_evidence_model": "solpient-sector-evidence-model-v2.1"
+      },
+      "output_contract": {
+        "screen_state": "excluded/watch/research_candidate/solpient_100_candidate/solpient_100",
+        "sector_classification": "method/rule/confidence/rationale/review-required metadata",
+        "raw_evidence_coverage_pct": "broad technical coverage",
+        "evidence_coverage_pct": "sector-adjusted effective coverage",
+        "deep_research_shortlist": "deterministic top-N eligible names"
+      },
+      "weights": {
+        "score_dimensions": "unchanged from solpient-universe-screen-v2.2",
+        "evidence_confidence": "solpient-sector-evidence-model-v2.1"
+      },
+      "thresholds": {
+        "research_candidate": {
+          "score": 60,
+          "quality_core": 60,
+          "coverage": 60
+        },
+        "solpient_100_candidate": {
+          "score": 75,
+          "quality_core": 72,
+          "coverage": 70
+        },
+        "review_required_candidate_block": true
+      },
+      "assumptions": {
+        "score_thresholds_unchanged": true,
+        "financial_evidence_ceilings_unchanged": true,
+        "sector_quotas": false,
+        "taxonomy_only_change": true
+      },
+      "dependencies": [
+        {
+          "methodology_key": "universe_sector_model",
+          "version": "solpient-universe-sector-model-v2.3",
+          "required": true
+        },
+        {
+          "methodology_key": "sector_evidence_model",
+          "version": "solpient-sector-evidence-model-v2.1",
+          "required": true
+        }
+      ],
+      "known_limitations": [
+        "Review-required names remain capped by the Unknown-classification evidence rule until a reviewed sector is assigned.",
+        "Classification coverage does not replace qualitative company research."
+      ],
+      "change_summary": "Advances screening to V2.3 taxonomy coverage while leaving V2.2 score mechanics and V2.1 evidence ceilings unchanged.",
+      "predecessor_version": "solpient-universe-screen-v2.2",
+      "impacts": {
+        "database": true,
+        "public_ui": true,
+        "publication": false,
+        "ranking": false,
+        "capital_decision": false,
+        "historical_interpretation": true
+      },
+      "legacy_bootstrap": false
+    },
+    {
+      "methodology_key": "research_candidate_pipeline",
+      "version": "research-candidate-pipeline-v2.3",
+      "name": "Research Candidate Pipeline V2.3",
+      "category": "repair",
+      "risk_class": "high",
+      "purpose": "Carry V2.3 classification results into valuation/readiness and preserve explicit classification-review reasons as research repair actions.",
+      "owner": "Solpient",
+      "source_files": [
+        "lib/research-candidate-pipeline.mjs",
+        "scripts/materialize-research-candidate-pipeline.mjs"
+      ],
+      "input_contract": {
+        "screen_result": "eligible Universe Screening V2.3 result",
+        "valuation_input_pack": "reviewed Valuation V3 inputs",
+        "research_scores": "published reviewed scores",
+        "coverage": "Coverage V2 evidence"
+      },
+      "output_contract": {
+        "stage": "onboarding/valuation_building/research_building/research_ready/decision_ready",
+        "next_actions": "ordered evidence, classification, valuation and readiness repair actions",
+        "classification_review": "specific review reason retained when sector assignment is ambiguous"
+      },
+      "weights": {},
+      "thresholds": {
+        "research_ready": "Readiness V1",
+        "decision_ready": "Readiness V1"
+      },
+      "assumptions": {
+        "screen_score_reuse": false,
+        "valuation_requires_reviewed_inputs": true,
+        "classification_review_required": "blocks candidate promotion until resolved",
+        "unsupported_sector_valuation": "block rather than generic fallback"
+      },
+      "dependencies": [
+        {
+          "methodology_key": "universe_screening",
+          "version": "solpient-universe-screen-v2.3",
+          "required": true
+        },
+        {
+          "methodology_key": "valuation_v3",
+          "version": "solpient-valuation-methodology-v3",
+          "required": true
+        },
+        {
+          "methodology_key": "decision_readiness",
+          "version": "readiness-v1",
+          "required": true
+        }
+      ],
+      "known_limitations": [
+        "Classification review remains a manual evidence task for mixed or transitional issuers.",
+        "Sector-specific valuation remains blocked where no reviewed Valuation V3 industry module exists."
+      ],
+      "change_summary": "Advances the research pipeline to V2.3 and preserves human-readable classification review reasons downstream.",
+      "predecessor_version": "research-candidate-pipeline-v2.2",
       "impacts": {
         "database": true,
         "public_ui": true,

@@ -15,7 +15,7 @@ import {
 const catalog=JSON.parse(fs.readFileSync(new URL("../methodologies/catalog.json",import.meta.url),"utf8"));
 const validation=validateCatalog(catalog.methodologies);
 assert.equal(validation.valid,true,validation.errors.join("\n"));
-assert.equal(validation.manifests.length,20);
+assert.equal(validation.manifests.length,23);
 assert.ok(validation.manifests.some(m=>m.version==="decision-ranking-v1"));
 assert.ok(validation.manifests.some(m=>m.version==="context-v2-provenance"));
 assert.ok(validation.manifests.some(m=>m.version==="evidence-provenance-v1"));
@@ -24,13 +24,16 @@ assert.ok(validation.manifests.some(m=>m.version==="research-candidate-pipeline-
 assert.ok(validation.manifests.some(m=>m.version==="research-candidate-pipeline-v2"));
 assert.ok(validation.manifests.some(m=>m.version==="research-candidate-pipeline-v2.1"));
 assert.ok(validation.manifests.some(m=>m.version==="research-candidate-pipeline-v2.2"));
+assert.ok(validation.manifests.some(m=>m.version==="research-candidate-pipeline-v2.3"));
 assert.ok(validation.manifests.some(m=>m.version==="solpient-universe-sector-model-v2"));
 assert.ok(validation.manifests.some(m=>m.version==="solpient-universe-sector-model-v2.2"));
+assert.ok(validation.manifests.some(m=>m.version==="solpient-universe-sector-model-v2.3"));
 assert.ok(validation.manifests.some(m=>m.version==="solpient-sector-evidence-model-v2.1"));
 assert.ok(validation.manifests.some(m=>m.version==="solpient-universe-screen-v1"));
 assert.ok(validation.manifests.some(m=>m.version==="solpient-universe-screen-v2"));
 assert.ok(validation.manifests.some(m=>m.version==="solpient-universe-screen-v2.1"));
 assert.ok(validation.manifests.some(m=>m.version==="solpient-universe-screen-v2.2"));
+assert.ok(validation.manifests.some(m=>m.version==="solpient-universe-screen-v2.3"));
 assert.ok(validation.manifests.some(m=>m.version==="solpient-valuation-methodology-v3"));
 
 const decision=validation.manifests.find(m=>m.version==="decision-ranking-v1");
