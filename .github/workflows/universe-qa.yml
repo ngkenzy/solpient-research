@@ -1,0 +1,39 @@
+name: Universe QA V1
+
+on:
+  pull_request:
+    paths:
+      - "lib/universe-qa-engine.mjs"
+      - "types/universe-qa-engine-mjs.d.ts"
+      - "scripts/test-universe-qa.mjs"
+      - "scripts/audit-universe-screen.mjs"
+      - "components/UniverseQAWorkbench.tsx"
+      - "components/UniverseQAWorkbench.module.css"
+      - "app/review/universe-qa/page.tsx"
+      - "app/review/universe-screening/page.tsx"
+      - "docs/UNIVERSE_QA.md"
+      - ".github/workflows/universe-qa.yml"
+  push:
+    branches: [main]
+    paths:
+      - "lib/universe-qa-engine.mjs"
+      - "scripts/test-universe-qa.mjs"
+      - "scripts/audit-universe-screen.mjs"
+      - ".github/workflows/universe-qa.yml"
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+      - name: Test Universe QA
+        run: node scripts/test-universe-qa.mjs
+      - name: Syntax check QA CLI
+        run: node --check scripts/audit-universe-screen.mjs
