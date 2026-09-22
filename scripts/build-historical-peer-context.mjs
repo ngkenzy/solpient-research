@@ -4,6 +4,7 @@ import process from "node:process";
 import { createClient } from "@supabase/supabase-js";
 import { buildCompanyHistory, buildPeerContext, buildContextPack, latestMetricMap, CONTEXT_ENGINE_VERSION } from "../lib/historical-peer-engine.mjs";
 import { peerSetForTicker } from "../lib/peer-sets.mjs";
+import { latestAutonomousIndustryModule } from "../lib/autonomous-research-factory-db.mjs";
 
 const url=process.env.SUPABASE_URL;
 const secret=process.env.SUPABASE_SECRET_KEY??process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -45,10 +46,15 @@ for(const company of selected){
   if(fundR.error)throw fundR.error;
   if(marketR.error)throw marketR.error;
 
+  const autonomousIndustryModule=await latestAutonomousIndustryModule(
+    sb,
+    {companyId:company.id}
+  );
   const result=buildCompanyHistory({
     company,
     fundamentals:fundR.data??[],
     markets:marketR.data??[],
+    industryModuleOverride:autonomousIndustryModule,
   });
   results.set(company.ticker,result);
 
