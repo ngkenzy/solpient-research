@@ -4,68 +4,82 @@ on:
   pull_request:
     paths:
       - "lib/research-factory-v1.mjs"
+      - "lib/baseline-factory.mjs"
+      - "lib/historical-peer-engine.mjs"
+      - "lib/industry-modules.mjs"
+      - "lib/autonomous-research-factory-v2-1.mjs"
+      - "lib/autonomous-research-factory-db.mjs"
       - "scripts/materialize-research-factory-v1.mjs"
       - "scripts/onboard-research-factory-v1.mjs"
-      - "data/research-factory/sec-identities-pipeline-run-1.json"
       - "scripts/refresh-research-factory-v1.mjs"
       - "scripts/build-research-factory-valuation-drafts.mjs"
       - "scripts/run-research-factory-batch.mjs"
-      - "scripts/test-research-factory-v1.mjs"
-      - "supabase/migrations/20260922060000_research_factory_v1.sql"
-      - "supabase/tests/research_factory_v1.sql"
-      - "app/review/research-factory/page.tsx"
-      - "app/review/research-candidates/page.tsx"
-      - "docs/RESEARCH_FACTORY_V1.md"
       - "scripts/run-research-factory-expansion-v1-1.mjs"
+      - "scripts/build-research-repair-queue.mjs"
+      - "scripts/process-research-repairs.mjs"
+      - "scripts/build-baseline-draft.mjs"
+      - "scripts/build-data-coverage.mjs"
+      - "scripts/build-historical-peer-context.mjs"
+      - "scripts/assign-research-factory-industry-v2-1.mjs"
+      - "scripts/build-autonomous-valuation-pack-v2-1.mjs"
+      - "scripts/run-autonomous-research-factory-v2-1.mjs"
+      - "scripts/test-research-factory-v1.mjs"
       - "scripts/test-research-factory-v1-1.mjs"
+      - "scripts/test-autonomous-research-factory-v2-1.mjs"
+      - "supabase/migrations/20260922060000_research_factory_v1.sql"
       - "supabase/migrations/20260922123000_research_factory_v1_1_auto_expansion.sql"
-      - "supabase/tests/research_factory_v1_1_auto_expansion.sql"
       - "supabase/migrations/20260922124500_research_factory_v1_1_index_cleanup.sql"
-      - ".github/workflows/research-factory-v1-1-kickoff.yml"
+      - "supabase/migrations/20260922133000_autonomous_research_factory_v2_1.sql"
+      - "supabase/tests/research_factory_v1.sql"
+      - "supabase/tests/research_factory_v1_1_auto_expansion.sql"
+      - "supabase/tests/autonomous_research_factory_v2_1.sql"
+      - "app/review/research-factory/page.tsx"
+      - "docs/RESEARCH_FACTORY_V1.md"
+      - "docs/AUTONOMOUS_RESEARCH_FACTORY_V2_1.md"
+      - "package.json"
       - ".github/workflows/research-factory-v1.yml"
-      - "lib/autonomous-research-factory-v2-1.mjs"
-      - "lib/autonomous-research-factory-db.mjs"
-      - "scripts/assign-research-factory-industry-v2-1.mjs"
-      - "scripts/build-autonomous-valuation-pack-v2-1.mjs"
-      - "scripts/run-autonomous-research-factory-v2-1.mjs"
-      - "scripts/test-autonomous-research-factory-v2-1.mjs"
-      - "supabase/migrations/20260922133000_autonomous_research_factory_v2_1.sql"
-      - "supabase/tests/autonomous_research_factory_v2_1.sql"
-      - "lib/autonomous-research-factory-v2-1.mjs"
-      - "lib/autonomous-research-factory-db.mjs"
-      - "scripts/assign-research-factory-industry-v2-1.mjs"
-      - "scripts/build-autonomous-valuation-pack-v2-1.mjs"
-      - "scripts/run-autonomous-research-factory-v2-1.mjs"
-      - "scripts/test-autonomous-research-factory-v2-1.mjs"
-      - "supabase/migrations/20260922133000_autonomous_research_factory_v2_1.sql"
-      - "supabase/tests/autonomous_research_factory_v2_1.sql"
   push:
     branches: [main]
     paths:
       - "lib/research-factory-v1.mjs"
+      - "lib/baseline-factory.mjs"
+      - "lib/historical-peer-engine.mjs"
+      - "lib/industry-modules.mjs"
+      - "lib/autonomous-research-factory-v2-1.mjs"
+      - "lib/autonomous-research-factory-db.mjs"
       - "scripts/materialize-research-factory-v1.mjs"
       - "scripts/onboard-research-factory-v1.mjs"
-      - "data/research-factory/sec-identities-pipeline-run-1.json"
       - "scripts/refresh-research-factory-v1.mjs"
       - "scripts/build-research-factory-valuation-drafts.mjs"
       - "scripts/run-research-factory-batch.mjs"
-      - "scripts/test-research-factory-v1.mjs"
-      - "supabase/migrations/20260922060000_research_factory_v1.sql"
-      - "supabase/tests/research_factory_v1.sql"
-      - "app/review/research-factory/page.tsx"
-      - "app/review/research-candidates/page.tsx"
-      - "docs/RESEARCH_FACTORY_V1.md"
       - "scripts/run-research-factory-expansion-v1-1.mjs"
+      - "scripts/build-research-repair-queue.mjs"
+      - "scripts/process-research-repairs.mjs"
+      - "scripts/build-baseline-draft.mjs"
+      - "scripts/build-data-coverage.mjs"
+      - "scripts/build-historical-peer-context.mjs"
+      - "scripts/assign-research-factory-industry-v2-1.mjs"
+      - "scripts/build-autonomous-valuation-pack-v2-1.mjs"
+      - "scripts/run-autonomous-research-factory-v2-1.mjs"
+      - "scripts/test-research-factory-v1.mjs"
       - "scripts/test-research-factory-v1-1.mjs"
+      - "scripts/test-autonomous-research-factory-v2-1.mjs"
+      - "supabase/migrations/20260922060000_research_factory_v1.sql"
       - "supabase/migrations/20260922123000_research_factory_v1_1_auto_expansion.sql"
-      - "supabase/tests/research_factory_v1_1_auto_expansion.sql"
       - "supabase/migrations/20260922124500_research_factory_v1_1_index_cleanup.sql"
-      - ".github/workflows/research-factory-v1-1-kickoff.yml"
+      - "supabase/migrations/20260922133000_autonomous_research_factory_v2_1.sql"
+      - "supabase/tests/research_factory_v1.sql"
+      - "supabase/tests/research_factory_v1_1_auto_expansion.sql"
+      - "supabase/tests/autonomous_research_factory_v2_1.sql"
+      - "app/review/research-factory/page.tsx"
+      - "docs/RESEARCH_FACTORY_V1.md"
+      - "docs/AUTONOMOUS_RESEARCH_FACTORY_V2_1.md"
+      - "package.json"
       - ".github/workflows/research-factory-v1.yml"
   workflow_dispatch:
     inputs:
       max_companies:
-        description: "Maximum automatic candidates to process"
+        description: "Maximum autonomous candidates to process"
         required: false
         default: "10"
         type: string
@@ -77,7 +91,7 @@ on:
     - cron: "29 14 * * 1-5"
 
 concurrency:
-  group: solpient-research-factory-v1
+  group: solpient-research-factory
   cancel-in-progress: false
 
 jobs:
@@ -91,7 +105,7 @@ jobs:
         with:
           node-version: 22
       - run: npm install
-      - name: Test Research Factory V1
+      - name: Test Research Factory
         run: |
           npm run test:research-factory
           npm run test:research-factory:v1.1
