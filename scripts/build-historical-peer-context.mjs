@@ -1,15 +1,12 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
-import { createClient } from "@supabase/supabase-js";
+import { createPostgresCompatClient } from "../lib/pg-supabase-compat.mjs";
 import { buildCompanyHistory, buildPeerContext, buildContextPack, latestMetricMap, CONTEXT_ENGINE_VERSION } from "../lib/historical-peer-engine.mjs";
 import { peerSetForTicker } from "../lib/peer-sets.mjs";
 import { latestAutonomousIndustryModule } from "../lib/autonomous-research-factory-db.mjs";
 
-const url=process.env.SUPABASE_URL;
-const secret=process.env.SUPABASE_SECRET_KEY??process.env.SUPABASE_SERVICE_ROLE_KEY;
-if(!url||!secret)throw new Error("Missing SUPABASE_URL and server secret.");
-const sb=createClient(url,secret,{auth:{persistSession:false,autoRefreshToken:false}});
+if(!process.env.SOLPIENT_DATABASE_URL)throw new Error("Missing SOLPIENT_DATABASE_URL.");\nconst sb=createPostgresCompatClient();
 
 const asOfDate=process.env.CONTEXT_AS_OF_DATE??new Date().toISOString().slice(0,10);
 const requestedCutoff=process.env.CONTEXT_KNOWLEDGE_CUTOFF_AT??(asOfDate+"T23:59:59.999Z");
