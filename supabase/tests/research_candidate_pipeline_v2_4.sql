@@ -18,11 +18,18 @@ declare
   v_run uuid;
   v_failed boolean := false;
 begin
-  select id,implementation_hash
-    into v_definition,v_implementation_hash
+  select id
+    into v_definition
   from public.methodology_definitions
   where methodology_key='research_candidate_pipeline'
     and version='research-candidate-pipeline-v2.4';
+
+  if v_definition is not null then
+    select implementation_hash
+      into v_implementation_hash
+    from public.methodology_definitions
+    where id=v_definition;
+  end if;
 
   if v_definition is null then
     insert into public.methodology_definitions(
