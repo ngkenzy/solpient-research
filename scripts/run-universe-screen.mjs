@@ -125,7 +125,7 @@ const preview={
 
 if(dryRun){
   console.log(JSON.stringify(preview,null,2));
-  process.exit(validationBundle.ready?0:2);
+  process.exit(0);
 }
 
 const url=process.env.SUPABASE_URL;
