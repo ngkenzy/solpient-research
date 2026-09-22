@@ -2,8 +2,6 @@ name: SOLPIENT Company Change Engine
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: "37 */6 * * *"
   push:
     branches: [main]
     paths:
