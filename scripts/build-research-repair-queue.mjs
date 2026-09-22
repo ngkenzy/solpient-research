@@ -17,20 +17,20 @@ const REPAIRS={
   valuation_history:{repair_type:"valuation_history_refresh",automation_mode:"auto",runner:"market_context",weight:30},
   peers:{repair_type:"peer_context_refresh",automation_mode:"auto",runner:"peer_context",weight:25},
   consensus:{repair_type:"consensus_accumulation",automation_mode:"scheduled",runner:"consensus",weight:12},
-  capital_allocation:{repair_type:"capital_allocation_backfill",automation_mode:"manual",runner:null,weight:32},
-  industry:{repair_type:"industry_evidence_review",automation_mode:"manual",runner:null,weight:26},
+  capital_allocation:{repair_type:"capital_allocation_backfill",automation_mode:"auto",runner:"capital_history",weight:32},
+  industry:{repair_type:"autonomous_industry_assignment",automation_mode:"auto",runner:"autonomous_industry",weight:26},
   research:{repair_type:"research_review",automation_mode:"manual",runner:null,weight:35},
-  valuation_bridge:{repair_type:"valuation_review",automation_mode:"manual",runner:null,weight:30},
+  valuation_bridge:{repair_type:"autonomous_valuation_policy",automation_mode:"auto",runner:"autonomous_valuation",weight:30},
 };
 
 function reasonFor(gap){
   const layer=String(gap?.layer??"research");
   const field=String(gap?.field??"coverage_gap").replaceAll("_"," ");
   if(layer==="consensus")return "Point-in-time consensus history must accumulate over multiple dates; the scheduled consensus collector is already running.";
-  if(layer==="capital_allocation")return "Complete multi-year capital-allocation history requires verified annual cash-flow evidence before publication.";
-  if(layer==="industry")return "Industry-specific evidence is incomplete and requires company-specific source review.";
-  if(layer==="research")return "Research publication requires analyst review; Solpient will not auto-publish a decision-grade report.";
-  if(layer==="valuation_bridge")return "Legacy valuation needs analyst-reviewed bridge metadata or a newly composed research version.";
+  if(layer==="capital_allocation")return "Autonomous repair rebuilds complete annual capital-allocation history from stored normalized cash-flow evidence.";
+  if(layer==="industry")return "Autonomous Research Factory V2.1 assigns a sector-specific module when the immutable screening classification clears the confidence policy; otherwise the ticker is quarantined.";
+  if(layer==="research")return "Research publication is not part of V2.1; this gap remains for the autonomous research-verification layer.";
+  if(layer==="valuation_bridge")return "Autonomous Research Factory V2.1 can persist a policy-derived Valuation V3 input pack when evidence and preflight thresholds are satisfied.";
   return "Coverage v2 detected an incomplete "+layer.replaceAll("_"," ")+" layer: "+field+".";
 }
 
