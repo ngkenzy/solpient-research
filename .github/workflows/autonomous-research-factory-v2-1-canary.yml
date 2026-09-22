@@ -125,38 +125,77 @@ jobs:
             .single();
           if(itemError)throw itemError;
 
-          const {data:decisions,error:decisionError}=await sb
+          const decisionSelect="autonomous_run_id,decision_type,decision_status,confidence,policy_version,input_hash,decision_hash,created_at";
+          const {data:runDecisions,error:runDecisionError}=await sb
             .from("research_factory_autonomous_decisions")
-            .select("decision_type,decision_status,confidence,policy_version,decision_hash,created_at")
+            .select(decisionSelect)
             .eq("autonomous_run_id",process.env.AUTONOMOUS_FACTORY_RUN_ID)
             .eq("research_factory_item_id",item.id)
             .order("created_at",{ascending:true});
-          if(decisionError)throw decisionError;
+          if(runDecisionError)throw runDecisionError;
 
-          const industry=(decisions??[]).find(x=>x.decision_type==="industry_assignment");
-          const valuation=(decisions??[]).find(x=>x.decision_type==="valuation_assumptions");
-          if(!industry)throw new Error("Canary did not record an industry assignment decision.");
-          if(!valuation)throw new Error("Canary did not record a valuation assumptions decision.");
+          const {data:itemDecisions,error:itemDecisionError}=await sb
+            .from("research_factory_autonomous_decisions")
+            .select(decisionSelect)
+            .eq("research_factory_item_id",item.id)
+            .order("created_at",{ascending:false})
+            .limit(30);
+          if(itemDecisionError)throw itemDecisionError;
+
+          const industry=
+            (runDecisions??[]).find(x=>x.decision_type==="industry_assignment") ??
+            (itemDecisions??[]).find(x=>
+              x.decision_type==="industry_assignment" &&
+              x.decision_status==="applied" &&
+              x.policy_version==="industry-assignment-v2.1"
+            );
+          const valuation=
+            (runDecisions??[]).find(x=>x.decision_type==="valuation_assumptions") ??
+            (itemDecisions??[]).find(x=>
+              x.decision_type==="valuation_assumptions" &&
+              String(x.policy_version??"").startsWith("valuation-assumptions-v2.1")
+            );
+          if(!industry)throw new Error("Canary could not resolve an applied industry assignment decision.");
+          if(!valuation)throw new Error("Canary could not resolve a valuation assumptions decision.");
+
+          const packDecision=
+            (runDecisions??[]).find(x=>
+              x.decision_type==="valuation_pack" &&
+              x.decision_hash===valuation.decision_hash
+            ) ??
+            (itemDecisions??[]).find(x=>
+              x.decision_type==="valuation_pack" &&
+              x.decision_hash===valuation.decision_hash
+            );
 
           const autoApproved=valuation.decision_status==="applied"?1:0;
           const quarantined=valuation.decision_status==="quarantined"?1:0;
 
           let reviewedPack=null;
           if(autoApproved){
+            if(!packDecision||packDecision.decision_status!=="applied"){
+              throw new Error("Applied valuation did not record an applied valuation-pack decision.");
+            }
             const {data,error}=await sb
               .from("candidate_valuation_input_packs")
               .select("id,status,reviewed_by,input_hash,reviewed_at,created_at")
               .eq("company_id",item.company_id)
               .eq("status","reviewed")
-              .order("reviewed_at",{ascending:false})
+              .eq("input_hash",valuation.input_hash)
               .limit(1)
               .maybeSingle();
             if(error)throw error;
             reviewedPack=data;
-            if(!reviewedPack?.reviewed_by?.startsWith("autonomous-policy:")){
-              throw new Error("Applied valuation did not publish an autonomous reviewed valuation pack.");
+            if(reviewedPack?.reviewed_by!=="autonomous-policy:"+valuation.policy_version){
+              throw new Error("Applied valuation did not publish the matching autonomous reviewed valuation pack.");
             }
           }
+
+          const industryReused=industry.autonomous_run_id!==process.env.AUTONOMOUS_FACTORY_RUN_ID;
+          const valuationReused=valuation.autonomous_run_id!==process.env.AUTONOMOUS_FACTORY_RUN_ID;
+          const packDecisionReused=packDecision
+            ?packDecision.autonomous_run_id!==process.env.AUTONOMOUS_FACTORY_RUN_ID
+            :false;
 
           const {error:closeError}=await sb
             .from("research_factory_autonomous_runs")
@@ -170,6 +209,11 @@ jobs:
                 ticker:"MSFT",
                 outcome:valuation.decision_status,
                 industry_status:industry.decision_status,
+                industry_decision_reused:industryReused,
+                valuation_decision_reused:valuationReused,
+                valuation_pack_decision_reused:packDecisionReused,
+                valuation_policy_version:valuation.policy_version,
+                valuation_confidence_pct:Number(valuation.confidence)*100,
                 factory_stage:item.stage,
                 factory_status:item.status,
                 reviewed_valuation_pack_id:reviewedPack?.id??null
@@ -187,7 +231,13 @@ jobs:
             factory_status:item.status,
             coverage_pct:item.coverage_pct,
             reviewed_valuation_pack_id:reviewedPack?.id??null,
-            decisions:(decisions??[]).map(x=>({
+            decision_reuse:{
+              industry:industryReused,
+              valuation:valuationReused,
+              valuation_pack:packDecisionReused
+            },
+            decisions:[industry,valuation,packDecision].filter(Boolean).map(x=>({
+              autonomous_run_id:x.autonomous_run_id,
               decision_type:x.decision_type,
               decision_status:x.decision_status,
               confidence:x.confidence,
