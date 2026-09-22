@@ -7,6 +7,7 @@ import {
   assertManifestCutoff,
   manifestHash,
   derivedFormulaForMetric,
+  alignImmutableFactChain,
 } from "../lib/evidence-provenance.mjs";
 
 assert.equal(sourceQualityClass({
@@ -123,6 +124,67 @@ assert.equal(assertManifestCutoff([
 assert.throws(()=>assertManifestCutoff([
   {metric_key:"revenue",known_at:"2026-09-01T13:00:00.000Z"},
 ],"2026-09-01T12:00:00.000Z"),/exceeds cutoff/i);
+
+const chainRoot={
+  id:"00000000-0000-0000-0000-000000000031",
+  known_at:"2026-09-20T19:10:36.601Z",
+  supersedes_fact_id:null,
+};
+const chainSuccessor={
+  id:"00000000-0000-0000-0000-000000000032",
+  known_at:"2026-09-21T20:47:18.611Z",
+  supersedes_fact_id:chainRoot.id,
+};
+const chainFacts=[chainRoot,chainSuccessor];
+const chainSuccessors=new Map([[chainRoot.id,chainSuccessor]]);
+
+const sameTimestampAlignment=alignImmutableFactChain({
+  previousFactId:chainRoot.id,
+  eventTime:chainSuccessor.known_at,
+  existingGroupFacts:chainFacts,
+  successorByFactId:chainSuccessors,
+});
+assert.equal(sameTimestampAlignment.previousFactId,chainSuccessor.id);
+assert.equal(sameTimestampAlignment.skipEvent,true);
+assert.equal(
+  sameTimestampAlignment.reason,
+  "immutable_fact_already_exists_at_event_time"
+);
+
+const futureAppendAlignment=alignImmutableFactChain({
+  previousFactId:chainRoot.id,
+  eventTime:"2026-09-22T08:28:03.299Z",
+  existingGroupFacts:chainFacts,
+  successorByFactId:chainSuccessors,
+});
+assert.equal(futureAppendAlignment.previousFactId,chainSuccessor.id);
+assert.equal(futureAppendAlignment.skipEvent,false);
+
+const backfillAlignment=alignImmutableFactChain({
+  previousFactId:chainRoot.id,
+  eventTime:"2026-09-21T10:00:00.000Z",
+  existingGroupFacts:chainFacts,
+  successorByFactId:chainSuccessors,
+});
+assert.equal(backfillAlignment.previousFactId,chainRoot.id);
+assert.equal(backfillAlignment.skipEvent,true);
+assert.equal(
+  backfillAlignment.reason,
+  "future_successor_blocks_retroactive_branch"
+);
+
+const beforeRootAlignment=alignImmutableFactChain({
+  previousFactId:null,
+  eventTime:"2026-09-19T10:00:00.000Z",
+  existingGroupFacts:chainFacts,
+  successorByFactId:chainSuccessors,
+});
+assert.equal(beforeRootAlignment.previousFactId,null);
+assert.equal(beforeRootAlignment.skipEvent,true);
+assert.equal(
+  beforeRootAlignment.reason,
+  "future_root_blocks_retroactive_branch"
+);
 
 const manifestA={
   manifest_version:"evidence-provenance-v1",
