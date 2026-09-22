@@ -1,6 +1,6 @@
 import "server-only";
 
-import { Pool, types, type QueryResultRow } from "pg";
+import { Pool, types, type PoolClient, type QueryResultRow } from "pg";
 
 // node-postgres normally converts PostgreSQL date/time values to JavaScript Date
 // objects. Solpient's existing read models were built against PostgREST/Supabase,
@@ -52,4 +52,26 @@ export async function dbQuery<T extends QueryResultRow = QueryResultRow>(
 
   const result = await pool.query<T>(sql, values);
   return result.rows;
+}
+
+export async function withDbTransaction<T>(
+  work: (client: PoolClient) => Promise<T>,
+): Promise<T> {
+  const pool = getDbPool();
+  if (!pool) {
+    throw new Error("SOLPIENT_DATABASE_URL is not configured.");
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query("begin");
+    const result = await work(client);
+    await client.query("commit");
+    return result;
+  } catch (error) {
+    await client.query("rollback");
+    throw error;
+  } finally {
+    client.release();
+  }
 }
