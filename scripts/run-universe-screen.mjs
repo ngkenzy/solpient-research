@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
 import { createClient } from "@supabase/supabase-js";
-import { buildMethodologyValidationBundle, SCREEN_MATERIALIZATION_STACK, methodologyStackStatus } from "../lib/methodology-activation-v1.mjs";
+import { buildMethodologyValidationBundle, SCREEN_MATERIALIZATION_STACK, methodologyStackStatus, METHODOLOGY_ACTIVATION_VERSION } from "../lib/methodology-activation-v1.mjs";
 import { canonicalSha256, CANONICALIZATION_VERSION } from "../lib/integrity-hash.mjs";
 import {
   UNIVERSE_SCREENING_VERSION,
@@ -19,6 +19,7 @@ function arg(name, fallback=null){
 const inputPath=arg("input",process.env.UNIVERSE_INPUT_PATH??null);
 const dryRun=process.argv.includes("--dry-run");
 const acknowledgeReviewItems=process.argv.includes("--acknowledge-review-items");
+const acknowledgeClassificationReviewQueue=process.argv.includes("--acknowledge-classification-review-queue");
 const limit=Math.max(1,Number(arg("limit",process.env.SOLPIENT_100_LIMIT??100))||100);
 const providerArg=arg("provider",process.env.UNIVERSE_PROVIDER??null);
 const asOfArg=arg("as-of",process.env.UNIVERSE_AS_OF_AT??null);
@@ -68,6 +69,7 @@ const normalizedRows=[...parsed.rows]
 const validationBundle=buildMethodologyValidationBundle(normalizedRows,{
   limit,
   acknowledgeReviewItems,
+  acknowledgeClassificationReviewQueue,
 });
 const screened=selectSolpient100Candidates(normalizedRows,{limit});
 const inputHash=canonicalSha256({
@@ -77,6 +79,8 @@ const inputHash=canonicalSha256({
   provider,
   as_of_at:new Date(asOfAt).toISOString(),
   limit,
+  activation_version:METHODOLOGY_ACTIVATION_VERSION,
+  validation_hash:validationBundle.validation_hash,
   rows:normalizedRows,
 });
 
@@ -104,9 +108,11 @@ const preview={
     qa_blockers:validationBundle.qa_blockers,
     qa_review_items:validationBundle.qa_review_items,
     classification_review_required_count:validationBundle.classification.review_required_count,
+    classification_review_queue:validationBundle.classification.review_queue,
     classification_unresolved_count:validationBundle.classification.unresolved_count,
     classification_obvious_unknown_count:validationBundle.classification.obvious_unknown_count,
     blocking_reasons:validationBundle.blocking_reasons,
+    acceptance:validationBundle.acceptance,
   },
   top:screened.slice(0,Math.min(25,screened.length)).map(r=>({
     rank:r.universeRank,
@@ -200,7 +206,7 @@ const {data:run,error:runError}=await sb.from("universe_screen_runs").insert({
     canonicalization_version:CANONICALIZATION_VERSION,
     shortlist_limit:limit,
     sector_evidence_model_version:screened[0]?.sectorEvidenceModelVersion??null,
-    methodology_activation_version:"methodology-validation-activation-v1",
+    methodology_activation_version:METHODOLOGY_ACTIVATION_VERSION,
     validation_hash:validationBundle.validation_hash,
     qa_version:validationBundle.qa_version,
     qa_status:validationBundle.qa_status,
