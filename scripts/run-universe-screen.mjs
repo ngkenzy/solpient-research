@@ -98,6 +98,9 @@ const preview={
     score:r.screenScore,
     quality:r.qualityCoreScore,
     coverage:r.evidenceCoveragePct,
+    raw_coverage:r.rawEvidenceCoveragePct,
+    evidence_ceiling:r.sectorEvidence?.evidenceCoverageCeilingPct??100,
+    critical_sector_evidence:r.sectorEvidence?.criticalEvidenceCoveragePct??null,
     shortlist_rank:r.shortlistRank,
     proposed_for_deep_research:r.proposedForDeepResearch,
   })),
@@ -149,6 +152,7 @@ const {data:run,error:runError}=await sb.from("universe_screen_runs").insert({
     universe_name:parsed.metadata.universe_name,
     canonicalization_version:CANONICALIZATION_VERSION,
     shortlist_limit:limit,
+    sector_evidence_model_version:screened[0]?.sectorEvidenceModelVersion??null,
   },
 }).select("id").single();
 if(runError)throw runError;
@@ -178,7 +182,11 @@ const resultRows=screened.map(result=>{
     reasons:result.reasons,
     score_detail:{
       dimensions:result.dimensions,
+      sector_evidence:result.sectorEvidence,
+      raw_evidence_coverage_pct:result.rawEvidenceCoveragePct,
+      effective_evidence_coverage_pct:result.evidenceCoveragePct,
       methodology_version:result.methodologyVersion,
+      sector_evidence_model_version:result.sectorEvidenceModelVersion,
     },
     input_summary:result.input,
   };

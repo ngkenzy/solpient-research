@@ -5,12 +5,12 @@ import {
   UNIVERSE_SELECTION_VERSION,
   resolveScreenProfile,
   screenCompany,
-} from "../lib/universe-screening-engine.mjs";
+} from "../lib/universe-screening-engine-v2.mjs";
 import {
   RESEARCH_CANDIDATE_PIPELINE_VERSION,
   valuationProfileForScreen,
   valuationPreflight,
-} from "../lib/research-candidate-pipeline.mjs";
+} from "../lib/research-candidate-pipeline-v2.mjs";
 
 const cases=[
   [7372,"SERVICES-PREPACKAGED SOFTWARE","Information Technology","software"],
