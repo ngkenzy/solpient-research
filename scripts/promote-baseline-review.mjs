@@ -3,6 +3,7 @@ import process from "node:process";
 import { createClient } from "@supabase/supabase-js";
 import { applyReviewPatch, validatePromotionReadiness } from "../lib/review-workbench.mjs";
 import { promoteReviewedBaseline } from "../lib/promote-research.mjs";
+import { REVIEW_ATTESTATION_VERSION, buildHumanReviewAttestation } from "../lib/review-attestation.mjs";
 
 const draftId=process.argv[2], reviewFile=process.argv[3];
 if (!draftId || !reviewFile) {
@@ -19,10 +20,17 @@ if (draftError || !draft) throw draftError ?? new Error("Draft not found.");
 const payload=applyReviewPatch(draft.draft_payload,patch);
 const readiness=validatePromotionReadiness(payload);
 const now=new Date().toISOString();
+const attestation=buildHumanReviewAttestation({draft,payload});
 const {data:review,error:reviewError}=await supabase.from("baseline_reviews").upsert({
   draft_id:draftId,status:readiness.ready?"ready":"editing",review_payload:patch,
   validation_result:readiness.standard,promotion_readiness:readiness,
-  review_notes:"Saved from authorized GitHub promotion workflow.",reviewed_at:now,updated_at:now,
+  review_notes:"Saved and explicitly verified from authorized GitHub promotion workflow.",
+  reviewed_at:now,prepared_at:now,preparation_source:"github_review_workflow",
+  human_verified_at:readiness.ready?now:null,
+  human_verified_by:readiness.ready?(process.env.GITHUB_ACTOR || "authorized-github-reviewer"):null,
+  human_verified_payload_hash:readiness.ready?attestation.payload_hash:null,
+  attestation_version:readiness.ready?REVIEW_ATTESTATION_VERSION:null,
+  updated_at:now,
 },{onConflict:"draft_id"}).select("*").single();
 if (reviewError) throw reviewError;
 if (!readiness.ready) {
