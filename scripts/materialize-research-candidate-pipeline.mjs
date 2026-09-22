@@ -100,6 +100,7 @@ for(const row of screenRows??[]){
     rawEvidenceCoveragePct:row?.score_detail?.raw_evidence_coverage_pct??null,
     evidenceCoveragePct:row.evidence_coverage_pct,
     sectorEvidence:row?.score_detail?.sector_evidence??null,
+    sectorClassification:row?.score_detail?.sector_classification??null,
     proposedForDeepResearch:row.proposed_for_deep_research,
     methodologyVersion:screenRun.methodology_version,
   };
