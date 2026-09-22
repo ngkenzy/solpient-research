@@ -2,7 +2,7 @@ import process from "node:process";
 import { spawnSync } from "node:child_process";
 // Main-push provenance workflow runs this synchronizer idempotently.
 import { randomUUID, createHash } from "node:crypto";
-import { createClient } from "@supabase/supabase-js";
+import { createPostgresCompatClient } from "../lib/pg-supabase-compat.mjs";
 import {
   sourceQualityClass,
   buildNormalizedFact,
@@ -11,10 +11,11 @@ import {
 } from "../lib/evidence-provenance.mjs";
 import { sanitizeSourceUrl } from "../lib/baseline-factory.mjs";
 
-const url=process.env.SUPABASE_URL;
-const secret=process.env.SUPABASE_SECRET_KEY?.trim()||process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
-if(!url||!secret)throw new Error("Missing SUPABASE_URL and server secret.");
-const sb=createClient(url,secret,{auth:{persistSession:false,autoRefreshToken:false}});
+if(!process.env.SOLPIENT_DATABASE_URL && typeof process.loadEnvFile==="function"){
+  try{process.loadEnvFile(".env.local");}catch{}
+}
+if(!process.env.SOLPIENT_DATABASE_URL)throw new Error("Missing SOLPIENT_DATABASE_URL.");
+const sb=createPostgresCompatClient();
 const onlyTicker=(process.env.COVERAGE_TICKER??process.argv.find((x)=>x.startsWith("--ticker="))?.split("=")[1]??"").toUpperCase()||null;
 
 function hash(value){return createHash("sha256").update(String(value)).digest("hex");}
