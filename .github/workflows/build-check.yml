@@ -35,6 +35,7 @@ jobs:
           npm run test:standard:v2
           npm run test:factory
           npm run test:review
+          npm run test:review-attestation
           npm run test:enrichment
           npm run test:update-planner
           npm run test:context
