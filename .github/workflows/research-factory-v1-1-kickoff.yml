@@ -1,0 +1,94 @@
+name: Kickoff Research Factory V1.1 Expansion
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/research-factory-v1-1-kickoff.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: solpient-research-factory-v1
+  cancel-in-progress: false
+
+jobs:
+  kickoff:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      RESEARCH_FACTORY_SEC_IDENTITY_SNAPSHOT: "data/research-factory/sec-identities-pipeline-run-1.json"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - run: npm install
+
+      - name: Verify V1.1 queue semantics
+        run: |
+          npm run test:research-factory
+          npm run test:research-factory:v1.1
+
+      - name: Process first V1.1 ranked batch
+        run: node scripts/run-research-factory-expansion-v1-1.mjs --max=10
+
+      - name: Verify production queue after kickoff
+        run: |
+          node --input-type=module <<'NODE'
+          import { createClient } from "@supabase/supabase-js";
+          import { summarizeResearchFactoryQueue } from "./lib/research-factory-v1.mjs";
+
+          const sb=createClient(
+            process.env.SUPABASE_URL,
+            process.env.SUPABASE_SERVICE_ROLE_KEY,
+            {auth:{persistSession:false,autoRefreshToken:false}}
+          );
+
+          const {data:run,error:runError}=await sb
+            .from("research_factory_runs")
+            .select("*")
+            .eq("factory_version","research-factory-v1")
+            .order("created_at",{ascending:false})
+            .limit(1)
+            .single();
+          if(runError)throw runError;
+
+          const {data:items,error:itemError}=await sb
+            .from("research_factory_items")
+            .select("stage,status,manual_review_count,next_actions")
+            .eq("research_factory_run_id",run.id)
+            .order("ordinal",{ascending:true});
+          if(itemError)throw itemError;
+          if((items??[]).length!==100){
+            throw new Error("Expected 100 Research Factory items; found "+(items??[]).length);
+          }
+
+          const {data:worker,error:workerError}=await sb
+            .from("research_factory_worker_runs")
+            .select("*")
+            .eq("research_factory_run_id",run.id)
+            .eq("automation_version","research-factory-v1.1")
+            .order("started_at",{ascending:false})
+            .limit(1)
+            .single();
+          if(workerError)throw workerError;
+          if(worker.selected_count>10){
+            throw new Error("V1.1 selected more than 10 candidates in one batch.");
+          }
+
+          console.log(JSON.stringify({
+            verified:true,
+            research_factory_run_id:run.id,
+            worker_batch_id:worker.id,
+            worker_status:worker.status,
+            selected_count:worker.selected_count,
+            processed_count:worker.processed_count,
+            queue:summarizeResearchFactoryQueue(items??[]),
+            auto_publish:false,
+          },null,2));
+          NODE

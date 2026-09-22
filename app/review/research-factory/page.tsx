@@ -30,8 +30,9 @@ export default async function ResearchFactoryPage(){
 
   let items:any[]=[];
   let drafts:any[]=[];
+  let workerRuns:any[]=[];
   if(run){
-    const [itemsR,draftsR]=await Promise.all([
+    const [itemsR,draftsR,workersR]=await Promise.all([
       supabase.from("research_factory_items")
         .select("*")
         .eq("research_factory_run_id",run.id)
@@ -39,12 +40,19 @@ export default async function ResearchFactoryPage(){
       supabase.from("research_factory_valuation_drafts")
         .select("id,research_factory_item_id,missing_fields,preflight,created_at")
         .order("created_at",{ascending:false}),
+      supabase.from("research_factory_worker_runs")
+        .select("*")
+        .eq("research_factory_run_id",run.id)
+        .order("started_at",{ascending:false})
+        .limit(10),
     ]);
     if(itemsR.error)throw itemsR.error;
     if(draftsR.error)throw draftsR.error;
+    if(workersR.error)throw workersR.error;
     items=itemsR.data??[];
     const itemIds=new Set(items.map(x=>x.id));
     drafts=(draftsR.data??[]).filter(x=>itemIds.has(x.research_factory_item_id));
+    workerRuns=workersR.data??[];
   }
 
   const latestDraftByItem=new Map<string,any>();
@@ -64,14 +72,22 @@ export default async function ResearchFactoryPage(){
   const reviewCount=items.filter(x=>x.status==="needs_review").length;
   const blockedCount=items.filter(x=>x.status==="blocked").length;
   const completeCount=items.filter(x=>x.status==="complete").length;
+  const pipelineRefreshCount=items.filter(x=>x.stage==="pipeline_refresh").length;
+  const genuineReviewCount=items.filter(x=>
+    x.status==="needs_review"||
+    x.stage==="pipeline_refresh"||
+    x.status==="complete"
+  ).length;
   const automatedQueue=items.filter(x=>
     ["queued","running"].includes(x.status)&&
     ["evidence_ingestion","baseline_draft","research_draft"].includes(x.stage)
   ).length;
 
+  const latestWorker=workerRuns[0]??null;
+
   return <>
     <header className={styles.header}>
-      <SolpientBrand subtitle="Research Factory V1" />
+      <SolpientBrand subtitle="Research Factory V1.1" />
       <div>
         <Link href="/review/research-candidates">Candidate Pipeline</Link>
         <Link href="/review/readiness-repair">Readiness Repair</Link>
@@ -82,18 +98,18 @@ export default async function ResearchFactoryPage(){
     <main className={styles.shell}>
       <section className={styles.hero}>
         <div>
-          <span className={styles.kicker}>EVIDENCE → DRAFT → REVIEW</span>
-          <h1>Turn the deep-research shortlist into an auditable work queue.</h1>
+          <span className={styles.kicker}>AUTOMATIC QUEUE EXPANSION · V1.1</span>
+          <h1>Drain safe research work into genuine human-review gates.</h1>
           <p>
-            Factory V1 automates onboarding, evidence collection, coverage, private drafts,
-            and evidence-prefilled valuation inputs. Research publication and valuation
-            approval remain explicit human-review actions.
+            Each weekday, Factory V1.1 claims the next ranked safe batch of up to 10 names,
+            advances only deterministic evidence and draft work, and stops a ticker as soon
+            as identity, evidence, industry-module, valuation, or research judgment is required.
           </p>
         </div>
         <div className={styles.heroProgress}>
-          <span>Latest factory run</span>
-          <strong>{items.length}</strong>
-          <small>{run?new Date(run.created_at).toLocaleString():"Not materialized yet"}</small>
+          <span>At review / post-review gate</span>
+          <strong>{genuineReviewCount} / {items.length}</strong>
+          <small>{run?.status==="completed"?"Automatic queue complete":automatedQueue+" safe automatic names remain"}</small>
         </div>
       </section>
 
@@ -107,11 +123,25 @@ export default async function ResearchFactoryPage(){
         </section>
       ):<>
         <section className={styles.opsGrid}>
-          <div className={styles.opsCard}><span>Automatic Queue</span><strong>{automatedQueue}</strong><small>safe evidence/draft work</small></div>
-          <div className={styles.opsCard}><span>Needs Review</span><strong>{reviewCount}</strong><small>human judgment required</small></div>
-          <div className={styles.opsCard}><span>Blocked</span><strong>{blockedCount}</strong><small>identity/data failure</small></div>
-          <div className={styles.opsCard}><span>Complete</span><strong>{completeCount}</strong><small>no factory work pending</small></div>
+          <div className={styles.opsCard}><span>Safe Automatic Queue</span><strong>{automatedQueue}</strong><small>next ranked work · max 10 / weekday</small></div>
+          <div className={styles.opsCard}><span>Genuine Review Gates</span><strong>{genuineReviewCount}</strong><small>human judgment or post-review state</small></div>
+          <div className={styles.opsCard}><span>Blocked</span><strong>{blockedCount}</strong><small>not counted as successful progress</small></div>
+          <div className={styles.opsCard}><span>Latest Batch</span><strong>{latestWorker?.selected_count??0}</strong><small>{latestWorker?label(latestWorker.status)+" · "+new Date(latestWorker.started_at).toLocaleString():"No V1.1 batch yet"}</small></div>
           <div className={styles.opsCard}><span>Valuation Review</span><strong>{stageCounts.get("valuation_review")??0}</strong><small>draft only — never auto-reviewed</small></div>
+          <div className={styles.opsCard}><span>Post-review / Complete</span><strong>{pipelineRefreshCount+completeCount}</strong><small>pipeline refresh or complete</small></div>
+        </section>
+
+        <section className={styles.preparePanel}>
+          <div>
+            <span className={styles.kicker}>WEEKDAY AUTOMATION</span>
+            <h2>{run?.status==="completed"?"Automatic queue is complete.":"Next safe names advance automatically."}</h2>
+            <p>
+              V1.1 uses transactional ranked claims, skips every item already requiring human
+              judgment, recovers stale claims after interrupted workers, and marks the factory
+              run complete only when all {items.length} candidates are at genuine review or
+              post-review gates.
+            </p>
+          </div>
         </section>
 
         <section className={styles.queue}>
