@@ -6,7 +6,7 @@ import {
   buildFactoryStateHash,
 } from "../lib/research-factory-v1.mjs";
 import { pgMaybeOne, pgQuery, postgresConfigured } from "../lib/postgres-node.mjs";
-import { createResearchFactoryRunPg, countFactoryItemsPg } from "../lib/factory-worker-pg.mjs";
+import { createResearchFactoryRunPg, countFactoryItemsPg, findFactoryRunBySourcePg } from "../lib/factory-worker-pg.mjs";
 
 function arg(name,fallback=null){
   const prefix="--"+name+"=";
@@ -102,7 +102,12 @@ const runPayload={
   },
 };
 
+const existingRun=await findFactoryRunBySourcePg(
+  pipelineRun.id,
+  RESEARCH_FACTORY_VERSION,
+);
 const runId=await createResearchFactoryRunPg(runPayload,items);
+const reused=Boolean(existingRun);
 const count=await countFactoryItemsPg(runId);
 if(count!==items.length){
   throw new Error("Research Factory V1 verification failed: expected "+items.length+" items, found "+count+".");
@@ -113,6 +118,7 @@ for(const item of items)counts[item.stage]=(counts[item.stage]??0)+1;
 
 console.log(JSON.stringify({
   materialized:true,
+  reused_existing_run:reused,
   research_factory_run_id:runId,
   factory_version:RESEARCH_FACTORY_VERSION,
   source_pipeline_run_id:pipelineRun.id,
