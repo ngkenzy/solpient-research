@@ -29,6 +29,31 @@ function errorDetails(error,stage){
   };
 }
 
+function fundamentalConflictKey(row){
+  return [
+    row.company_id??"",
+    row.period_end??"",
+    row.form??"",
+    row.provider??"",
+  ].join("|");
+}
+
+function dedupeFundamentalRows(rows){
+  const byKey=new Map();
+  for(const row of rows){
+    const key=fundamentalConflictKey(row);
+    const prior=byKey.get(key);
+    if(!prior){
+      byKey.set(key,row);
+      continue;
+    }
+    const priorObserved=Date.parse(prior.observed_at??"")||0;
+    const currentObserved=Date.parse(row.observed_at??"")||0;
+    if(currentObserved>=priorObserved)byKey.set(key,row);
+  }
+  return [...byKey.values()];
+}
+
 async function secJson(cik){
   const padded=String(cik).replace(/\D/g,"").padStart(10,"0");
   const endpoint="https://data.sec.gov/api/xbrl/companyfacts/CIK"+padded+".json";
@@ -93,9 +118,18 @@ for(const company of selected){
   try{
     const {endpoint,body}=await secJson(company.cik);
     failureStage="normalize";
-    const rows=normalizeCompanyFacts(body,{
+    const normalizedRows=normalizeCompanyFacts(body,{
       companyId:company.id,ticker:company.ticker,cik:company.cik,observedAt:new Date().toISOString()
     });
+    const rows=dedupeFundamentalRows(normalizedRows);
+    const duplicateRowsRemoved=normalizedRows.length-rows.length;
+    console.log(
+      "SEC companyfacts normalized",
+      company.ticker,
+      "rows="+normalizedRows.length,
+      "unique="+rows.length,
+      "deduped="+duplicateRowsRemoved
+    );
     failureStage="upsert_fundamental_snapshots";
     let written=0;
     for(let i=0;i<rows.length;i+=100){
@@ -126,7 +160,14 @@ for(const company of selected){
       {endpoint,fiscal_years:years.length,latest_period:rows[0]?.period_end??null,latest_field_coverage:primaryFields}
     );
     consecutiveBlocked=0;
-    summary.push({ticker:company.ticker,status:written>0?"success":"partial",rows:written,fiscal_years:years.length,latest_period:rows[0]?.period_end??null});
+    summary.push({
+      ticker:company.ticker,
+      status:written>0?"success":"partial",
+      rows:written,
+      fiscal_years:years.length,
+      latest_period:rows[0]?.period_end??null,
+      duplicate_rows_removed:duplicateRowsRemoved,
+    });
     console.log("SEC companyfacts",company.ticker,"rows="+written,"years="+years.length);
   }catch(error){
     const diagnostics=errorDetails(error,failureStage);
