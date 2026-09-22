@@ -43,6 +43,8 @@ on:
       - "supabase/migrations/20260922050000_research_candidate_pipeline_v2_4_integrity.sql"
       - "supabase/tests/research_candidate_pipeline_v2_4.sql"
       - "docs/RESEARCH_CANDIDATE_PIPELINE_V2_4.md"
+      - "methodologies/catalog.json"
+      - "scripts/print-methodology-fingerprint.mjs"
       - ".github/workflows/research-candidate-pipeline.yml"
   push:
     branches: [main]
@@ -57,6 +59,15 @@ on:
       - "scripts/materialize-research-candidate-pipeline.mjs"
       - "supabase/migrations/20260922032500_methodology_activation_v1_1_hardening.sql"
       - "supabase/tests/methodology_activation_v1_1.sql"
+      - "lib/research-candidate-pipeline-v2-4.mjs"
+      - "lib/research-candidate-materialization-v1.mjs"
+      - "scripts/test-research-candidate-pipeline-v2-4.mjs"
+      - "scripts/materialize-research-candidate-pipeline-v2-4.mjs"
+      - "scripts/print-methodology-fingerprint.mjs"
+      - "supabase/migrations/20260922050000_research_candidate_pipeline_v2_4_integrity.sql"
+      - "supabase/tests/research_candidate_pipeline_v2_4.sql"
+      - "docs/RESEARCH_CANDIDATE_PIPELINE_V2_4.md"
+      - "methodologies/catalog.json"
       - ".github/workflows/research-candidate-pipeline.yml"
   workflow_dispatch:
 
@@ -87,6 +98,8 @@ jobs:
         run: node scripts/test-research-candidate-pipeline.mjs
       - name: Test candidate V2.4 integrity
         run: node scripts/test-research-candidate-pipeline-v2-4.mjs
+      - name: Fingerprint candidate V2.4 methodology
+        run: node scripts/print-methodology-fingerprint.mjs --key=research_candidate_pipeline --version=research-candidate-pipeline-v2.4
       - name: Test Methodology Activation V1
         run: node scripts/test-methodology-activation-v1.mjs
       - name: Syntax check materializers
