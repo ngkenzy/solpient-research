@@ -1,4 +1,4 @@
-import { getSupabase } from "@/lib/supabase";
+import { loadValuationBridgeData } from "@/lib/repositories/valuation-bridge";
 
 function n(value: unknown) {
   const parsed = Number(value);
@@ -34,23 +34,17 @@ export async function ValuationBridge({
   ticker:string;
   currentPrice:number|null;
 }) {
-  const supabase=getSupabase();
-  if(!supabase)return null;
+  const loaded=await loadValuationBridgeData(companyId,researchRunId);
+  if(!loaded)return null;
 
-  const [runR,valuationR,metricsR,v2R,returnsR]=await Promise.all([
-    supabase.from("research_runs").select("data_cutoff_at,researched_at").eq("id",researchRunId).maybeSingle(),
-    supabase.from("valuations").select("*").eq("research_run_id",researchRunId).maybeSingle(),
-    supabase.from("financial_metrics").select("*").eq("research_run_id",researchRunId).maybeSingle(),
-    supabase.from("research_v2_sections").select("valuation_analysis").eq("research_run_id",researchRunId).maybeSingle(),
-    supabase.from("expected_return_scenarios").select("scenario,horizon_years,expected_cagr").eq("research_run_id",researchRunId),
-  ]);
-
-  const valuation=valuationR.data??{};
-  const metrics=metricsR.data??{};
-  const analysis=(v2R.data as any)?.valuation_analysis??{};
+  const valuation=loaded.valuation??{};
+  const metrics=loaded.metrics??{};
+  const analysis=(loaded.v2 as any)?.valuation_analysis??{};
   const persisted=analysis?.valuation_bridge??null;
-  const cutoffIso=String(runR.data?.data_cutoff_at??runR.data?.researched_at??"");
+  const cutoffIso=String(loaded.run?.data_cutoff_at??loaded.run?.researched_at??"");
   const cutoff=cutoffIso.slice(0,10);
+  const peerRows=loaded.peers??[];
+  const returns=loaded.returns??[];
 
   const formula=typeof persisted?.formula==="string"?persisted.formula:"median_of_applicable_anchors";
   const formulaExplanation=typeof persisted?.explanation==="string"
@@ -67,17 +61,8 @@ export async function ValuationBridge({
       const shares=n((metrics as any).shares_outstanding);
       fcfPerShare=fcf!=null&&shares!=null&&shares!==0?fcf/shares:null;
     }
-    let peerQuery=supabase
-      .from("peer_metric_snapshots")
-      .select("peer_ticker,as_of_date,value_numeric,observed_at")
-      .eq("company_id",companyId)
-      .eq("metric_key","price_to_fcf")
-      .order("as_of_date",{ascending:false});
-    if(cutoff)peerQuery=peerQuery.lte("as_of_date",cutoff);
-    if(cutoffIso)peerQuery=peerQuery.lte("observed_at",cutoffIso);
-    const peerR=await peerQuery.limit(200);
     const latestByPeer=new Map<string,number>();
-    for(const row of peerR.data??[]){
+    for(const row of peerRows){
       if(latestByPeer.has(row.peer_ticker))continue;
       const value=n(row.value_numeric);
       if(value!=null&&value>0)latestByPeer.set(row.peer_ticker,value);
@@ -105,7 +90,7 @@ export async function ValuationBridge({
   if(auditStatus==="legacy_reconstructed"&&!verified) auditStatus="legacy_partial";
 
   const gap=valuationGap(currentPrice,reviewed);
-  const base5=(returnsR.data??[]).find((row:any)=>row.scenario==="base"&&row.horizon_years===5);
+  const base5=returns.find((row:any)=>row.scenario==="base"&&row.horizon_years===5);
 
   return (
     <section className="valuationBridgeSection">
