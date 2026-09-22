@@ -1,6 +1,6 @@
 name: Autonomous Research Factory V2.1 Production Canary
 
-# Retry marker: stable Supabase JS 2.109.0 verified.
+# Retry marker: valuation evidence policy V2.1.1 production verification.
 
 on:
   push:
