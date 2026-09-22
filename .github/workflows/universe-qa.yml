@@ -19,8 +19,15 @@ on:
     branches: [main]
     paths:
       - "lib/universe-qa-engine.mjs"
+      - "lib/methodology-activation-v1.mjs"
+      - "lib/methodology-implementation-hash.mjs"
       - "scripts/test-universe-qa.mjs"
       - "scripts/audit-universe-screen.mjs"
+      - "scripts/test-methodology-activation-v1.mjs"
+      - "scripts/validate-activate-universe-methodologies.mjs"
+      - "scripts/run-universe-screen.mjs"
+      - "supabase/migrations/20260922032500_methodology_activation_v1_1_hardening.sql"
+      - "supabase/tests/methodology_activation_v1_1.sql"
       - ".github/workflows/universe-qa.yml"
   workflow_dispatch:
 
