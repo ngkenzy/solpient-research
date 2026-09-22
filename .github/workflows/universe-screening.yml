@@ -16,6 +16,7 @@ on:
       - "scripts/test-sector-evidence-model-v2-1.mjs"
       - "scripts/test-sector-classification-repair-v2-2.mjs"
       - "scripts/test-sector-classification-coverage-v2-3.mjs"
+      - "scripts/fixtures/sector-classification-v2-3-audit.json"
       - "scripts/audit-sector-classification.mjs"
       - "scripts/test-universe-screening-engine.mjs"
       - "scripts/run-universe-screen.mjs"
@@ -61,6 +62,8 @@ jobs:
         run: node scripts/test-sector-classification-repair-v2-2.mjs
       - name: Test Sector Classification Coverage V2.3
         run: node scripts/test-sector-classification-coverage-v2-3.mjs
+      - name: Audit V2.3 taxonomy coverage
+        run: node scripts/audit-sector-classification.mjs --input=scripts/fixtures/sector-classification-v2-3-audit.json --fail-on-obvious-unknown=true --fail-on-unresolved=true
       - name: Syntax check materializer
         run: node --check scripts/run-universe-screen.mjs
       - name: Dry-run provider contract
