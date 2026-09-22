@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
 import { execFileSync } from "node:child_process";
-import { createClient } from "@supabase/supabase-js";
+import { createPostgresCompatClient } from "../lib/pg-supabase-compat.mjs";
 import {
   UNIVERSE_METHOD_STACK,
   METHODOLOGY_ACTIVATION_VERSION,
@@ -216,11 +216,11 @@ if(!dbInvariantEvidence)throw new Error(
 verifyLocalCommit();
 const ciEvidence=await verifyGitHubCI();
 
-const url=process.env.SUPABASE_URL;
-const secret=process.env.SUPABASE_SECRET_KEY??process.env.SUPABASE_SERVICE_ROLE_KEY;
-if(!url||!secret)throw new Error("Missing SUPABASE_URL and server secret.");
-
-const sb=createClient(url,secret,{auth:{persistSession:false,autoRefreshToken:false}});
+if(!process.env.SOLPIENT_DATABASE_URL && typeof process.loadEnvFile==="function"){
+  try{process.loadEnvFile(".env.local");}catch{}
+}
+if(!process.env.SOLPIENT_DATABASE_URL)throw new Error("Missing SOLPIENT_DATABASE_URL.");
+const sb=createPostgresCompatClient();
 
 const catalogPath=path.resolve("methodologies/catalog.json");
 const catalog=JSON.parse(fs.readFileSync(catalogPath,"utf8"));
