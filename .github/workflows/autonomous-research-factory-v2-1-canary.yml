@@ -1,5 +1,7 @@
 name: Autonomous Research Factory V2.1 Production Canary
 
+# Retry marker: dependency pin verified on 2026-09-22.
+
 on:
   push:
     branches: [main]
