@@ -706,7 +706,7 @@ begin
 
   if v_state='candidate' then
     insert into public.methodology_lifecycle_events(
-      methodology_definition_id,event_type,reason,actor,commit_sha,metadata
+      methodology_definition_id,event_type,reason,actor,commit_sha,metadata,effective_at
     ) values (
       v_definition.id,'validated',
       'V2.4 passed deterministic-time, atomic-publication, database, historical-integrity, build, and manual-review gates.',
@@ -714,12 +714,13 @@ begin
       jsonb_build_object(
         'implementation_hash',p_implementation_hash,
         'validation_bundle_hash',p_validation_bundle_hash
-      )
+      ),
+      clock_timestamp()
     );
   end if;
 
   insert into public.methodology_lifecycle_events(
-    methodology_definition_id,event_type,reason,actor,commit_sha,metadata
+    methodology_definition_id,event_type,reason,actor,commit_sha,metadata,effective_at
   ) values (
     v_definition.id,'active',
     'Activated Research Candidate Pipeline V2.4 integrity hardening.',
@@ -729,7 +730,8 @@ begin
       'validation_bundle_hash',p_validation_bundle_hash,
       'activation_version','research-candidate-pipeline-v2.4-activation-v1',
       'atomic_activation',true
-    )
+    ),
+    clock_timestamp()
   );
 
   for v_old in
@@ -747,7 +749,7 @@ begin
       and x.event_type='active'
   loop
     insert into public.methodology_lifecycle_events(
-      methodology_definition_id,event_type,reason,actor,commit_sha,metadata
+      methodology_definition_id,event_type,reason,actor,commit_sha,metadata,effective_at
     ) values (
       v_old.id,'superseded',
       'Superseded by research-candidate-pipeline-v2.4.',
@@ -755,7 +757,8 @@ begin
       jsonb_build_object(
         'successor_version','research-candidate-pipeline-v2.4',
         'successor_implementation_hash',p_implementation_hash
-      )
+      ),
+      clock_timestamp()
     );
   end loop;
 
