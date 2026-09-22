@@ -98,6 +98,7 @@ node scripts/validate-activate-universe-methodologies.mjs \
   --limit=100 \
   --min-input-count=1000 \
   --acknowledge-review-items \
+  --acknowledge-classification-review-queue \
   --output=data/universe/methodology-validation-v1.json
 ```
 
@@ -113,6 +114,7 @@ node scripts/validate-activate-universe-methodologies.mjs \
   --limit=100 \
   --min-input-count=1000 \
   --acknowledge-review-items \
+  --acknowledge-classification-review-queue \
   --approve-manual-review \
   --db-invariant-evidence="live-db-invariants-verified" \
   --activate
