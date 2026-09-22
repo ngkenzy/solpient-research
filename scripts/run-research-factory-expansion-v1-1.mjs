@@ -159,11 +159,12 @@ async function markOperationalFailure(item,failures){
   if(error)throw error;
 }
 
-await requiredStep(
-  "Ensure Factory V1 is materialized",
-  "scripts/materialize-research-factory-v1.mjs",
-  requestedRunId?[]:[]
-);
+if(!requestedRunId){
+  await requiredStep(
+    "Ensure Factory V1 is materialized",
+    "scripts/materialize-research-factory-v1.mjs"
+  );
+}
 
 let factoryRun=await findFactoryRun();
 if(!factoryRun)throw new Error("Research Factory V1 run is unavailable after materialization.");
