@@ -1,6 +1,6 @@
 {
   "registry_version": "methodology-registry-v1",
-  "generated_for": "sector-model-v2-candidate",
+  "generated_for": "sector-evidence-model-v2.1-candidate",
   "methodologies": [
     {
       "methodology_key": "historical_integrity",
@@ -774,7 +774,7 @@
       "purpose": "Screen a broad investable equity universe for deep-research candidates using sector-aware evidence and valuation measures while keeping missing evidence explicit and preserving human review for Solpient 100 membership.",
       "owner": "Solpient",
       "source_files": [
-        "lib/universe-screening-engine.mjs",
+        "lib/universe-screening-engine-v2.mjs",
         "docs/SOLPIENT_100_UNIVERSE_SECTOR_MODEL_V2.md"
       ],
       "input_contract": {
@@ -847,7 +847,7 @@
       "purpose": "Connect Sector Model V2 screening candidates to Valuation V3 and Readiness without silently applying generic corporate FCF valuation to financial or real-estate profiles that lack a reviewed industry-specific valuation module.",
       "owner": "Solpient",
       "source_files": [
-        "lib/research-candidate-pipeline.mjs",
+        "lib/research-candidate-pipeline-v2.mjs",
         "scripts/materialize-research-candidate-pipeline.mjs"
       ],
       "input_contract": {
@@ -894,6 +894,226 @@
       ],
       "change_summary": "Updates the shortlist handoff for Sector Model V2 and blocks unsupported generic-FCF valuation paths.",
       "predecessor_version": "research-candidate-pipeline-v1",
+      "impacts": {
+        "database": true,
+        "public_ui": true,
+        "publication": false,
+        "ranking": false,
+        "capital_decision": true,
+        "historical_interpretation": true
+      },
+      "legacy_bootstrap": false
+    },
+    {
+      "methodology_key": "sector_evidence_model",
+      "version": "solpient-sector-evidence-model-v2.1",
+      "name": "Solpient Sector Evidence Model V2.1",
+      "category": "screening",
+      "risk_class": "high",
+      "purpose": "Separate broad quantitative screening merit from sector-specific evidence completeness by reserving explicit evidence weight for decision-critical bank, insurance, asset-management, financial and real-estate facts.",
+      "owner": "Solpient",
+      "source_files": [
+        "lib/sector-evidence-model-v2-1.mjs",
+        "docs/SOLPIENT_SECTOR_EVIDENCE_MODEL_V2_1.md"
+      ],
+      "input_contract": {
+        "technical_coverage": "broad screening evidence coverage",
+        "screen_profile": "Sector Model V2 profile",
+        "sector_specific_facts": "optional reviewed sector-critical evidence"
+      },
+      "output_contract": {
+        "critical_evidence_coverage_pct": "0-100 sector-critical evidence completeness",
+        "evidence_coverage_ceiling_pct": "maximum defensible effective screening coverage",
+        "effective_coverage_pct": "min(technical coverage, evidence ceiling)",
+        "missing_critical_evidence": "explicit missing sector evidence groups",
+        "candidate_promotion_blocked": "classification/evidence promotion blocker"
+      },
+      "weights": {
+        "bank": {
+          "reserved_sector_evidence_pct": 40
+        },
+        "insurance": {
+          "reserved_sector_evidence_pct": 40
+        },
+        "asset_manager": {
+          "reserved_sector_evidence_pct": 35
+        },
+        "financial_other": {
+          "reserved_sector_evidence_pct": 35
+        },
+        "reit": {
+          "reserved_sector_evidence_pct": 40
+        },
+        "real_estate": {
+          "reserved_sector_evidence_pct": 35
+        }
+      },
+      "thresholds": {
+        "unknown_classification_max_coverage": 69,
+        "solpient_100_candidate_coverage": 70
+      },
+      "assumptions": {
+        "broad_score_separate_from_evidence_confidence": true,
+        "sector_quotas": false,
+        "missing_sector_evidence": "reduces effective coverage rather than economic score",
+        "unknown_classification": "cannot auto-promote to Solpient 100 Candidate"
+      },
+      "dependencies": [
+        {
+          "methodology_key": "universe_sector_model",
+          "version": "solpient-universe-sector-model-v2",
+          "required": true
+        }
+      ],
+      "known_limitations": [
+        "Sector-critical evidence is presence-based at this stage; later versions should incorporate source quality, recency and conflict state.",
+        "The reserved evidence percentages are calibration parameters that require full-universe validation before activation.",
+        "Critical field groups are broad research requirements and do not by themselves prove underwriting, credit, solvency or property quality."
+      ],
+      "change_summary": "Adds sector-specific evidence completeness, confidence ceilings, and an Unknown-classification promotion block after V2 full-universe validation showed overconfidence in financial-sector coverage.",
+      "predecessor_version": null,
+      "impacts": {
+        "database": false,
+        "public_ui": true,
+        "publication": false,
+        "ranking": false,
+        "capital_decision": false,
+        "historical_interpretation": true
+      },
+      "legacy_bootstrap": false
+    },
+    {
+      "methodology_key": "universe_screening",
+      "version": "solpient-universe-screen-v2.1",
+      "name": "Solpient 100 Universe Screening V2.1",
+      "category": "screening",
+      "risk_class": "high",
+      "purpose": "Screen the broad investable universe using Sector Model V2 economic profiles while applying Sector Evidence Model V2.1 confidence ceilings so incomplete sector-critical evidence cannot masquerade as complete research coverage.",
+      "owner": "Solpient",
+      "source_files": [
+        "lib/universe-screening-engine.mjs",
+        "lib/sector-evidence-model-v2-1.mjs",
+        "docs/SOLPIENT_SECTOR_EVIDENCE_MODEL_V2_1.md"
+      ],
+      "input_contract": {
+        "universe_row": "normalized broad-universe screening row",
+        "sector_model": "solpient-universe-sector-model-v2",
+        "sector_evidence_model": "solpient-sector-evidence-model-v2.1"
+      },
+      "output_contract": {
+        "screen_state": "excluded/watch/research_candidate/solpient_100_candidate/solpient_100",
+        "raw_evidence_coverage_pct": "broad technical coverage",
+        "evidence_coverage_pct": "sector-adjusted effective coverage",
+        "sector_evidence": "critical-evidence completeness and ceiling",
+        "deep_research_shortlist": "deterministic top-N eligible names"
+      },
+      "weights": {
+        "score_dimensions": "unchanged from solpient-universe-screen-v2",
+        "evidence_confidence": "Sector Evidence Model V2.1"
+      },
+      "thresholds": {
+        "research_candidate": {
+          "score": 60,
+          "quality_core": 60,
+          "coverage": 60
+        },
+        "solpient_100_candidate": {
+          "score": 75,
+          "quality_core": 72,
+          "coverage": 70
+        },
+        "unknown_classification_candidate_block": true
+      },
+      "assumptions": {
+        "economic_score_preserved_from_v2": true,
+        "missing_sector_evidence": "caps evidence coverage, not economic score",
+        "sector_quotas": false
+      },
+      "dependencies": [
+        {
+          "methodology_key": "universe_sector_model",
+          "version": "solpient-universe-sector-model-v2",
+          "required": true
+        },
+        {
+          "methodology_key": "sector_evidence_model",
+          "version": "solpient-sector-evidence-model-v2.1",
+          "required": true
+        }
+      ],
+      "known_limitations": [
+        "Sector-sensitive candidates require additional reviewed evidence before Solpient 100 Candidate promotion.",
+        "Broad screening remains a research-funnel tool and does not replace qualitative moat, management or industry work.",
+        "Foreign/IFRS coverage remains limited by the SEC-first US-GAAP normalization path."
+      ],
+      "change_summary": "Calibrates V2 by separating raw technical coverage from sector-critical evidence completeness and blocking unresolved Unknown classifications from automated Solpient 100 Candidate promotion.",
+      "predecessor_version": "solpient-universe-screen-v2",
+      "impacts": {
+        "database": true,
+        "public_ui": true,
+        "publication": false,
+        "ranking": false,
+        "capital_decision": false,
+        "historical_interpretation": true
+      },
+      "legacy_bootstrap": false
+    },
+    {
+      "methodology_key": "research_candidate_pipeline",
+      "version": "research-candidate-pipeline-v2.1",
+      "name": "Research Candidate Pipeline V2.1",
+      "category": "repair",
+      "risk_class": "high",
+      "purpose": "Carry Universe Screening V2.1 candidates into research, valuation and readiness while preserving sector-evidence blockers and preventing unsupported generic valuation fallbacks.",
+      "owner": "Solpient",
+      "source_files": [
+        "lib/research-candidate-pipeline.mjs",
+        "scripts/materialize-research-candidate-pipeline.mjs"
+      ],
+      "input_contract": {
+        "screen_result": "eligible V2.1 screen result with sector-evidence state",
+        "valuation_input_pack": "reviewed Valuation V3 inputs",
+        "research_scores": "published reviewed scores",
+        "coverage": "Coverage V2 evidence"
+      },
+      "output_contract": {
+        "stage": "onboarding/valuation_building/research_building/research_ready/decision_ready",
+        "next_actions": "ordered blockers and repair actions",
+        "valuation_profile_gate": "explicit supported valuation module or blocker"
+      },
+      "weights": {},
+      "thresholds": {
+        "research_ready": "Readiness V1",
+        "decision_ready": "Readiness V1"
+      },
+      "assumptions": {
+        "screen_score_reuse": false,
+        "valuation_requires_reviewed_inputs": true,
+        "unsupported_sector_valuation": "block rather than generic fallback"
+      },
+      "dependencies": [
+        {
+          "methodology_key": "universe_screening",
+          "version": "solpient-universe-screen-v2.1",
+          "required": true
+        },
+        {
+          "methodology_key": "valuation_v3",
+          "version": "solpient-valuation-methodology-v3",
+          "required": true
+        },
+        {
+          "methodology_key": "decision_readiness",
+          "version": "readiness-v1",
+          "required": true
+        }
+      ],
+      "known_limitations": [
+        "Sector-specific evidence collection still requires provider/source expansion for many financial and real-estate metrics.",
+        "Insurance, asset-manager/diversified-financial and real-estate/REIT valuation remains blocked without reviewed sector-specific valuation support."
+      ],
+      "change_summary": "Advances the candidate pipeline to consume V2.1 evidence-adjusted screening results while preserving existing valuation safety gates.",
+      "predecessor_version": "research-candidate-pipeline-v2",
       "impacts": {
         "database": true,
         "public_ui": true,
