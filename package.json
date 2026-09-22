@@ -84,19 +84,22 @@
     "factory:research:auto-valuation": "node scripts/build-autonomous-valuation-pack-v2-1.mjs",
     "test:research-factory:v2.1": "node scripts/test-autonomous-research-factory-v2-1.mjs",
     "test:review-attestation": "node scripts/test-review-attestation.mjs",
-    "local:configure-app": "node scripts/configure-local-data-env.mjs"
+    "local:configure-app": "node scripts/configure-local-data-env.mjs",
+    "local:verify-db": "node --env-file=.env.local scripts/verify-direct-postgres.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.109.0",
     "next": "16.3.3",
     "react": "19.2.0",
     "react-dom": "19.2.0",
-    "@mlc-ai/web-llm": "0.2.82"
+    "@mlc-ai/web-llm": "0.2.82",
+    "pg": "8.23.0"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
-    "typescript": "^5.9.0"
+    "typescript": "^5.9.0",
+    "@types/pg": "8.23.1"
   }
 }
