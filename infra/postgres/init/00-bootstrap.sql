@@ -8,8 +8,11 @@ create schema if not exists auth;
 create extension if not exists pgcrypto with schema extensions;
 create extension if not exists "uuid-ossp" with schema extensions;
 
-do $$
+do $
 begin
+  if not exists (select 1 from pg_roles where rolname = 'postgres') then
+    create role postgres nologin;
+  end if;
   if not exists (select 1 from pg_roles where rolname = 'anon') then
     create role anon nologin;
   end if;
