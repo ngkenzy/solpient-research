@@ -2,13 +2,6 @@ name: SOLPIENT Decision Trigger Engine
 
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths:
-      - "lib/decision-trigger-engine.mjs"
-      - "scripts/build-decision-triggers.mjs"
-      - ".github/workflows/decision-trigger-engine.yml"
-
 concurrency:
   group: solpient-decision-trigger-engine
   cancel-in-progress: false
