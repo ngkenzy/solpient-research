@@ -1,5 +1,4 @@
-import { getSupabase } from "@/lib/supabase";
-import { getResearchTemporalContext } from "@/lib/research-temporal";
+import { loadResearchStandardV2Data } from "@/lib/repositories/research-standard";
 import styles from "./ResearchStandardV2.module.css";
 
 function num(value: unknown) {
@@ -45,61 +44,16 @@ export async function ResearchStandardV2({
 }: {
   researchRunId: string;
 }) {
-  const supabase = getSupabase();
-  if (!supabase) return null;
+  const loaded = await loadResearchStandardV2Data(researchRunId);
+  if (!loaded) return null;
 
-  const [
-    runResult,
-    sectionResult,
-    businessResult,
-    returnResult,
-    riskResult,
-    valuationResult,
-    metricsResult,
-  ] = await Promise.all([
-    supabase
-      .from("research_runs")
-      .select("company_id,standard_version,standard_status,completeness_pct,benchmark_ticker")
-      .eq("id", researchRunId)
-      .maybeSingle(),
-    supabase
-      .from("research_v2_sections")
-      .select("*")
-      .eq("research_run_id", researchRunId)
-      .maybeSingle(),
-    supabase
-      .from("business_assessments")
-      .select("*")
-      .eq("research_run_id", researchRunId)
-      .maybeSingle(),
-    supabase
-      .from("expected_return_scenarios")
-      .select("*")
-      .eq("research_run_id", researchRunId)
-      .order("horizon_years"),
-    supabase
-      .from("risk_register")
-      .select("*")
-      .eq("research_run_id", researchRunId),
-    supabase
-      .from("valuations")
-      .select("*")
-      .eq("research_run_id", researchRunId)
-      .maybeSingle(),
-    supabase
-      .from("financial_metrics")
-      .select("*")
-      .eq("research_run_id", researchRunId)
-      .maybeSingle(),
-  ]);
-
-  const run = runResult.data;
+  const run = loaded.run;
   if (!run || run.standard_version !== "solpient-v2") return null;
 
-  const section = sectionResult.data ?? {};
-  const business = businessResult.data ?? {};
-  const valuation = valuationResult.data ?? {};
-  const metrics = metricsResult.data ?? {};
+  const section = loaded.section ?? {};
+  const business = loaded.business ?? {};
+  const valuation = loaded.valuation ?? {};
+  const metrics = loaded.metrics ?? {};
   const investmentThesis = section.investment_thesis ?? {};
   const dashboard = section.decision_dashboard ?? {};
   const valuationAnalysis = section.valuation_analysis ?? {};
@@ -110,9 +64,9 @@ export async function ResearchStandardV2({
   const lenses = section.investment_lenses ?? {};
   const conclusion = section.final_conclusion ?? {};
   const normalized = valuationAnalysis.normalized_earnings_context ?? {};
-
-  const temporal = await getResearchTemporalContext(supabase, researchRunId);
-  const contextPack = temporal?.contextPack ?? null;
+  const contextPack = loaded.contextPack ?? null;
+  const returnRows = loaded.returns ?? [];
+  const riskRows = loaded.risks ?? [];
 
   const freeCashFlow = num(metrics.free_cash_flow);
   const shares = num(metrics.shares_outstanding);
@@ -132,14 +86,14 @@ export async function ResearchStandardV2({
   const peerAnchor =
     fcfPerShare != null && peerMedian != null ? fcfPerShare * peerMedian : null;
 
-  const fiveYearReturns = (returnResult.data ?? [])
+  const fiveYearReturns = returnRows
     .filter((row: any) => row.horizon_years === 5)
     .sort((a: any, b: any) => {
       const order: Record<string, number> = { bear: 0, base: 1, bull: 2 };
       return (order[a.scenario] ?? 9) - (order[b.scenario] ?? 9);
     });
 
-  const risks = [...(riskResult.data ?? [])].sort((a: any, b: any) => {
+  const risks = [...riskRows].sort((a: any, b: any) => {
     const order: Record<string, number> = { high: 0, medium: 1, low: 2 };
     return (order[a.severity] ?? 9) - (order[b.severity] ?? 9);
   });
