@@ -10,6 +10,7 @@ import {
 } from "../lib/methodology-activation-v1.mjs";
 import { buildMethodologyImplementationFingerprint } from "../lib/methodology-implementation-hash.mjs";
 import { canonicalSha256, CANONICALIZATION_VERSION } from "../lib/integrity-hash.mjs";
+import { publishUniverseScreenStaged } from "../lib/universe-screen-publish-v1-2.mjs";
 import {
   UNIVERSE_SCREENING_VERSION,
   UNIVERSE_SELECTION_VERSION,
@@ -314,11 +315,15 @@ const runPayload={
   },
 };
 
-const {data:runId,error:publishError}=await sb.rpc(
-  "publish_universe_screen_package_v1_1",
-  {p_run:runPayload,p_results:resultRows}
-);
-if(publishError)throw publishError;
+runPayload.metadata.publication_transport="staged-v1.2";
+
+const publication=await publishUniverseScreenStaged({
+  sb,
+  runPayload,
+  resultRows,
+});
+const runId=publication.runId;
+const stagedChunkCount=publication.stagedChunkCount;
 
 const {count:publishedResultCount,error:countError}=await sb
   .from("universe_screen_results")
@@ -336,6 +341,8 @@ console.log(JSON.stringify({
   ...preview,
   materialized:true,
   atomic_publication:true,
+  publication_transport:"staged-v1.2",
+  staged_chunk_count:stagedChunkCount,
   universe_screen_run_id:runId,
   published_result_count:publishedResultCount,
 },null,2));
