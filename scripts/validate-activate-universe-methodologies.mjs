@@ -110,9 +110,8 @@ execFileSync(process.execPath,[path.join(root,"scripts/register-methodologies.mj
 const sb=createClient(url,secret,{auth:{persistSession:false,autoRefreshToken:false}});
 
 async function loadRegistry(){
-  const keys=[...new Set(UNIVERSE_METHOD_STACK.map(x=>x.methodology_key))];
   const {data:definitions,error:defError}=await sb.from("methodology_definitions")
-    .select("*").in("methodology_key",keys);
+    .select("*");
   if(defError)throw defError;
   const ids=(definitions??[]).map(x=>x.id);
   const {data:events,error:eventError}=ids.length
@@ -139,6 +138,31 @@ for(const spec of UNIVERSE_METHOD_STACK){
     d.methodology_key===spec.methodology_key&&d.version===spec.version
   );
   if(!def)throw new Error("Registered definition not found: "+spec.methodology_key+" "+spec.version);
+
+  for(const dependency of def.manifest?.dependencies??[]){
+    if(dependency.required===false)continue;
+    const exact=registry.definitions.find(d=>
+      d.methodology_key===dependency.methodology_key&&d.version===dependency.version
+    );
+    if(!exact){
+      throw new Error(
+        "Required methodology dependency is not registered: "+
+        dependency.methodology_key+" "+dependency.version
+      );
+    }
+    if(dependency.methodology_key===spec.methodology_key)continue;
+    const compatibleActive=registry.definitions
+      .filter(d=>d.methodology_key===dependency.methodology_key)
+      .some(d=>deriveLifecycle(
+        registry.events.filter(e=>e.methodology_definition_id===d.id)
+      )==="active");
+    if(!compatibleActive){
+      throw new Error(
+        "Required methodology dependency has no active version: "+
+        dependency.methodology_key
+      );
+    }
+  }
 
   let state=deriveLifecycle(registry.events.filter(e=>e.methodology_definition_id===def.id));
   if(state==="registered"){
