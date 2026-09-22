@@ -143,6 +143,50 @@ for(const item of items??[]){
     });
   if(decisionError)throw decisionError;
 
+  if(
+    assignment.status==="applied"&&
+    item.status==="quarantined"&&
+    item?.state_snapshot?.autonomous_v2_1?.industry_assignment?.status==="quarantined"
+  ){
+    const priorAutonomous=item.state_snapshot?.autonomous_v2_1??{};
+    const snapshot={
+      ...(item.state_snapshot??{}),
+      autonomous_v2_1:{
+        ...priorAutonomous,
+        industry_assignment:{
+          status:"applied",
+          assignment_id:assignmentId,
+          confidence:assignment.confidence,
+          module:assignment.module,
+          reason:assignment.reason,
+        },
+      },
+    };
+    const {error:releaseError}=await sb.rpc("transition_research_factory_item_v1",{
+      p_item_id:item.id,
+      p_stage:item.stage,
+      p_status:"queued",
+      p_company_id:item.company_id,
+      p_coverage_report_id:item.coverage_report_id,
+      p_baseline_draft_id:item.baseline_draft_id,
+      p_composition_id:item.composition_id,
+      p_coverage_pct:item.coverage_pct,
+      p_repair_job_count:item.repair_job_count,
+      p_manual_review_count:0,
+      p_next_actions:[{
+        priority:100,
+        type:"autonomous_recheck",
+        action:"Industry assignment now clears policy; rebuild evidence and coverage automatically.",
+        reason:assignment.reason,
+      }],
+      p_state_snapshot:snapshot,
+      p_state_hash:buildFactoryStateHash(snapshot),
+      p_last_error:null,
+      p_event_type:"autonomous_industry_released",
+    });
+    if(releaseError)throw releaseError;
+  }
+
   if(assignment.status==="quarantined"){
     const snapshot={
       ...(item.state_snapshot??{}),
