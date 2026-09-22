@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { getSupabase } from "@/lib/supabase";
 import { SolpientBrand } from "@/components/SolpientBrand";
-import { decisionRankingMap, loadLatestDecisionRanking, readinessDisplay } from "@/lib/decision-ranking-read-model";
+import { decisionRankingMap, readinessDisplay } from "@/lib/decision-ranking-read-model";
+import { loadResearchIndexData } from "@/lib/repositories/research-index";
 
 export const dynamic = "force-dynamic";
 
@@ -33,48 +33,40 @@ function valuationLabel(gap: number | null) {
 }
 
 export default async function ResearchIndex() {
-  const supabase = getSupabase();
+  const data = await loadResearchIndexData();
 
-  if (!supabase) {
+  if (!data) {
     return (
       <main className="rankingShell">
         <Link className="backLink" href="/">← SOLPIENT Research</Link>
         <section className="emptyState">
-          <strong>Supabase is not configured.</strong>
-          <p>Add the public Supabase URL and publishable key to load the ranking.</p>
+          <strong>No Solpient data source is configured.</strong>
+          <p>Configure direct PostgreSQL or the migration fallback to load the ranking.</p>
         </section>
       </main>
     );
   }
 
-  const [{ data: companies, error: companyError }, { data: publishedRuns, error: runError }] =
-    await Promise.all([
-      supabase
-        .from("companies")
-        .select("id,ticker,company_name,sector,industry")
-        .order("ticker"),
-      supabase
-        .from("research_runs")
-        .select("id,company_id,version,researched_at,price_at_research,summary")
-        .eq("status", "published")
-        .order("version", { ascending: false }),
-    ]);
-
-  const error = companyError ?? runError;
-
-  if (error) {
+  if (data.error) {
     return (
       <main className="rankingShell">
         <Link className="backLink" href="/">← SOLPIENT Research</Link>
         <section className="emptyState">
           <strong>Unable to load research.</strong>
-          <p>{error.message}</p>
+          <p>{data.error.message}</p>
         </section>
       </main>
     );
   }
 
-  const phase3Ranking = await loadLatestDecisionRanking(supabase);
+  const {
+    companies,
+    publishedRuns,
+    scores,
+    valuations,
+    market,
+    phase3Ranking,
+  } = data;
   const phase3ByCompany = decisionRankingMap(phase3Ranking.rows);
 
   const latestRunByCompany = new Map<string, any>();
@@ -82,36 +74,11 @@ export default async function ResearchIndex() {
     if (!latestRunByCompany.has(run.company_id)) latestRunByCompany.set(run.company_id, run);
   }
 
-  const latestRuns = Array.from(latestRunByCompany.values());
-  const runIds = latestRuns.map((run) => run.id);
-
-  const [scoresResult, valuationsResult] = runIds.length
-    ? await Promise.all([
-        supabase
-          .from("scores")
-          .select("research_run_id,overall_score,quality_score,growth_score,valuation_score,financial_strength_score,moat_score,thesis_integrity_score")
-          .in("research_run_id", runIds),
-        supabase
-          .from("valuations")
-          .select("research_run_id,base_value,bear_value,bull_value")
-          .in("research_run_id", runIds),
-      ])
-    : [{ data: [] }, { data: [] }];
-
-  const scoreMap = new Map((scoresResult.data ?? []).map((item: any) => [item.research_run_id, item]));
-  const valuationMap = new Map((valuationsResult.data ?? []).map((item: any) => [item.research_run_id, item]));
-
-  const symbols = (companies ?? []).map((company) => company.ticker);
-  const marketResult = symbols.length
-    ? await supabase
-        .from("market_snapshots")
-        .select("symbol,price,trading_date")
-        .in("symbol", symbols)
-        .order("trading_date", { ascending: false })
-    : { data: [] as any[] };
+  const scoreMap = new Map(scores.map((item: any) => [item.research_run_id, item]));
+  const valuationMap = new Map(valuations.map((item: any) => [item.research_run_id, item]));
 
   const latestMarketBySymbol = new Map<string, any>();
-  for (const row of marketResult.data ?? []) {
+  for (const row of market) {
     if (!latestMarketBySymbol.has(row.symbol)) latestMarketBySymbol.set(row.symbol, row);
   }
 
