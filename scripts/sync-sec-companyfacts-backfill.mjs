@@ -4,7 +4,8 @@ import process from "node:process";
 import { createPostgresCompatClient } from "../lib/pg-supabase-compat.mjs";
 import { normalizeCompanyFacts, SEC_PROVIDER } from "../lib/sec-companyfacts.mjs";
 
-if(!process.env.SOLPIENT_DATABASE_URL)throw new Error("Missing SOLPIENT_DATABASE_URL.");\nconst sb=createPostgresCompatClient();
+if(!process.env.SOLPIENT_DATABASE_URL)throw new Error("Missing SOLPIENT_DATABASE_URL.");
+const sb=createPostgresCompatClient();
 const secContact=process.env.SEC_CONTACT??"ngkenzy@users.noreply.github.com";
 const userAgent=process.env.SEC_USER_AGENT??("SOLPIENT Research "+secContact);
 const outputFlag=process.argv.indexOf("--output");
