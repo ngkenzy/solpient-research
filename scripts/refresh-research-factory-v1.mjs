@@ -18,6 +18,7 @@ if(!url||!secret)throw new Error("Missing SUPABASE_URL and server secret.");
 const sb=createClient(url,secret,{auth:{persistSession:false,autoRefreshToken:false}});
 
 const requestedRunId=arg("factory-run-id",process.env.RESEARCH_FACTORY_RUN_ID??null);
+const tickerArg=arg("ticker",process.env.RESEARCH_FACTORY_TICKER??null);
 let run=null;
 if(requestedRunId){
   const {data,error}=await sb.from("research_factory_runs").select("*").eq("id",requestedRunId).maybeSingle();
@@ -36,10 +37,12 @@ if(requestedRunId){
 }
 if(!run)throw new Error("No active Research Factory V1 run is available.");
 
-const {data:items,error:itemError}=await sb.from("research_factory_items")
+let itemQuery=sb.from("research_factory_items")
   .select("*")
   .eq("research_factory_run_id",run.id)
   .order("ordinal",{ascending:true});
+if(tickerArg)itemQuery=itemQuery.eq("ticker",String(tickerArg).toUpperCase());
+const {data:items,error:itemError}=await itemQuery;
 if(itemError)throw itemError;
 
 const pipelineIds=(items??[]).map(x=>x.source_pipeline_item_id);
@@ -248,5 +251,6 @@ console.log(JSON.stringify({
   refreshed:true,
   candidate_count:(items??[]).length,
   changed_items:changes.length,
+  ticker:tickerArg?String(tickerArg).toUpperCase():null,
   stage_counts:counts,
 },null,2));
