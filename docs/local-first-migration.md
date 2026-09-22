@@ -104,6 +104,27 @@ npm run dev
 
 Do not delete the old Supabase variables until the local app has passed its existing tests and the core research pages work.
 
+### Direct PostgreSQL checkpoint
+
+After pulling the migration branch and installing dependencies:
+
+```bash
+npm install
+npm run local:configure-app
+npm run local:verify-db
+npm run dev
+```
+
+Then verify the Next.js server is using PostgreSQL directly:
+
+```bash
+curl http://127.0.0.1:3000/api/health/db
+```
+
+A successful response includes `"mode":"postgres"`.
+
+The homepage, research ranking, core company research record, company-change panel, decision-trigger panel, research-coverage panel, and prediction history now prefer direct PostgreSQL. Remaining legacy modules continue to use the compatibility bridge until they are migrated and verified.
+
 ## Phase 5: remove the Supabase client package
 
 After local parity is proven:
