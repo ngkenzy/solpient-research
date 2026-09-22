@@ -8,7 +8,7 @@ import {
   UNIVERSE_SELECTION_VERSION,
   screenCompany,
 } from "../lib/universe-screening-engine.mjs";
-import { RESEARCH_CANDIDATE_PIPELINE_VERSION } from "../lib/research-candidate-pipeline.mjs";
+import { RESEARCH_CANDIDATE_PIPELINE_VERSION, buildResearchCandidatePipeline } from "../lib/research-candidate-pipeline.mjs";
 
 assert.equal(UNIVERSE_SECTOR_MODEL_VERSION,"solpient-universe-sector-model-v2.3");
 assert.equal(UNIVERSE_SCREENING_VERSION,"solpient-universe-screen-v2.3");
@@ -121,5 +121,16 @@ assert.equal(reviewScreen.sector,"Unknown");
 assert.equal(reviewScreen.sectorClassification.reviewRequired,true);
 assert.ok(reviewScreen.evidenceCoveragePct<=69);
 assert.notEqual(reviewScreen.state,"solpient_100_candidate");
+
+const reviewPipeline=buildResearchCandidatePipeline({
+  screenResult:{...reviewScreen,proposedForDeepResearch:true},
+  companyExists:true,
+  valuationInput:{currentPrice:50},
+  researchInput:{scores:{},coverage:{}},
+});
+const classificationAction=reviewPipeline.nextActions.find(a=>a.type==="classification_review");
+assert.ok(classificationAction);
+assert.match(classificationAction.reason,/Personal Services|issuer-level review/);
+assert.equal(reviewPipeline.screening.sectorClassification.reviewRequired,true);
 
 console.log("Sector Classification Coverage V2.3 tests passed.");
