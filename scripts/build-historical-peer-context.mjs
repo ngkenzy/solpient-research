@@ -6,7 +6,8 @@ import { buildCompanyHistory, buildPeerContext, buildContextPack, latestMetricMa
 import { peerSetForTicker } from "../lib/peer-sets.mjs";
 import { latestAutonomousIndustryModule } from "../lib/autonomous-research-factory-db.mjs";
 
-if(!process.env.SOLPIENT_DATABASE_URL)throw new Error("Missing SOLPIENT_DATABASE_URL.");\nconst sb=createPostgresCompatClient();
+if(!process.env.SOLPIENT_DATABASE_URL)throw new Error("Missing SOLPIENT_DATABASE_URL.");
+const sb=createPostgresCompatClient();
 
 const asOfDate=process.env.CONTEXT_AS_OF_DATE??new Date().toISOString().slice(0,10);
 const requestedCutoff=process.env.CONTEXT_KNOWLEDGE_CUTOFF_AT??(asOfDate+"T23:59:59.999Z");
