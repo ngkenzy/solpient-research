@@ -4,9 +4,11 @@ on:
   pull_request:
     paths:
       - "lib/universe-screening-engine.mjs"
+      - "lib/universe-sector-model-v2.mjs"
       - "lib/research-candidate-pipeline.mjs"
       - "lib/valuation-engine-v3.mjs"
       - "scripts/test-universe-screening-engine.mjs"
+      - "scripts/test-universe-sector-model-v2.mjs"
       - "scripts/test-research-candidate-pipeline.mjs"
       - "scripts/materialize-research-candidate-pipeline.mjs"
       - "scripts/register-candidate-valuation-input.mjs"
@@ -32,6 +34,8 @@ jobs:
       - run: npm install
       - name: Test universe screening
         run: node scripts/test-universe-screening-engine.mjs
+      - name: Test Sector Model V2
+        run: node scripts/test-universe-sector-model-v2.mjs
       - name: Test candidate handoff
         run: node scripts/test-research-candidate-pipeline.mjs
       - name: Syntax check materializers
