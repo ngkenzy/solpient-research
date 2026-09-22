@@ -104,7 +104,10 @@ const bank=screenCompany({
 assert.equal(bank.profile,"bank");
 assert.equal(bank.gates.some(g=>g.key==="leverage_extreme"),false);
 assert.ok(bank.screenScore>=70);
-assert.ok(bank.evidenceCoveragePct>=90);
+assert.equal(bank.rawEvidenceCoveragePct,100);
+assert.equal(bank.evidenceCoveragePct,60);
+assert.equal(bank.state,SCREEN_STATE.RESEARCH_CANDIDATE);
+assert.equal(bank.sectorEvidence.criticalEvidenceCoveragePct,0);
 
 const missing=screenCompany({
   ticker:"MISS",
