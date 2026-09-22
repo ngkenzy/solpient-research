@@ -1,4 +1,4 @@
-import { getSupabase } from "@/lib/supabase";
+import { loadPerformanceHistoryData } from "@/lib/repositories/performance-history";
 import { CompanyPerformanceCharts } from "@/components/CompanyPerformanceCharts";
 
 function n(value: unknown) {
@@ -16,36 +16,6 @@ function monthlyLast<T extends { trading_date?: string; as_of_date?: string }>(r
   return [...byMonth.values()];
 }
 
-async function fetchMarketHistory(
-  supabase: any,
-  symbol: string,
-  companyId?: string | null,
-  asOf?: string | null,
-) {
-  const pageSize = 1000;
-  const rows: any[] = [];
-  for (let page = 0; page < 4; page++) {
-    let query = supabase
-      .from("market_snapshots")
-      .select("trading_date,price,observed_at")
-      .eq("symbol", symbol)
-      .order("trading_date", { ascending: true })
-      .range(page * pageSize, page * pageSize + pageSize - 1);
-    if (companyId) query = query.eq("company_id", companyId);
-    if (asOf) {
-      query = query
-        .lte("trading_date", asOf.slice(0, 10))
-        .lte("observed_at", asOf);
-    }
-    const { data, error } = await query;
-    if (error) break;
-    const batch = data ?? [];
-    rows.push(...batch);
-    if (batch.length < pageSize) break;
-  }
-  return rows;
-}
-
 export async function CompanyPerformanceHistory({
   companyId,
   ticker,
@@ -59,90 +29,25 @@ export async function CompanyPerformanceHistory({
   researchRunId?: string | null;
   asOf?: string | null;
 }) {
-  const supabase = getSupabase();
-  if (!supabase) return null;
+  const loaded = await loadPerformanceHistoryData({
+    companyId,
+    ticker,
+    benchmarkTicker,
+    researchRunId,
+    asOf,
+  });
+  if (!loaded) return null;
 
-  const cutoffDate = asOf ? asOf.slice(0, 10) : null;
-
-  let metricsQuery = supabase
-    .from("company_metric_history")
-    .select("metric_key,period_end,fiscal_year,period_type,value_numeric,unit,observed_at")
-    .eq("company_id", companyId)
-    .eq("period_type", "fiscal_year")
-    .in("metric_key", [
-      "revenue",
-      "free_cash_flow",
-      "gross_margin",
-      "operating_margin",
-      "fcf_margin",
-      "eps_diluted",
-      "fcf_per_share",
-      "shares_outstanding",
-    ]);
-  let valuationQuery = supabase
-    .from("valuation_history")
-    .select("trading_date,price_to_fcf,fcf_yield,pe,forward_pe,observed_at")
-    .eq("company_id", companyId);
-  let capitalQuery = supabase
-    .from("company_metric_history")
-    .select("module,metric_key,period_end,fiscal_year,period_type,value_numeric,observed_at")
-    .eq("company_id", companyId)
-    .in("metric_key", ["dividends_paid","buybacks","stock_based_compensation","acquisitions","debt_issued","debt_repaid"]);
-  let peerQuery = supabase
-    .from("peer_metric_snapshots")
-    .select("peer_ticker,metric_key,as_of_date,value_numeric,observed_at")
-    .eq("company_id", companyId)
-    .in("metric_key", ["revenue_growth_yoy","fcf_margin","price_to_fcf","fcf_yield"]);
-
-  if (asOf) {
-    metricsQuery = metricsQuery.lte("observed_at", asOf);
-    valuationQuery = valuationQuery.lte("observed_at", asOf);
-    capitalQuery = capitalQuery.lte("observed_at", asOf);
-    peerQuery = peerQuery.lte("observed_at", asOf);
-  }
-  if (cutoffDate) {
-    metricsQuery = metricsQuery.lte("period_end", cutoffDate);
-    valuationQuery = valuationQuery.lte("trading_date", cutoffDate);
-    capitalQuery = capitalQuery.lte("period_end", cutoffDate);
-    peerQuery = peerQuery.lte("as_of_date", cutoffDate);
-  }
-
-  const [
+  const {
     marketRows,
     benchmarkRows,
-    metricsResult,
-    valuationResult,
-    capitalResult,
-    peerMetricResult,
-    runResult,
-    historicalFactsResult,
-  ] = await Promise.all([
-    fetchMarketHistory(supabase, ticker, companyId, asOf),
-    fetchMarketHistory(supabase, benchmarkTicker, null, asOf),
-    metricsQuery.order("fiscal_year", { ascending: true }),
-    valuationQuery.order("trading_date", { ascending: true }).limit(2000),
-    capitalQuery.order("period_end", { ascending: true }),
-    peerQuery.order("as_of_date", { ascending: false }),
-    researchRunId
-      ? supabase.from("research_runs").select("id").eq("id", researchRunId).maybeSingle()
-      : supabase
-          .from("research_runs")
-          .select("id")
-          .eq("company_id", companyId)
-          .eq("status", "published")
-          .order("version", { ascending: false })
-          .limit(1)
-          .maybeSingle(),
-    asOf && researchRunId
-      ? supabase
-          .from("research_public_history_items")
-          .select("module,metric_key,value_numeric,unit,economic_period_end,economic_period_type,known_at,source_confidence_class,conflict_state")
-          .eq("research_run_id", researchRunId)
-          .order("module")
-          .order("metric_key")
-          .order("economic_period_end", { ascending: true })
-      : Promise.resolve({ data: null, error: null }),
-  ]);
+    metricsRows,
+    valuationRows: loadedValuationRows,
+    capitalRows: loadedCapitalRows,
+    peerRows: loadedPeerRows,
+    historicalFacts,
+    selfMetrics,
+  } = loaded;
 
   const market = monthlyLast(
     marketRows
@@ -157,9 +62,7 @@ export async function CompanyPerformanceHistory({
   ).map((row: any) => ({ date: row.date, price: row.price }));
 
   const historicalMode = Boolean(asOf && researchRunId);
-  const canonicalFacts = historicalMode && !historicalFactsResult.error
-    ? (historicalFactsResult.data ?? [])
-    : [];
+  const canonicalFacts = historicalMode ? historicalFacts : [];
 
   // Historical research must not depend on mutable/current projection rows.
   // In historical mode we fail closed to the canonical bitemporal read model.
@@ -179,7 +82,7 @@ export async function CompanyPerformanceHistory({
       observed_at: row.known_at,
     }));
 
-  const metricRows = historicalMode ? canonicalAnnualRows : (metricsResult.data ?? []);
+  const metricRows = historicalMode ? canonicalAnnualRows : metricsRows;
 
   const annualMap = new Map<number, Record<string, number | null>>();
   for (const row of metricRows) {
@@ -218,7 +121,7 @@ export async function CompanyPerformanceHistory({
     ? [...canonicalValuationByDate.values()].sort((a, b) =>
         String(a.trading_date).localeCompare(String(b.trading_date)),
       )
-    : (valuationResult.data ?? []);
+    : loadedValuationRows;
 
   const valuation = monthlyLast(
     valuationRows.map((row: any) => ({
@@ -262,7 +165,7 @@ export async function CompanyPerformanceHistory({
           value_numeric: row.value_numeric,
           observed_at: row.known_at,
         }))
-    : (capitalResult.data ?? []);
+    : loadedCapitalRows;
 
   for (const row of capitalRows) {
     const year = Number(row.fiscal_year);
@@ -332,7 +235,7 @@ export async function CompanyPerformanceHistory({
       String(b.as_of_date ?? "").localeCompare(String(a.as_of_date ?? "")),
     );
 
-  const peerRows = historicalMode ? canonicalPeerRows : (peerMetricResult.data ?? []);
+  const peerRows = historicalMode ? canonicalPeerRows : loadedPeerRows;
 
   const peerMap = new Map<string, any>();
   for (const row of peerRows) {
@@ -348,16 +251,6 @@ export async function CompanyPerformanceHistory({
     if (row.metric_key === "price_to_fcf" && peer.priceToFcf == null) peer.priceToFcf = n(row.value_numeric);
     if (row.metric_key === "fcf_yield" && peer.fcfYield == null) peer.fcfYield = n(row.value_numeric);
     peerMap.set(row.peer_ticker, peer);
-  }
-
-  let selfMetrics: any = null;
-  if (runResult.data?.id) {
-    const { data } = await supabase
-      .from("financial_metrics")
-      .select("revenue_growth_1y,fcf_margin")
-      .eq("research_run_id", runResult.data.id)
-      .maybeSingle();
-    selfMetrics = data;
   }
 
   const latestValuation = valuation.at(-1);
