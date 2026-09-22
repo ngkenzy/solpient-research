@@ -18,7 +18,7 @@ export default async function ReviewLogin({searchParams}:{searchParams:Promise<{
       <p>Factory drafts stay private until a reviewed package passes the SOLPIENT Research Standard and is deliberately promoted.</p>
       {!configured ? <div className={styles.setupNotice}>
         <strong>Workbench access is not configured for this deployment.</strong>
-        <span>Add server-only <code>REVIEW_WORKBENCH_KEY</code> and <code>SUPABASE_SECRET_KEY</code> (or the legacy service-role key) in Vercel. The GitHub promotion workflow remains available.</span>
+        <span>Add server-only <code>REVIEW_WORKBENCH_KEY</code> and configure <code>SOLPIENT_DATABASE_URL</code>. During migration, a Supabase admin key remains an accepted fallback.</span>
       </div> : <form action={unlockReviewAction} className={styles.loginForm}>
         <label htmlFor="key">Workbench key</label>
         <input id="key" name="key" type="password" autoComplete="current-password" required />
