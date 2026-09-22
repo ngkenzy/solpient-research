@@ -6,6 +6,7 @@ on:
       - "lib/research-factory-v1.mjs"
       - "scripts/materialize-research-factory-v1.mjs"
       - "scripts/onboard-research-factory-v1.mjs"
+      - "data/research-factory/sec-identities-pipeline-run-1.json"
       - "scripts/refresh-research-factory-v1.mjs"
       - "scripts/build-research-factory-valuation-drafts.mjs"
       - "scripts/run-research-factory-batch.mjs"
@@ -22,6 +23,7 @@ on:
       - "lib/research-factory-v1.mjs"
       - "scripts/materialize-research-factory-v1.mjs"
       - "scripts/onboard-research-factory-v1.mjs"
+      - "data/research-factory/sec-identities-pipeline-run-1.json"
       - "scripts/refresh-research-factory-v1.mjs"
       - "scripts/build-research-factory-valuation-drafts.mjs"
       - "scripts/run-research-factory-batch.mjs"
@@ -82,6 +84,7 @@ jobs:
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
       RESEARCH_FACTORY_MAX_COMPANIES: ${{ github.event.inputs.max_companies || '5' }}
       RESEARCH_FACTORY_TICKER: ${{ github.event.inputs.ticker || '' }}
+      RESEARCH_FACTORY_SEC_IDENTITY_SNAPSHOT: "data/research-factory/sec-identities-pipeline-run-1.json"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

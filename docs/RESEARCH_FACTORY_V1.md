@@ -35,6 +35,13 @@ Current mutable factory state is stored separately from immutable factory events
 
 Research Factory uses the SEC ticker/CIK/exchange mapping to resolve company identity.
 
+For Pipeline Run #1, the 100 required identity rows are versioned in
+`data/research-factory/sec-identities-pipeline-run-1.json`. This is a deterministic
+cache of SEC identity data because GitHub-hosted runners received HTTP 403 from the
+live SEC ticker/exchange endpoint. The snapshot is explicitly bound to the immutable
+Pipeline Run #1 ID; a future pipeline run must provide a new reviewed identity snapshot
+rather than silently reusing this one.
+
 A unique, defensible SEC ticker match can create a new canonical `companies` row. Existing Solpient companies keep their non-null metadata; onboarding only fills missing CIK, exchange, sector, or industry fields.
 
 If an SEC ticker maps to multiple plausible issuers and name matching cannot disambiguate safely, the factory blocks that item for identity review. It never guesses.

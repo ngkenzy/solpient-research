@@ -5,6 +5,8 @@ on:
     branches: [main]
     paths:
       - ".github/workflows/research-factory-bootstrap-v1.yml"
+      - "scripts/onboard-research-factory-v1.mjs"
+      - "data/research-factory/sec-identities-pipeline-run-1.json"
   workflow_dispatch:
 
 concurrency:
@@ -20,6 +22,7 @@ jobs:
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
       RESEARCH_FACTORY_PIPELINE_RUN_ID: "c7647ef1-92e0-46dc-ab1a-4c1bcb31314c"
+      RESEARCH_FACTORY_SEC_IDENTITY_SNAPSHOT: "data/research-factory/sec-identities-pipeline-run-1.json"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

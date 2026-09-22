@@ -1,0 +1,827 @@
+{
+  "snapshot_version": "research-factory-sec-identities-pipeline-run-1-v1",
+  "source_pipeline_run_id": "c7647ef1-92e0-46dc-ab1a-4c1bcb31314c",
+  "source_universe_screen_run_id": "d4b9e789-685f-444c-900c-ebf02a976489",
+  "source_url": "https://www.sec.gov/files/company_tickers_exchange.json",
+  "source_description": "SEC ticker / CIK / exchange association file",
+  "generated_at": "2026-09-22T11:12:00Z",
+  "fallback_mirror": {
+    "repository": "ryansmccoy/py-sec-edgar",
+    "path": "refdata/company_tickers_exchange.json",
+    "git_blob_sha": "87396a711ff47913ba1a52631cdfcb4043ea7b87",
+    "note": "Used as deterministic SEC-data cache because GitHub-hosted runners received HTTP 403 from the SEC endpoint."
+  },
+  "current_sec_overrides": [
+    {
+      "ticker": "CVSA",
+      "cik": "0000730464",
+      "sec_company_name": "Covista Inc.",
+      "exchange": "NYSE",
+      "verified_on": "2026-09-22",
+      "note": "Not present in the cached mirror; verified against the current SEC ticker/exchange file."
+    }
+  ],
+  "candidate_count": 100,
+  "identities": [
+    {
+      "shortlist_rank": 1,
+      "ticker": "INTU",
+      "screen_company_name": "INTUIT INC.",
+      "cik": "0000896878",
+      "sec_company_name": "INTUIT INC.",
+      "exchange": "Nasdaq"
+    },
+    {
+      "shortlist_rank": 2,
+      "ticker": "ADBE",
+      "screen_company_name": "ADOBE INC.",
+      "cik": "0000796343",
+      "sec_company_name": "ADOBE INC.",
+      "exchange": "Nasdaq"
+    },
+    {
+      "shortlist_rank": 3,
+      "ticker": "EXEL",
+      "screen_company_name": "EXELIXIS, INC.",
+      "cik": "0000939767",
+      "sec_company_name": "EXELIXIS, INC.",
+      "exchange": "Nasdaq"
+    },
+    {
+      "shortlist_rank": 4,
+      "ticker": "LOPE",
+      "screen_company_name": "Grand Canyon Education, Inc.",
+      "cik": "0001434588",
+      "sec_company_name": "Grand Canyon Education, Inc.",
+      "exchange": "Nasdaq"
+    },
+    {
+      "shortlist_rank": 5,
+      "ticker": "JKHY",
+      "screen_company_name": "JACK HENRY & ASSOCIATES INC",
+      "cik": "0000779152",
+      "sec_company_name": "JACK HENRY & ASSOCIATES INC",
+      "exchange": "Nasdaq"
+    },
+    {
+      "shortlist_rank": 6,
+      "ticker": "PCTY",
+      "screen_company_name": "Paylocity Holding Corp",
+      "cik": "0001591698",
+      "sec_company_name": "Paylocity Holding Corp",
+      "exchange": "Nasdaq"
+    },
+    {
+      "shortlist_rank": 7,
+      "ticker": "HRMY",
+      "screen_company_name": "Harmony Biosciences Holdings, Inc.",
+      "cik": "0001802665",
+      "sec_company_name": "Harmony Biosciences Holdings, Inc.",
+      "exchange": "Nasdaq"
+    },
+    {
+      "shortlist_rank": 8,
+      "ticker": "GMED",
+      "screen_company_name": "GLOBUS MEDICAL INC",
+      "cik": "0001237831",
+      "sec_company_name": "GLOBUS MEDICAL INC",
+      "exchange": "NYSE"
+    },
+    {
+      "shortlist_rank": 9,
+      "ticker": "VRTX",
+      "screen_company_name": "VERTEX PHARMACEUTICALS INC / MA",
+      "cik": "0000875320",
+      "sec_company_name": "VERTEX PHARMACEUTICALS INC / MA",
+      "exchange": "Nasdaq"
+    },
+    {
+      "shortlist_rank": 10,
+      "ticker": "AWI",
+      "screen_company_name": "ARMSTRONG WORLD INDUSTRIES INC",
+      "cik": "0000007431",
+      "sec_company_name": "ARMSTRONG WORLD INDUSTRIES INC",
+      "exchange": "NYSE"
+    },
+    {
+      "shortlist_rank": 11,
+      "ticker": "FSS",
+      "screen_company_name": "FEDERAL SIGNAL CORP /DE/",
+      "cik": "0000277509",
+      "sec_company_name": "FEDERAL SIGNAL CORP /DE/",
+      "exchange": "NYSE"
+    },
+    {
+      "shortlist_rank": 12,
+      "ticker": "PTC",
+      "screen_company_name": "PTC INC.",
+      "cik": "0000857005",
+      "sec_company_name": "PTC INC.",
+      "exchange": "Nasdaq"
+    },
+    {
+      "shortlist_rank": 13,
+      "ticker": "APH",
+      "screen_company_name": "AMPHENOL CORP /DE/",
+      "cik": "0000820313",
+      "sec_company_name": "AMPHENOL CORP /DE/",
+      "exchange": "NYSE"
+    },
+    {
+      "shortlist_rank": 14,
+      "ticker": "YELP",
+      "screen_company_name": "YELP INC",
+      "cik": "0001345016",
+      "sec_company_name": "YELP INC",
+      "exchange": "NYSE"
+    },
+    {
+      "shortlist_rank": 15,
+      "ticker": "UTHR",
+      "screen_company_name": "UNITED THERAPEUTICS Corp",
+      "cik": "0001082554",
+      "sec_company_name": "UNITED THERAPEUTICS Corp",
+      "exchange": "Nasdaq"
+    },
+    {
+      "shortlist_rank": 16,
+      "ticker": "CRUS",
+      "screen_company_name": "CIRRUS LOGIC, INC.",
+      "cik": "0000772406",
+      "sec_company_name": "CIRRUS LOGIC, INC.",
+      "exchange": "Nasdaq"
+    },
+    {
+      "shortlist_rank": 17,
+      "ticker": "FSLR",
+      "screen_company_name": "FIRST SOLAR, INC.",
+      "cik": "0001274494",
+      "sec_company_name": "FIRST SOLAR, INC.",
+      "exchange": "Nasdaq"
+    },
+    {
+      "shortlist_rank": 18,
+      "ticker": "NBIX",
+      "screen_company_name": "NEUROCRINE BIOSCIENCES INC",
+      "cik": "0000914475",
+      "sec_company_name": "NEUROCRINE BIOSCIENCES INC",
+      "exchange": "Nasdaq"
+    },
+    {
+      "shortlist_rank": 19,
+      "ticker": "LOGI",
+      "screen_company_name": "LOGITECH INTERNATIONAL S.A.",
+      "cik": "0001032975",
+      "sec_company_name": "LOGITECH INTERNATIONAL S.A.",
+      "exchange": "Nasdaq"
+    },
+    {
+      "shortlist_rank": 20,
+      "ticker": "BSX",
+      "screen_company_name": "BOSTON SCIENTIFIC CORP",
+      "cik": "0000885725",
+      "sec_company_name": "BOSTON SCIENTIFIC CORP",
+      "exchange": "NYSE"
+    },
+    {
+      "shortlist_rank": 21,
+      "ticker": "ACN",
+      "screen_company_name": "Accenture plc",
+      "cik": "0001467373",
+      "sec_company_name": "Accenture plc",
+      "exchange": "NYSE"
+    },
+    {
+      "shortlist_rank": 22,
+      "ticker": "TMUS",
+      "screen_company_name": "T-Mobile US, Inc.",
+      "cik": "0001283699",
+      "sec_company_name": "T-Mobile US, Inc.",
+      "exchange": "Nasdaq"
+    },
+    {
+      "shortlist_rank": 23,
+      "ticker": "GNTX",
+      "screen_company_name": "GENTEX CORP",
+      "cik": "0000355811",
+      "sec_company_name": "GENTEX CORP",
+      "exchange": "Nasdaq"
+    },
+    {
+      "shortlist_rank": 24,
+      "ticker": "HEI",
+      "screen_company_name": "HEICO CORP",
+      "cik": "0000046619",
+      "sec_company_name": "HEICO CORP",
+      "exchange": "NYSE"
+    },
+    {
+      "shortlist_rank": 25,
+      "ticker": "VRSN",
+      "screen_company_name": "VERISIGN INC/CA",
+      "cik": "0001014473",
+      "sec_company_name": "VERISIGN INC/CA",
+      "exchange": "Nasdaq"
+    },
+    {
+      "shortlist_rank": 26,
+      "ticker": "ANIP",
+      "screen_company_name": "ANI PHARMACEUTICALS INC",
+      "cik": "0001023024",
+      "sec_company_name": "ANI PHARMACEUTICALS INC",
+      "exchange": "Nasdaq"
+    },
+    {
+      "shortlist_rank": 27,
+      "ticker": "DXCM",
+      "screen_company_name": "DEXCOM INC",
+      "cik": "0001093557",
+      "sec_company_name": "DEXCOM INC",
+      "exchange": "Nasdaq"
+    },
+    {
+      "shortlist_rank": 28,
+      "ticker": "MSFT",
+      "screen_company_name": "MICROSOFT CORP",
+      "cik": "0000789019",
+      "sec_company_name": "MICROSOFT CORP",
+      "exchange": "Nasdaq"
+    },
+    {
+      "shortlist_rank": 29,
+      "ticker": "LULU",
+      "screen_company_name": "lululemon athletica inc.",
+      "cik": "0001397187",
+      "sec_company_name": "lululemon athletica inc.",
+      "exchange": "Nasdaq"
+    },
+    {
+      "shortlist_rank": 30,
+      "ticker": "RL",
+      "screen_company_name": "RALPH LAUREN CORP",
+      "cik": "0001037038",
+      "sec_company_name": "RALPH LAUREN CORP",
+      "exchange": "NYSE"
+    },
+    {
+      "shortlist_rank": 31,
+      "ticker": "G",
+      "screen_company_name": "Genpact LTD",
+      "cik": "0001398659",
+      "sec_company_name": "Genpact LTD",
+      "exchange": "NYSE"
+    },
+    {
+      "shortlist_rank": 32,
+      "ticker": "BLBD",
+      "screen_company_name": "Blue Bird Corp",
+      "cik": "0001589526",
+      "sec_company_name": "Blue Bird Corp",
+      "exchange": "Nasdaq"
+    },
+    {
+      "shortlist_rank": 33,
+      "ticker": "SEZL",
+      "screen_company_name": "Sezzle Inc.",
+      "cik": "0001662991",
+      "sec_company_name": "Sezzle Inc.",
+      "exchange": "Nasdaq"
+    },
+    {
+      "shortlist_rank": 34,
+      "ticker": "MITK",
+      "screen_company_name": "MITEK SYSTEMS INC",
+      "cik": "0000807863",
+      "sec_company_name": "MITEK SYSTEMS INC",
+      "exchange": "Nasdaq"
+    },
+    {
+      "shortlist_rank": 35,
+      "ticker": "BR",
+      "screen_company_name": "BROADRIDGE FINANCIAL SOLUTIONS, INC.",
+      "cik": "0001383312",
+      "sec_company_name": "BROADRIDGE FINANCIAL SOLUTIONS, INC.",
+      "exchange": "NYSE"
+    },
+    {
+      "shortlist_rank": 36,
+      "ticker": "FTI",
+      "screen_company_name": "TechnipFMC plc",
+      "cik": "0001681459",
+      "sec_company_name": "TechnipFMC plc",
+      "exchange": "NYSE"
+    },
+    {
+      "shortlist_rank": 37,
+      "ticker": "BBY",
+      "screen_company_name": "BEST BUY CO INC",
+      "cik": "0000764478",
+      "sec_company_name": "BEST BUY CO INC",
+      "exchange": "NYSE"
+    },
+    {
+      "shortlist_rank": 38,
+      "ticker": "MPWR",
+      "screen_company_name": "MONOLITHIC POWER SYSTEMS, INC.",
+      "cik": "0001280452",
+      "sec_company_name": "MONOLITHIC POWER SYSTEMS INC",
+      "exchange": "Nasdaq"
+    },
+    {
+      "shortlist_rank": 39,
+      "ticker": "YUMC",
+      "screen_company_name": "Yum China Holdings, Inc.",
+      "cik": "0001673358",
+      "sec_company_name": "Yum China Holdings, Inc.",
+      "exchange": "NYSE"
+    },
+    {
+      "shortlist_rank": 40,
+      "ticker": "MTCH",
+      "screen_company_name": "Match Group, Inc.",
+      "cik": "0000891103",
+      "sec_company_name": "Match Group, Inc.",
+      "exchange": "Nasdaq"
+    },
+    {
+      "shortlist_rank": 41,
+      "ticker": "NFLX",
+      "screen_company_name": "NETFLIX INC",
+      "cik": "0001065280",
+      "sec_company_name": "NETFLIX INC",
+      "exchange": "Nasdaq"
+    },
+    {
+      "shortlist_rank": 42,
+      "ticker": "MSA",
+      "screen_company_name": "MSA Safety Inc",
+      "cik": "0000066570",
+      "sec_company_name": "MSA Safety Inc",
+      "exchange": "NYSE"
+    },
+    {
+      "shortlist_rank": 43,
+      "ticker": "WINA",
+      "screen_company_name": "WINMARK CORP",
+      "cik": "0000908315",
+      "sec_company_name": "WINMARK CORP",
+      "exchange": "Nasdaq"
+    },
+    {
+      "shortlist_rank": 44,
+      "ticker": "YETI",
+      "screen_company_name": "YETI Holdings, Inc.",
+      "cik": "0001670592",
+      "sec_company_name": "YETI Holdings, Inc.",
+      "exchange": "NYSE"
+    },
+    {
+      "shortlist_rank": 45,
+      "ticker": "CF",
+      "screen_company_name": "CF Industries Holdings, Inc.",
+      "cik": "0001324404",
+      "sec_company_name": "CF Industries Holdings, Inc.",
+      "exchange": "NYSE"
+    },
+    {
+      "shortlist_rank": 46,
+      "ticker": "EXLS",
+      "screen_company_name": "ExlService Holdings, Inc.",
+      "cik": "0001297989",
+      "sec_company_name": "ExlService Holdings, Inc.",
+      "exchange": "Nasdaq"
+    },
+    {
+      "shortlist_rank": 47,
+      "ticker": "FDS",
+      "screen_company_name": "FACTSET RESEARCH SYSTEMS INC",
+      "cik": "0001013237",
+      "sec_company_name": "FACTSET RESEARCH SYSTEMS INC",
+      "exchange": "NYSE"
+    },
+    {
+      "shortlist_rank": 48,
+      "ticker": "CVSA",
+      "screen_company_name": "Covista Inc.",
+      "cik": "0000730464",
+      "sec_company_name": "Covista Inc.",
+      "exchange": "NYSE"
+    },
+    {
+      "shortlist_rank": 49,
+      "ticker": "META",
+      "screen_company_name": "Meta Platforms, Inc.",
+      "cik": "0001326801",
+      "sec_company_name": "Meta Platforms, Inc.",
+      "exchange": "Nasdaq"
+    },
+    {
+      "shortlist_rank": 50,
+      "ticker": "SPSC",
+      "screen_company_name": "SPS COMMERCE INC",
+      "cik": "0001092699",
+      "sec_company_name": "SPS COMMERCE INC",
+      "exchange": "Nasdaq"
+    },
+    {
+      "shortlist_rank": 51,
+      "ticker": "PAYX",
+      "screen_company_name": "PAYCHEX INC",
+      "cik": "0000723531",
+      "sec_company_name": "PAYCHEX INC",
+      "exchange": "Nasdaq"
+    },
+    {
+      "shortlist_rank": 52,
+      "ticker": "OLLI",
+      "screen_company_name": "Ollie's Bargain Outlet Holdings, Inc.",
+      "cik": "0001639300",
+      "sec_company_name": "Ollie's Bargain Outlet Holdings, Inc.",
+      "exchange": "Nasdaq"
+    },
+    {
+      "shortlist_rank": 53,
+      "ticker": "IRDM",
+      "screen_company_name": "Iridium Communications Inc.",
+      "cik": "0001418819",
+      "sec_company_name": "Iridium Communications Inc.",
+      "exchange": "Nasdaq"
+    },
+    {
+      "shortlist_rank": 54,
+      "ticker": "RDVT",
+      "screen_company_name": "Red Violet, Inc.",
+      "cik": "0001720116",
+      "sec_company_name": "Red Violet, Inc.",
+      "exchange": "Nasdaq"
+    },
+    {
+      "shortlist_rank": 55,
+      "ticker": "PAYC",
+      "screen_company_name": "Paycom Software, Inc.",
+      "cik": "0001590955",
+      "sec_company_name": "Paycom Software, Inc.",
+      "exchange": "NYSE"
+    },
+    {
+      "shortlist_rank": 56,
+      "ticker": "PG",
+      "screen_company_name": "PROCTER & GAMBLE Co",
+      "cik": "0000080424",
+      "sec_company_name": "PROCTER & GAMBLE Co",
+      "exchange": "NYSE"
+    },
+    {
+      "shortlist_rank": 57,
+      "ticker": "HALO",
+      "screen_company_name": "HALOZYME THERAPEUTICS, INC.",
+      "cik": "0001159036",
+      "sec_company_name": "HALOZYME THERAPEUTICS, INC.",
+      "exchange": "Nasdaq"
+    },
+    {
+      "shortlist_rank": 58,
+      "ticker": "AOS",
+      "screen_company_name": "SMITH A O CORP",
+      "cik": "0000091142",
+      "sec_company_name": "SMITH A O CORP",
+      "exchange": "NYSE"
+    },
+    {
+      "shortlist_rank": 59,
+      "ticker": "FTNT",
+      "screen_company_name": "Fortinet, Inc.",
+      "cik": "0001262039",
+      "sec_company_name": "Fortinet, Inc.",
+      "exchange": "Nasdaq"
+    },
+    {
+      "shortlist_rank": 60,
+      "ticker": "FFIV",
+      "screen_company_name": "F5, INC.",
+      "cik": "0001048695",
+      "sec_company_name": "F5, INC.",
+      "exchange": "Nasdaq"
+    },
+    {
+      "shortlist_rank": 61,
+      "ticker": "V",
+      "screen_company_name": "VISA INC.",
+      "cik": "0001403161",
+      "sec_company_name": "VISA INC.",
+      "exchange": "NYSE"
+    },
+    {
+      "shortlist_rank": 62,
+      "ticker": "MLI",
+      "screen_company_name": "MUELLER INDUSTRIES INC",
+      "cik": "0000089439",
+      "sec_company_name": "MUELLER INDUSTRIES INC",
+      "exchange": "NYSE"
+    },
+    {
+      "shortlist_rank": 63,
+      "ticker": "DUOL",
+      "screen_company_name": "Duolingo, Inc.",
+      "cik": "0001562088",
+      "sec_company_name": "Duolingo, Inc.",
+      "exchange": "Nasdaq"
+    },
+    {
+      "shortlist_rank": 64,
+      "ticker": "NVDA",
+      "screen_company_name": "NVIDIA CORP",
+      "cik": "0001045810",
+      "sec_company_name": "NVIDIA CORP",
+      "exchange": "Nasdaq"
+    },
+    {
+      "shortlist_rank": 65,
+      "ticker": "MCD",
+      "screen_company_name": "MCDONALDS CORP",
+      "cik": "0000063908",
+      "sec_company_name": "MCDONALDS CORP",
+      "exchange": "NYSE"
+    },
+    {
+      "shortlist_rank": 66,
+      "ticker": "BKE",
+      "screen_company_name": "BUCKLE INC",
+      "cik": "0000885245",
+      "sec_company_name": "BUCKLE INC",
+      "exchange": "NYSE"
+    },
+    {
+      "shortlist_rank": 67,
+      "ticker": "QCOM",
+      "screen_company_name": "QUALCOMM INC/DE",
+      "cik": "0000804328",
+      "sec_company_name": "QUALCOMM INC/DE",
+      "exchange": "Nasdaq"
+    },
+    {
+      "shortlist_rank": 68,
+      "ticker": "DPZ",
+      "screen_company_name": "DOMINOS PIZZA INC",
+      "cik": "0001286681",
+      "sec_company_name": "DOMINOS PIZZA INC",
+      "exchange": "Nasdaq"
+    },
+    {
+      "shortlist_rank": 69,
+      "ticker": "CDNS",
+      "screen_company_name": "CADENCE DESIGN SYSTEMS INC",
+      "cik": "0000813672",
+      "sec_company_name": "CADENCE DESIGN SYSTEMS INC",
+      "exchange": "Nasdaq"
+    },
+    {
+      "shortlist_rank": 70,
+      "ticker": "YUM",
+      "screen_company_name": "YUM BRANDS INC",
+      "cik": "0001041061",
+      "sec_company_name": "YUM BRANDS INC",
+      "exchange": "NYSE"
+    },
+    {
+      "shortlist_rank": 71,
+      "ticker": "GGG",
+      "screen_company_name": "GRACO INC",
+      "cik": "0000042888",
+      "sec_company_name": "GRACO INC",
+      "exchange": "NYSE"
+    },
+    {
+      "shortlist_rank": 72,
+      "ticker": "EXPE",
+      "screen_company_name": "Expedia Group, Inc.",
+      "cik": "0001324424",
+      "sec_company_name": "Expedia Group, Inc.",
+      "exchange": "Nasdaq"
+    },
+    {
+      "shortlist_rank": 73,
+      "ticker": "MSI",
+      "screen_company_name": "Motorola Solutions, Inc.",
+      "cik": "0000068505",
+      "sec_company_name": "Motorola Solutions, Inc.",
+      "exchange": "NYSE"
+    },
+    {
+      "shortlist_rank": 74,
+      "ticker": "SSD",
+      "screen_company_name": "Simpson Manufacturing Co., Inc.",
+      "cik": "0000920371",
+      "sec_company_name": "Simpson Manufacturing Co., Inc.",
+      "exchange": "NYSE"
+    },
+    {
+      "shortlist_rank": 75,
+      "ticker": "HQY",
+      "screen_company_name": "HEALTHEQUITY, INC.",
+      "cik": "0001428336",
+      "sec_company_name": "HEALTHEQUITY, INC.",
+      "exchange": "Nasdaq"
+    },
+    {
+      "shortlist_rank": 76,
+      "ticker": "ZM",
+      "screen_company_name": "Zoom Communications, Inc.",
+      "cik": "0001585521",
+      "sec_company_name": "Zoom Communications, Inc.",
+      "exchange": "Nasdaq"
+    },
+    {
+      "shortlist_rank": 77,
+      "ticker": "SCCO",
+      "screen_company_name": "SOUTHERN COPPER CORP/",
+      "cik": "0001001838",
+      "sec_company_name": "SOUTHERN COPPER CORP/",
+      "exchange": "NYSE"
+    },
+    {
+      "shortlist_rank": 78,
+      "ticker": "MU",
+      "screen_company_name": "MICRON TECHNOLOGY INC",
+      "cik": "0000723125",
+      "sec_company_name": "MICRON TECHNOLOGY INC",
+      "exchange": "Nasdaq"
+    },
+    {
+      "shortlist_rank": 79,
+      "ticker": "TDW",
+      "screen_company_name": "TIDEWATER INC",
+      "cik": "0000098222",
+      "sec_company_name": "TIDEWATER INC",
+      "exchange": "NYSE"
+    },
+    {
+      "shortlist_rank": 80,
+      "ticker": "MANH",
+      "screen_company_name": "MANHATTAN ASSOCIATES INC",
+      "cik": "0001056696",
+      "sec_company_name": "MANHATTAN ASSOCIATES INC",
+      "exchange": "Nasdaq"
+    },
+    {
+      "shortlist_rank": 81,
+      "ticker": "UPWK",
+      "screen_company_name": "UPWORK, INC",
+      "cik": "0001627475",
+      "sec_company_name": "UPWORK, INC",
+      "exchange": "Nasdaq"
+    },
+    {
+      "shortlist_rank": 82,
+      "ticker": "HWM",
+      "screen_company_name": "Howmet Aerospace Inc.",
+      "cik": "0000004281",
+      "sec_company_name": "Howmet Aerospace Inc.",
+      "exchange": "NYSE"
+    },
+    {
+      "shortlist_rank": 83,
+      "ticker": "ROL",
+      "screen_company_name": "ROLLINS INC",
+      "cik": "0000084839",
+      "sec_company_name": "ROLLINS INC",
+      "exchange": "NYSE"
+    },
+    {
+      "shortlist_rank": 84,
+      "ticker": "AMGN",
+      "screen_company_name": "AMGEN INC",
+      "cik": "0000318154",
+      "sec_company_name": "AMGEN INC",
+      "exchange": "Nasdaq"
+    },
+    {
+      "shortlist_rank": 85,
+      "ticker": "STE",
+      "screen_company_name": "STERIS plc",
+      "cik": "0001757898",
+      "sec_company_name": "STERIS plc",
+      "exchange": "NYSE"
+    },
+    {
+      "shortlist_rank": 86,
+      "ticker": "DVA",
+      "screen_company_name": "DAVITA INC.",
+      "cik": "0000927066",
+      "sec_company_name": "DAVITA INC.",
+      "exchange": "NYSE"
+    },
+    {
+      "shortlist_rank": 87,
+      "ticker": "VMC",
+      "screen_company_name": "Vulcan Materials CO",
+      "cik": "0001396009",
+      "sec_company_name": "Vulcan Materials CO",
+      "exchange": "NYSE"
+    },
+    {
+      "shortlist_rank": 88,
+      "ticker": "HUBB",
+      "screen_company_name": "HUBBELL INC",
+      "cik": "0000048898",
+      "sec_company_name": "HUBBELL INC",
+      "exchange": "NYSE"
+    },
+    {
+      "shortlist_rank": 89,
+      "ticker": "FIVN",
+      "screen_company_name": "Five9, Inc.",
+      "cik": "0001288847",
+      "sec_company_name": "Five9, Inc.",
+      "exchange": "Nasdaq"
+    },
+    {
+      "shortlist_rank": 90,
+      "ticker": "QRVO",
+      "screen_company_name": "Qorvo, Inc.",
+      "cik": "0001604778",
+      "sec_company_name": "Qorvo, Inc.",
+      "exchange": "Nasdaq"
+    },
+    {
+      "shortlist_rank": 91,
+      "ticker": "CW",
+      "screen_company_name": "CURTISS WRIGHT CORP",
+      "cik": "0000026324",
+      "sec_company_name": "CURTISS WRIGHT CORP",
+      "exchange": "NYSE"
+    },
+    {
+      "shortlist_rank": 92,
+      "ticker": "WM",
+      "screen_company_name": "WASTE MANAGEMENT INC",
+      "cik": "0000823768",
+      "sec_company_name": "WASTE MANAGEMENT INC",
+      "exchange": "NYSE"
+    },
+    {
+      "shortlist_rank": 93,
+      "ticker": "SSNC",
+      "screen_company_name": "SS&C Technologies Holdings Inc",
+      "cik": "0001402436",
+      "sec_company_name": "SS&C Technologies Holdings Inc",
+      "exchange": "Nasdaq"
+    },
+    {
+      "shortlist_rank": 94,
+      "ticker": "NYT",
+      "screen_company_name": "NEW YORK TIMES CO",
+      "cik": "0000071691",
+      "sec_company_name": "NEW YORK TIMES CO",
+      "exchange": "NYSE"
+    },
+    {
+      "shortlist_rank": 95,
+      "ticker": "NEU",
+      "screen_company_name": "NEWMARKET CORP",
+      "cik": "0001282637",
+      "sec_company_name": "NEWMARKET CORP",
+      "exchange": "NYSE"
+    },
+    {
+      "shortlist_rank": 96,
+      "ticker": "PINS",
+      "screen_company_name": "PINTEREST, INC.",
+      "cik": "0001506293",
+      "sec_company_name": "PINTEREST, INC.",
+      "exchange": "NYSE"
+    },
+    {
+      "shortlist_rank": 97,
+      "ticker": "MA",
+      "screen_company_name": "Mastercard Inc",
+      "cik": "0001141391",
+      "sec_company_name": "Mastercard Inc",
+      "exchange": "NYSE"
+    },
+    {
+      "shortlist_rank": 98,
+      "ticker": "DBX",
+      "screen_company_name": "DROPBOX, INC.",
+      "cik": "0001467623",
+      "sec_company_name": "DROPBOX, INC.",
+      "exchange": "Nasdaq"
+    },
+    {
+      "shortlist_rank": 99,
+      "ticker": "IESC",
+      "screen_company_name": "IES Holdings, Inc.",
+      "cik": "0001048268",
+      "sec_company_name": "IES Holdings, Inc.",
+      "exchange": "Nasdaq"
+    },
+    {
+      "shortlist_rank": 100,
+      "ticker": "SKY",
+      "screen_company_name": "Champion Homes, Inc.",
+      "cik": "0000090896",
+      "sec_company_name": "Champion Homes, Inc.",
+      "exchange": "NYSE"
+    }
+  ]
+}

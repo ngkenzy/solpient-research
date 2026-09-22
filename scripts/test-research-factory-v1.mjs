@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import fs from "node:fs";
 import {
   RESEARCH_FACTORY_VERSION,
   parseSecTickerExchange,
@@ -10,6 +11,35 @@ import {
 } from "../lib/research-factory-v1.mjs";
 
 assert.equal(RESEARCH_FACTORY_VERSION,"research-factory-v1");
+
+const identitySnapshot=JSON.parse(
+  fs.readFileSync("data/research-factory/sec-identities-pipeline-run-1.json","utf8")
+);
+assert.equal(
+  identitySnapshot.snapshot_version,
+  "research-factory-sec-identities-pipeline-run-1-v1"
+);
+assert.equal(
+  identitySnapshot.source_pipeline_run_id,
+  "c7647ef1-92e0-46dc-ab1a-4c1bcb31314c"
+);
+assert.equal(identitySnapshot.candidate_count,100);
+assert.equal(identitySnapshot.identities.length,100);
+assert.equal(
+  new Set(identitySnapshot.identities.map(x=>x.ticker)).size,
+  100,
+  "identity snapshot tickers must be unique"
+);
+assert.ok(
+  identitySnapshot.identities.every(x=>
+    /^[0-9]{10}$/.test(String(x.cik))&&
+    x.ticker&&x.sec_company_name&&x.exchange
+  ),
+  "identity snapshot rows require zero-padded CIK, ticker, SEC name, and exchange"
+);
+const cvsa=identitySnapshot.identities.find(x=>x.ticker==="CVSA");
+assert.equal(cvsa?.cik,"0000730464");
+assert.equal(cvsa?.exchange,"NYSE");
 
 const secRows=parseSecTickerExchange({
   fields:["cik","name","ticker","exchange"],
