@@ -1,0 +1,10 @@
+begin;
+select plan(6);
+select has_column('public','baseline_reviews','prepared_at','baseline_reviews has prepared_at');
+select has_column('public','baseline_reviews','preparation_source','baseline_reviews has preparation_source');
+select has_column('public','baseline_reviews','human_verified_at','baseline_reviews has human_verified_at');
+select has_column('public','baseline_reviews','human_verified_by','baseline_reviews has human_verified_by');
+select has_column('public','baseline_reviews','human_verified_payload_hash','baseline_reviews has human_verified_payload_hash');
+select has_column('public','baseline_reviews','attestation_version','baseline_reviews has attestation_version');
+select * from finish();
+rollback;

@@ -20,6 +20,19 @@ import { validateResearchStandard } from "@/lib/research-standard.mjs";
 import { buildCompanyHistory } from "@/lib/historical-peer-engine.mjs";
 // @ts-expect-error Node ESM research helper
 import { buildReferencePeerContext } from "@/lib/reference-peer-data.mjs";
+// @ts-expect-error Node ESM research helper
+import { REVIEW_ATTESTATION_VERSION, buildHumanReviewAttestation, validateHumanReviewAttestation } from "@/lib/review-attestation.mjs";
+
+const clearedHumanVerification={
+  human_verified_at:null,
+  human_verified_by:null,
+  human_verified_payload_hash:null,
+  attestation_version:null,
+};
+
+function reviewerIdentity() {
+  return process.env.REVIEW_WORKBENCH_REVIEWER?.trim() || "authorized-review-workbench";
+}
 
 export async function unlockReviewAction(formData:FormData) {
   const ok=await unlockReviewAccess(String(formData.get("key") ?? ""));
@@ -52,6 +65,7 @@ export async function saveReviewAction(formData:FormData) {
     draft_id:draftId,status:readiness.ready?"ready":"editing",review_payload:patch,
     validation_result:readiness.standard,promotion_readiness:readiness,
     review_notes:notes,reviewed_at:now,updated_at:now,
+    ...clearedHumanVerification,
   },{onConflict:"draft_id"});
   if (reviewError) throw reviewError;
 
@@ -65,6 +79,56 @@ export async function saveReviewAction(formData:FormData) {
   revalidatePath("/review");
   revalidatePath("/review/"+draftId);
   redirect("/review/"+draftId+"?saved=1");
+}
+
+export async function verifyReviewAction(formData:FormData) {
+  await requireReviewAccess();
+  const supabase=getAdminSupabase();
+  if (!supabase) redirect("/review/login?setup=1");
+  const draftId=String(formData.get("draft_id") ?? "");
+  const confirmation=String(formData.get("human_verification") ?? "");
+  if (!draftId) redirect("/review?error=missing-draft");
+  if (confirmation!=="confirmed") redirect("/review/"+draftId+"?verification=confirm");
+
+  const [draftResult,reviewResult]=await Promise.all([
+    supabase.from("baseline_drafts").select("*").eq("id",draftId).single(),
+    supabase.from("baseline_reviews").select("*").eq("draft_id",draftId).maybeSingle(),
+  ]);
+  const draft=draftResult.data, review=reviewResult.data;
+  if (draftResult.error || !draft) redirect("/review?error=draft-not-found");
+  if (reviewResult.error || !review) redirect("/review/"+draftId+"?error=save-review-first");
+
+  const merged=applyReviewPatch(draft.draft_payload,review.review_payload);
+  const readiness=validatePromotionReadiness(merged);
+  if (!readiness.ready) {
+    await supabase.from("baseline_reviews").update({
+      status:"editing",
+      validation_result:readiness.standard,
+      promotion_readiness:readiness,
+      ...clearedHumanVerification,
+      updated_at:new Date().toISOString(),
+    }).eq("id",review.id);
+    redirect("/review/"+draftId+"?verification=blocked");
+  }
+
+  const attestation=buildHumanReviewAttestation({draft,payload:merged});
+  const now=new Date().toISOString();
+  const {error}=await supabase.from("baseline_reviews").update({
+    status:"ready",
+    validation_result:readiness.standard,
+    promotion_readiness:readiness,
+    reviewed_at:now,
+    human_verified_at:now,
+    human_verified_by:reviewerIdentity(),
+    human_verified_payload_hash:attestation.payload_hash,
+    attestation_version:REVIEW_ATTESTATION_VERSION,
+    updated_at:now,
+  }).eq("id",review.id);
+  if (error) throw error;
+
+  revalidatePath("/review");
+  revalidatePath("/review/"+draftId);
+  redirect("/review/"+draftId+"?verified=1");
 }
 export async function applyEnrichmentAction(formData:FormData) {
   await requireReviewAccess();
@@ -91,7 +155,9 @@ export async function applyEnrichmentAction(formData:FormData) {
     draft_id:draftId,status:readiness.ready?"ready":"editing",review_payload:combinedPatch,
     validation_result:readiness.standard,promotion_readiness:readiness,
     review_notes:reviewResult.data?.review_notes ?? "Primary-source enrichment applied.",
-    reviewed_at:now,updated_at:now,
+    reviewed_at:reviewResult.data?.reviewed_at ?? null,
+    prepared_at:now,preparation_source:"evidence_enrichment",
+    ...clearedHumanVerification,updated_at:now,
   },{onConflict:"draft_id"});
   if (reviewError) throw reviewError;
 
@@ -142,7 +208,9 @@ export async function applyComposerAction(formData:FormData) {
     draft_id:draftId,status:readiness.ready?"ready":"editing",review_payload:combinedPatch,
     validation_result:readiness.standard,promotion_readiness:readiness,
     review_notes:reviewResult.data?.review_notes ?? "Automated Research Composer v1 applied; human review still required.",
-    reviewed_at:now,updated_at:now,
+    reviewed_at:reviewResult.data?.reviewed_at ?? null,
+    prepared_at:now,preparation_source:"research_composer_v1",
+    ...clearedHumanVerification,updated_at:now,
   },{onConflict:"draft_id"});
   if (reviewError) throw reviewError;
 
@@ -305,7 +373,10 @@ export async function buildCompanyReviewAction(formData:FormData) {
     validation_result:readiness.standard,
     promotion_readiness:readiness,
     review_notes:"Research package generated from the tracked evidence set. Human verification is required before publication.",
-    reviewed_at:now,
+    reviewed_at:null,
+    prepared_at:now,
+    preparation_source:"factory_composer",
+    ...clearedHumanVerification,
     updated_at:now,
   },{onConflict:"draft_id"});
   if (reviewError) throw reviewError;
@@ -361,7 +432,10 @@ export async function prepareV2ReviewsAction() {
       validation_result:readiness.standard,
       promotion_readiness:readiness,
       review_notes:"Automated Research Composer v1 prepared this V2 review package. Human verification is required before publication.",
-      reviewed_at:now,
+      reviewed_at:null,
+      prepared_at:now,
+      preparation_source:"automated_research_composer_v1",
+      ...clearedHumanVerification,
       updated_at:now,
     });
     if (insertReviewError) throw insertReviewError;
@@ -409,6 +483,9 @@ export async function promoteReviewAction(formData:FormData) {
     }).eq("id",review.id);
     redirect("/review/"+draftId+"?promotion=blocked");
   }
+
+  const attestation=validateHumanReviewAttestation({draft,review,payload:merged});
+  if (!attestation.valid) redirect("/review/"+draftId+"?promotion=verification-required");
 
   const result=await promoteReviewedBaseline({supabase,draft,review,payload:merged});
   revalidatePath("/");
