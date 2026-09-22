@@ -49,6 +49,7 @@ if(!factoryRun)throw new Error("No active Research Factory V1 run is available."
 const {data:items,error:itemError}=await sb.from("research_factory_items")
   .select("*")
   .eq("research_factory_run_id",factoryRun.id)
+  .eq("stage","onboarding")
   .order("ordinal",{ascending:true});
 if(itemError)throw itemError;
 
@@ -124,6 +125,54 @@ for(const item of items??[]){
         }
       }
     }
+
+    if(!company?.cik&&identity?.status!=="matched"){
+      const reason=identity?.status==="ambiguous"
+        ?"Existing company has no CIK and the SEC ticker mapping is ambiguous; identity review is required."
+        :"Existing company has no CIK and the ticker could not be resolved from the SEC mapping.";
+      const snapshot={
+        ...(item.state_snapshot??{}),
+        factory_version:RESEARCH_FACTORY_VERSION,
+        company_id:company?.id??null,
+        identity_resolution:{
+          status:identity?.status??"missing",
+          source_url:sourceUrl,
+          candidate_count:identity?.candidates??0,
+          options:(identity?.options??[]).map(x=>({
+            cik:x.cik,company_name:x.company_name,ticker:x.ticker,exchange:x.exchange,
+          })),
+        },
+      };
+      const nextActions=[{
+        priority:100,
+        type:"identity_review",
+        action:reason,
+      }];
+      const stateHash=buildFactoryStateHash(snapshot);
+      if(item.state_hash!==stateHash||item.status!=="blocked"){
+        const {error}=await sb.rpc("transition_research_factory_item_v1",{
+          p_item_id:item.id,
+          p_stage:"onboarding",
+          p_status:"blocked",
+          p_company_id:company?.id??null,
+          p_coverage_report_id:null,
+          p_baseline_draft_id:null,
+          p_composition_id:null,
+          p_coverage_pct:null,
+          p_repair_job_count:0,
+          p_manual_review_count:1,
+          p_next_actions:nextActions,
+          p_state_snapshot:snapshot,
+          p_state_hash:stateHash,
+          p_last_error:reason,
+          p_event_type:"identity_resolution_blocked",
+        });
+        if(error)throw error;
+      }
+      if(identity?.status==="ambiguous")result.ambiguous++;
+      else result.missing++;
+      continue;
+    }
   }else{
     identity=resolveSecIdentity({
       ticker:item.ticker,
@@ -145,7 +194,6 @@ for(const item of items??[]){
             cik:x.cik,company_name:x.company_name,ticker:x.ticker,exchange:x.exchange,
           })),
         },
-        last_refresh_at:new Date().toISOString(),
       };
       const nextActions=[{
         priority:100,
@@ -153,6 +201,11 @@ for(const item of items??[]){
         action:reason,
       }];
       const stateHash=buildFactoryStateHash(snapshot);
+      if(item.state_hash===stateHash&&item.status==="blocked"){
+        if(identity.status==="ambiguous")result.ambiguous++;
+        else result.missing++;
+        continue;
+      }
       const {error}=await sb.rpc("transition_research_factory_item_v1",{
         p_item_id:item.id,
         p_stage:"onboarding",
