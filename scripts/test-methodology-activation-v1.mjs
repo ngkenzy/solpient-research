@@ -167,6 +167,51 @@ const atomicDependencyStatus=methodologyDependencyStatus(
 );
 assert.equal(atomicDependencyStatus.ready,true);
 
+const sectorV2={
+  id:"sector-v2",
+  methodology_key:"universe_sector_model",
+  version:"solpient-universe-sector-model-v2",
+  predecessor_version:null,
+};
+const sectorV22={
+  id:"sector-v22",
+  methodology_key:"universe_sector_model",
+  version:"solpient-universe-sector-model-v2.2",
+  predecessor_version:"solpient-universe-sector-model-v2",
+};
+const sectorV23={
+  id:"sector-v23",
+  methodology_key:"universe_sector_model",
+  version:"solpient-universe-sector-model-v2.3",
+  predecessor_version:"solpient-universe-sector-model-v2.2",
+};
+const evidenceOwner={
+  id:"evidence-owner",
+  methodology_key:"sector_evidence_model",
+  version:"solpient-sector-evidence-model-v2.1",
+  manifest:{
+    methodology_key:"sector_evidence_model",
+    dependencies:[
+      {methodology_key:"universe_sector_model",version:"solpient-universe-sector-model-v2",required:true},
+    ],
+  },
+};
+const successorDependencyStatus=methodologyDependencyStatus(
+  [evidenceOwner,sectorV2,sectorV22,sectorV23],
+  [
+    {id:"sv2",methodology_definition_id:sectorV2.id,event_type:"registered",effective_at:"2026-09-22T00:00:00Z"},
+    {id:"sv22",methodology_definition_id:sectorV22.id,event_type:"registered",effective_at:"2026-09-22T00:00:01Z"},
+    {id:"sv23",methodology_definition_id:sectorV23.id,event_type:"validated",effective_at:"2026-09-22T00:00:02Z"},
+  ],
+  evidenceOwner.manifest,
+  {activationIdentities:new Set(["universe_sector_model|solpient-universe-sector-model-v2.3"])}
+);
+assert.equal(successorDependencyStatus.ready,true);
+assert.equal(
+  successorDependencyStatus.rows[0].governed_successor_version,
+  "solpient-universe-sector-model-v2.3"
+);
+
 const evidence=requiredValidationEvidence(accepted);
 assert.ok(evidence["universe_screening|solpient-universe-screen-v2.3"]
   .some(x=>x.validation_type==="db_invariant"));
