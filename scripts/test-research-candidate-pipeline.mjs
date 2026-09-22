@@ -7,7 +7,7 @@ import {
   valuationProfileForScreen,
 } from "../lib/research-candidate-pipeline.mjs";
 
-assert.equal(RESEARCH_CANDIDATE_PIPELINE_VERSION,"research-candidate-pipeline-v2.2");
+assert.equal(RESEARCH_CANDIDATE_PIPELINE_VERSION,"research-candidate-pipeline-v2.3");
 
 const screened=selectSolpient100Candidates([{
   ticker:"TEST",
