@@ -172,6 +172,44 @@ Then check:
 
 Do not remove the compatibility bridge or `@supabase/supabase-js` yet. Write-heavy review, publication, ingestion, repair, automation, and research-factory workflows still need to be migrated.
 
+## Phase 3A checkpoint: review workbench writes
+
+The internal review workbench now supports direct PostgreSQL for both reads and the first set of write operations.
+
+Direct PostgreSQL now covers:
+
+- review queue reads;
+- individual draft/review/enrichment/composition reads;
+- saving a review;
+- human verification / attestation updates;
+- applying verified enrichment;
+- applying Research Composer output;
+- bulk preparing generated V2 review packages.
+
+These mutations use PostgreSQL transactions so related review/draft/composition changes commit together or roll back together.
+
+Verify the local review database before using the workbench:
+
+```bash
+npm run local:verify-review
+npm run build
+npm run dev
+```
+
+Then open:
+
+```text
+/review/login
+/review
+```
+
+Phase 3A intentionally leaves two high-impact operations on the legacy admin adapter until Phase 3B:
+
+- building a fresh factory draft;
+- final promotion/publication of reviewed research.
+
+Keep the temporary Supabase/PostgREST fallback available until those paths and the research-factory/provenance workers are migrated.
+
 ## Phase 5: remove the Supabase client package
 
 After local parity is proven:
