@@ -130,4 +130,100 @@ begin
 end
 $test$;
 
+
+do $screen$
+declare
+  v_run uuid;
+  v_failed boolean := false;
+  v_bad_hash text := repeat('7',64);
+begin
+  select public.publish_universe_screen_package_v1_1(
+    jsonb_build_object(
+      'as_of_at','2026-09-22T00:00:00Z',
+      'methodology_version','fixture-screen-v1',
+      'selection_version','fixture-selection-v1',
+      'provider','fixture',
+      'input_hash',repeat('8',64),
+      'input_count',1,
+      'result_count',1,
+      'excluded_count',0,
+      'watch_count',0,
+      'research_candidate_count',1,
+      'solpient_100_candidate_count',0,
+      'proposed_deep_research_count',1,
+      'metadata',jsonb_build_object(
+        'validation_hash',repeat('9',64),
+        'universe_input_hash',repeat('a',64)
+      )
+    ),
+    jsonb_build_array(jsonb_build_object(
+      'ticker','FIX',
+      'company_name','Fixture Company',
+      'sector','Information Technology',
+      'industry','Software',
+      'screen_profile','software',
+      'screen_state','research_candidate',
+      'universe_rank',1,
+      'shortlist_rank',1,
+      'proposed_for_deep_research',true,
+      'final_membership_requires_review',true,
+      'screen_score',80,
+      'quality_core_score',80,
+      'evidence_coverage_pct',80,
+      'quality_score',80,
+      'durability_score',80,
+      'balance_sheet_score',80,
+      'growth_score',80,
+      'valuation_score',80,
+      'gates','[]'::jsonb,
+      'reasons','{}'::jsonb,
+      'score_detail','{}'::jsonb,
+      'input_summary','{}'::jsonb,
+      'result_hash',repeat('b',64)
+    ))
+  ) into v_run;
+
+  if not exists (
+    select 1 from public.universe_screen_results
+    where universe_screen_run_id=v_run and ticker='FIX'
+  ) then
+    raise exception 'atomic screen package did not publish result';
+  end if;
+
+  begin
+    perform public.publish_universe_screen_package_v1_1(
+      jsonb_build_object(
+        'as_of_at','2026-09-22T00:00:00Z',
+        'methodology_version','fixture-screen-v1',
+        'selection_version','fixture-selection-v1',
+        'provider','fixture',
+        'input_hash',v_bad_hash,
+        'input_count',1,
+        'result_count',1,
+        'metadata',jsonb_build_object(
+          'validation_hash',repeat('c',64),
+          'universe_input_hash',repeat('d',64)
+        )
+      ),
+      jsonb_build_array(jsonb_build_object(
+        'ticker','BAD',
+        'screen_profile','software',
+        'screen_state','not-a-valid-state',
+        'universe_rank',1,
+        'proposed_for_deep_research',false,
+        'final_membership_requires_review',true,
+        'result_hash',repeat('e',64)
+      ))
+    );
+  exception when others then
+    v_failed := true;
+  end;
+
+  if not v_failed then raise exception 'invalid screen package unexpectedly succeeded'; end if;
+  if exists (select 1 from public.universe_screen_runs where input_hash=v_bad_hash) then
+    raise exception 'failed screen package left an orphan immutable run';
+  end if;
+end
+$screen$;
+
 rollback;
