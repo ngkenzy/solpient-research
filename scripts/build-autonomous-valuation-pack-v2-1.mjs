@@ -187,6 +187,48 @@ for(const item of items??[]){
     );
     if(packError)throw packError;
 
+    if(
+      item.status==="quarantined"&&
+      item?.state_snapshot?.autonomous_v2_1?.valuation?.status==="quarantined"
+    ){
+      const snapshot={
+        ...(item.state_snapshot??{}),
+        autonomous_v2_1:{
+          ...(item.state_snapshot?.autonomous_v2_1??{}),
+          valuation:{
+            status:"auto_approved",
+            policy_version:AUTONOMOUS_VALUATION_POLICY_VERSION,
+            confidence_pct:policy.confidence_pct,
+            valuation_draft_id:valuationDraftId,
+            candidate_valuation_input_pack_id:packId,
+          },
+        },
+      };
+      const {error:releaseError}=await sb.rpc("transition_research_factory_item_v1",{
+        p_item_id:item.id,
+        p_stage:item.stage,
+        p_status:"queued",
+        p_company_id:item.company_id,
+        p_coverage_report_id:item.coverage_report_id,
+        p_baseline_draft_id:item.baseline_draft_id,
+        p_composition_id:item.composition_id,
+        p_coverage_pct:item.coverage_pct,
+        p_repair_job_count:item.repair_job_count,
+        p_manual_review_count:0,
+        p_next_actions:[{
+          priority:100,
+          type:"autonomous_recheck",
+          action:"Autonomous valuation now clears policy; refresh the factory state.",
+          reason:policy.reason,
+        }],
+        p_state_snapshot:snapshot,
+        p_state_hash:buildFactoryStateHash(snapshot),
+        p_last_error:null,
+        p_event_type:"autonomous_valuation_released",
+      });
+      if(releaseError)throw releaseError;
+    }
+
     summary.push({
       ticker:item.ticker,
       status:"auto_approved",
