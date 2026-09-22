@@ -1,0 +1,106 @@
+name: Kickoff Autonomous Research Factory V2.1.2
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/autonomous-research-factory-v2-1-2-kickoff.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: solpient-research-factory
+  cancel-in-progress: false
+
+jobs:
+  kickoff:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      RESEARCH_FACTORY_SEC_IDENTITY_SNAPSHOT: "data/research-factory/sec-identities-pipeline-run-1.json"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+
+      - name: Verify settled queue policy
+        run: |
+          npm run test:research-factory
+          npm run test:research-factory:v1.1
+          npm run test:research-factory:v2.1
+          node --check scripts/run-autonomous-research-factory-v2-1.mjs
+
+      - name: Process first V2.1.2 settled batch
+        run: node scripts/run-autonomous-research-factory-v2-1.mjs --max=10
+
+      - name: Verify production batch
+        run: |
+          node --input-type=module <<'NODE'
+          import { createClient } from "@supabase/supabase-js";
+
+          const sb=createClient(
+            process.env.SUPABASE_URL,
+            process.env.SUPABASE_SERVICE_ROLE_KEY,
+            {auth:{persistSession:false,autoRefreshToken:false}}
+          );
+
+          const {data:factoryRun,error:factoryError}=await sb
+            .from("research_factory_runs")
+            .select("id")
+            .eq("factory_version","research-factory-v1")
+            .order("created_at",{ascending:false})
+            .limit(1)
+            .single();
+          if(factoryError)throw factoryError;
+
+          const {data:run,error:runError}=await sb
+            .from("research_factory_autonomous_runs")
+            .select("*")
+            .eq("research_factory_run_id",factoryRun.id)
+            .order("started_at",{ascending:false})
+            .limit(1)
+            .single();
+          if(runError)throw runError;
+
+          if(run?.summary?.queue_version!=="autonomous-settled-queue-v2.1.2"){
+            throw new Error("Latest autonomous run is not a V2.1.2 settled-queue run.");
+          }
+          const results=Array.isArray(run?.summary?.results)?run.summary.results:[];
+          if(results.length<1||results.length>10){
+            throw new Error("V2.1.2 production batch result count is outside 1..10.");
+          }
+
+          const allowed=new Set([
+            "unattempted_review_gate",
+            "queued_unattempted",
+            "quarantine_evidence_changed",
+            "quarantine_recheck_under_settled_queue"
+          ]);
+          for(const result of results){
+            if(!allowed.has(result.selection_reason)){
+              throw new Error("Unexpected selection reason for "+result.ticker+": "+result.selection_reason);
+            }
+            if(result.outcome!=="failed"&&!/^[0-9a-f]{64}$/.test(String(result.evidence_state_hash??""))){
+              throw new Error("Missing post-attempt settlement hash for "+result.ticker);
+            }
+          }
+
+          console.log(JSON.stringify({
+            verified:true,
+            autonomous_run_id:run.id,
+            run_status:run.status,
+            processed_count:run.processed_count,
+            auto_approved_count:run.auto_approved_count,
+            quarantined_count:run.quarantined_count,
+            selected:results.map(x=>({
+              ticker:x.ticker,
+              selection_reason:x.selection_reason,
+              outcome:x.outcome,
+              evidence_state_hash:x.evidence_state_hash
+            }))
+          },null,2));
+          NODE
