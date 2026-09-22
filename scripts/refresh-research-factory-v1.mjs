@@ -12,7 +12,8 @@ function arg(name,fallback=null){
   return hit?hit.slice(prefix.length):fallback;
 }
 
-if(!process.env.SOLPIENT_DATABASE_URL)throw new Error("Missing SOLPIENT_DATABASE_URL.");\nconst sb=createPostgresCompatClient();
+if(!process.env.SOLPIENT_DATABASE_URL)throw new Error("Missing SOLPIENT_DATABASE_URL.");
+const sb=createPostgresCompatClient();
 
 const requestedRunId=arg("factory-run-id",process.env.RESEARCH_FACTORY_RUN_ID??null);
 const tickerArg=arg("ticker",process.env.RESEARCH_FACTORY_TICKER??null);
