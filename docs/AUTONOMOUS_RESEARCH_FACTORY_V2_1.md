@@ -26,7 +26,7 @@ For up to 10 unresolved candidates per weekday, in shortlist order:
 10. auto-approve the valuation input pack only when policy thresholds pass,
 11. refresh the Research Factory state.
 
-The scheduler prioritizes existing `needs_review` items before new queued work. Quarantined names are retried after the normal queue so they cannot monopolize daily capacity.
+The scheduler uses Settled Queue V2.1.2. It prioritizes first-pass `needs_review` items, then ordinary queued work. A quarantined company is considered settled under its current structural evidence and does not consume another weekday slot unless that evidence fingerprint changes. Blocked and running items are excluded from routine scheduling. An explicit single-ticker run may recheck a blocked or quarantined company.
 
 ## Industry assignment
 
@@ -45,7 +45,7 @@ All assignments are append-only and retain their evidence payload and decision h
 
 ## Valuation assumptions
 
-Policy version: `valuation-assumptions-v2.1`.
+Policy version: `valuation-assumptions-v2.1.1`.
 
 V2.1 does not claim generated assumptions are reported facts. It explicitly labels the inputs as Solpient policy/model assumptions.
 
@@ -56,8 +56,11 @@ Inputs can include:
 - stored multi-year historical valuation observations,
 - normalized peer valuation observations,
 - latest stored market price,
-- normalized primary-source fundamentals,
+- true primary regulatory fundamentals when available,
+- independently corroborated structured fundamentals when primary access is unavailable,
 - leverage and coverage evidence.
+
+V2.1.1 does not treat a 10-K/10-Q label from an aggregator as primary evidence. Full primary-source credit requires at least eight actual regulator-backed rows; four to seven receive partial primary credit. In the absence of enough primary evidence, structured-provider corroboration can receive partial source-evidence credit only with at least two providers, six comparable metric-period pairs, and at least 90% agreement within 5%. A single structured provider cannot qualify.
 
 For corporate FCF profiles, the policy creates bear/base/bull:
 
@@ -98,7 +101,7 @@ New append-only tables:
 Auto-approved valuation packs are stored in `candidate_valuation_input_packs` with:
 
 - `status='reviewed'`,
-- `reviewed_by='autonomous-policy:valuation-assumptions-v2.1'`,
+- `reviewed_by='autonomous-policy:valuation-assumptions-v2.1.1'`,
 - the exact generated valuation input,
 - the exact input hash,
 - an audit note containing the autonomous decision hash and confidence.
@@ -132,15 +135,17 @@ This allows Coverage V2 to reconstruct its five-year capital-allocation layer au
 
 ## Quarantine semantics
 
-Quarantine is an automated exception state, not a dead end.
+Quarantine is an automated exception state, not a daily retry loop.
 
-Ordinary Research Factory refreshes preserve quarantine. A later industry or valuation run may release the ticker automatically when stronger evidence causes the policy to pass.
+Settled Queue V2.1.2 records a structural evidence hash after each autonomous attempt. The hash is based on policy version plus structural coverage, provider mix, consensus inputs, historical/peer availability, baseline evidence, and industry assignment. It intentionally excludes routine timestamp churn and daily market-price movement.
 
-Quarantined names are processed after ordinary unresolved work so they cannot prevent the rest of the Solpient 100 from progressing.
+A quarantined ticker becomes eligible again only when its current structural evidence hash differs from the hash stored after its last autonomous attempt. This lets new filings, additional providers, peer availability, consensus evidence, coverage improvements, or policy changes trigger a fresh attempt without allowing unchanged quarantines to consume weekday capacity.
+
+Blocked and running states are also excluded from routine batches. An explicit single-ticker execution can override quarantine or blocked status for controlled recovery.
 
 ## Schedule
 
-The existing Research Factory workflow runs V2.1 Monday through Friday at 14:29 UTC. It processes a maximum of 10 candidates by default and supports manual single-ticker execution.
+The existing Research Factory workflow runs Monday through Friday at 14:29 UTC. It processes a maximum of 10 candidates by default, uses Settled Queue V2.1.2 for routine selection, and supports manual single-ticker execution.
 
 ## Scope boundary
 
