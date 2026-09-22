@@ -24,7 +24,10 @@ const inputPath=arg("input",process.env.UNIVERSE_INPUT_PATH??null);
 const outputPath=arg("output",null);
 const limit=Math.max(1,Number(arg("limit","100"))||100);
 const minInputCount=Math.max(1,Number(arg("min-input-count","1000"))||1000);
-const commitSha=arg("commit-sha",process.env.GITHUB_SHA??null);
+const commitSha=arg("commit-sha",process.env.GITHUB_SHA??(()=>{
+  try{return execFileSync("git",["rev-parse","HEAD"],{encoding:"utf8"}).trim();}
+  catch{return null;}
+})());
 const actor=arg("actor",process.env.GITHUB_ACTOR??"methodology-validation-activation-v1");
 const dbInvariantEvidence=arg("db-invariant-evidence",null);
 const activate=has("activate");
@@ -46,15 +49,11 @@ function parse(filePath){
 }
 
 const rows=parse(inputPath);
-const bundle=buildMethodologyValidationBundle(rows,{limit,acknowledgeReviewItems});
-if(rows.length<minInputCount){
-  bundle.ready=false;
-  bundle.acceptance.full_universe_size=false;
-  bundle.blocking_reasons=[
-    ...(bundle.blocking_reasons??[]),
-    "Input count "+rows.length+" is below the full-universe activation minimum "+minInputCount+".",
-  ];
-}else bundle.acceptance.full_universe_size=true;
+const bundle=buildMethodologyValidationBundle(rows,{
+  limit,
+  acknowledgeReviewItems,
+  minInputCount,
+});
 
 bundle.commit_sha=commitSha;
 bundle.actor=actor;
