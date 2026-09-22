@@ -2,8 +2,6 @@ name: SOLPIENT Research Repair Center
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: "17 13 * * 1-5"
   push:
     branches: [main]
     paths:
