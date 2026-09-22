@@ -15,6 +15,8 @@ on:
       - "lib/research-candidate-pipeline-v2-1.mjs"
       - "lib/research-candidate-pipeline-v2-2.mjs"
       - "lib/research-candidate-pipeline.mjs"
+      - "lib/research-candidate-materialization-v1.mjs"
+      - "lib/research-candidate-pipeline-v2-4.mjs"
       - "lib/methodology-activation-v1.mjs"
       - "lib/methodology-implementation-hash.mjs"
       - "lib/valuation-engine-v3.mjs"
@@ -36,6 +38,11 @@ on:
       - "supabase/tests/methodology_activation_v1_1.sql"
       - "app/review/universe-screening/page.tsx"
       - "app/review/research-candidates/page.tsx"
+      - "scripts/test-research-candidate-pipeline-v2-4.mjs"
+      - "scripts/materialize-research-candidate-pipeline-v2-4.mjs"
+      - "supabase/migrations/20260922050000_research_candidate_pipeline_v2_4_integrity.sql"
+      - "supabase/tests/research_candidate_pipeline_v2_4.sql"
+      - "docs/RESEARCH_CANDIDATE_PIPELINE_V2_4.md"
       - ".github/workflows/research-candidate-pipeline.yml"
   push:
     branches: [main]
@@ -78,10 +85,13 @@ jobs:
         run: node scripts/audit-sector-classification.mjs --input=scripts/fixtures/sector-classification-v2-3-audit.json --fail-on-obvious-unknown=true --fail-on-unresolved=true
       - name: Test candidate handoff
         run: node scripts/test-research-candidate-pipeline.mjs
+      - name: Test candidate V2.4 integrity
+        run: node scripts/test-research-candidate-pipeline-v2-4.mjs
       - name: Test Methodology Activation V1
         run: node scripts/test-methodology-activation-v1.mjs
       - name: Syntax check materializers
         run: |
           node --check scripts/run-universe-screen.mjs
           node --check scripts/materialize-research-candidate-pipeline.mjs
+          node --check scripts/materialize-research-candidate-pipeline-v2-4.mjs
           node --check scripts/register-candidate-valuation-input.mjs
