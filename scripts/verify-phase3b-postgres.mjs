@@ -10,6 +10,10 @@ const requiredFunctions=[
   "create_research_factory_run_v1",
   "transition_research_factory_item_v1",
   "publish_autonomous_valuation_pack_v2_1",
+  "claim_research_factory_batch_v1_1",
+  "complete_research_factory_batch_v1_1",
+  "ingest_evidence_batch_v1",
+  "activate_universe_methodology_stack_v1_1",
 ];
 const requiredTables=[
   "companies",
