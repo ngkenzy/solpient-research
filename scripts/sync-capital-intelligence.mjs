@@ -1,6 +1,6 @@
 import fs from "node:fs/promises";
 import process from "node:process";
-import { createClient } from "@supabase/supabase-js";
+import { createPostgresCompatClient } from "../lib/pg-supabase-compat.mjs";
 import {
   CAPITAL_INTELLIGENCE_VERSION,
   buildInstitutionalActivity,
@@ -8,10 +8,11 @@ import {
   parseForm4,
 } from "../lib/capital-intelligence-engine.mjs";
 
-const supabaseUrl=process.env.SUPABASE_URL;
-const serviceRoleKey=process.env.SUPABASE_SERVICE_ROLE_KEY??process.env.SUPABASE_SECRET_KEY;
-if(!supabaseUrl||!serviceRoleKey)throw new Error("Missing SUPABASE_URL and server secret.");
-const supabase=createClient(supabaseUrl,serviceRoleKey,{auth:{persistSession:false,autoRefreshToken:false}});
+if(!process.env.SOLPIENT_DATABASE_URL && typeof process.loadEnvFile==="function"){
+  try{process.loadEnvFile(".env.local");}catch{}
+}
+if(!process.env.SOLPIENT_DATABASE_URL)throw new Error("Missing SOLPIENT_DATABASE_URL.");
+const supabase=createPostgresCompatClient();
 
 const secContact=process.env.SEC_CONTACT||"ngkenzy@users.noreply.github.com";
 const userAgent=process.env.SEC_USER_AGENT||("SOLPIENT Research "+secContact);
