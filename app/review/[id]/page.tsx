@@ -4,7 +4,9 @@ import { getAdminSupabase } from "@/lib/admin-supabase";
 import { requireReviewAccess } from "@/lib/review-auth";
 // @ts-expect-error Node ESM research helper
 import { applyReviewPatch, defaultReviewTemplate, validatePromotionReadiness } from "@/lib/review-workbench.mjs";
-import { applyComposerAction, applyEnrichmentAction, promoteReviewAction, saveReviewAction } from "../actions";
+// @ts-expect-error Node ESM research helper
+import { validateHumanReviewAttestation } from "@/lib/review-attestation.mjs";
+import { applyComposerAction, applyEnrichmentAction, promoteReviewAction, saveReviewAction, verifyReviewAction } from "../actions";
 import styles from "../review.module.css";
 
 export const dynamic="force-dynamic";
@@ -23,7 +25,7 @@ function metricValue(row:any) {
   return n.toLocaleString("en-US",{maximumFractionDigits:2});
 }
 
-export default async function ReviewDraft({params,searchParams}:{params:Promise<{id:string}>;searchParams:Promise<{saved?:string;error?:string;promotion?:string;enriched?:string;composed?:string}>}) {
+export default async function ReviewDraft({params,searchParams}:{params:Promise<{id:string}>;searchParams:Promise<{saved?:string;error?:string;promotion?:string;enriched?:string;composed?:string;verified?:string;verification?:string}>}) {
   await requireReviewAccess();
   const {id}=await params;
   const messages=await searchParams;
@@ -49,6 +51,7 @@ export default async function ReviewDraft({params,searchParams}:{params:Promise<
   const patch=review?.review_payload ?? defaultReviewTemplate(draft.draft_payload);
   const merged=applyReviewPatch(draft.draft_payload,review?.review_payload ?? {});
   const readiness=validatePromotionReadiness(merged);
+  const attestation=validateHumanReviewAttestation({draft,review,payload:merged});
   const metrics=Array.isArray(merged.metric_observations)?merged.metric_observations:[];
   const sources=Array.isArray(merged.sources)?merged.sources:[];
   const factoryGaps=Array.isArray(draft.draft_payload?.factory?.evidence_gaps)?draft.draft_payload.factory.evidence_gaps:[];
@@ -75,9 +78,13 @@ export default async function ReviewDraft({params,searchParams}:{params:Promise<
       {messages.saved?<div className={styles.successBanner}>Review saved and revalidated.</div>:null}
       {messages.enriched?<div className={styles.successBanner}>Verified primary-source enrichment applied to the private review package.</div>:null}
       {messages.composed?<div className={styles.successBanner}>Automated Research Composer draft applied to the private review package. Human review is still required.</div>:null}
+      {messages.verified?<div className={styles.successBanner}>Human verification recorded for this exact review payload.</div>:null}
       {messages.error==="invalid-json"?<div className={styles.errorBanner}>Review JSON is invalid. Nothing was saved.</div>:null}
       {messages.error==="save-review-first"?<div className={styles.errorBanner}>Save the review before attempting promotion.</div>:null}
       {messages.promotion==="blocked"?<div className={styles.errorBanner}>Promotion remains blocked. Resolve the items below and save again.</div>:null}
+      {messages.promotion==="verification-required"?<div className={styles.errorBanner}>Promotion blocked: explicitly verify the current review payload first.</div>:null}
+      {messages.verification==="blocked"?<div className={styles.errorBanner}>Human verification is blocked until all promotion-readiness gates pass.</div>:null}
+      {messages.verification==="confirm"?<div className={styles.errorBanner}>Check the verification box to attest that you reviewed the current package.</div>:null}
 
       <div className={styles.detailGrid}>
         <section className={styles.panel}><div className={styles.panelHeader}><div><span className={styles.kicker}>READINESS GATES</span><h2>What still blocks publication</h2></div><strong>{readiness.blockers.length}</strong></div>
@@ -127,8 +134,32 @@ export default async function ReviewDraft({params,searchParams}:{params:Promise<
         </form>
       </section>
 
+      <section className={styles.publishPanel}>
+        <div>
+          <span className={styles.kicker}>HUMAN VERIFICATION</span>
+          <h2>{attestation.valid?"Verified review package":"Attest the exact package before publication"}</h2>
+          <p>
+            {attestation.valid
+              ? "This exact merged payload is bound to a human-review SHA-256 attestation. Any later edit or automated change invalidates it."
+              : "Promotion readiness is not human review. Verify the evidence, judgments, thesis conditions, risks, and valuation assumptions, then attest this exact payload."}
+          </p>
+          {attestation.valid?<small>Verified {new Date(attestation.verified_at).toLocaleString("en-US")} · {attestation.stored_payload_hash?.slice(0,12)}…</small>:null}
+        </div>
+        {draft.status==="promoted"?null:attestation.valid
+          ?<span className={styles.readyBox}>Human verification current</span>
+          :<form action={verifyReviewAction}>
+            <input type="hidden" name="draft_id" value={id}/>
+            <label>
+              <input type="checkbox" name="human_verification" value="confirmed" required/>
+              I reviewed the current package and attest that it is the package I intend to publish.
+            </label>
+            <button type="submit" disabled={!readiness.ready}>Verify current package</button>
+            {!readiness.ready?<small>Resolve all readiness blockers before verification.</small>:null}
+          </form>}
+      </section>
+
       <section className={styles.publishPanel}><div><span className={styles.kicker}>IMMUTABLE PROMOTION</span><h2>Publish reviewed research</h2><p>Promotion creates the next research version, writes the evidence/valuation/thesis tables, records material changes, and permanently links this draft to the published run.</p></div>
-        {draft.status==="promoted"?<Link className={styles.publishedLink} href={"/research/"+company?.ticker}>Already promoted →</Link>:<form action={promoteReviewAction}><input type="hidden" name="draft_id" value={id}/><button type="submit">Publish research version</button>{!readiness.ready?<small>Server validation will re-check readiness before publication.</small>:null}</form>}
+        {draft.status==="promoted"?<Link className={styles.publishedLink} href={"/research/"+company?.ticker}>Already promoted →</Link>:<form action={promoteReviewAction}><input type="hidden" name="draft_id" value={id}/><button type="submit" disabled={!readiness.ready||!attestation.valid}>Publish research version</button>{!readiness.ready?<small>Server validation will re-check readiness before publication.</small>:!attestation.valid?<small>Human verification of the current payload is required.</small>:null}</form>}
       </section>
     </main>
   </>;
