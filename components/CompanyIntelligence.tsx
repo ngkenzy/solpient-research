@@ -1,4 +1,4 @@
-import { getSupabase } from "@/lib/supabase";
+import { loadCompanyIntelligenceData } from "@/lib/repositories/company-intelligence";
 
 function compact(value: number | null | undefined) {
   if (value == null) return "—";
@@ -83,36 +83,10 @@ function date(value?: string | null) {
 }
 
 export async function CompanyIntelligence({ ticker, asOf = null }: { ticker: string; asOf?: string | null }) {
-  const supabase = getSupabase();
-  if (!supabase) return null;
+  const loaded = await loadCompanyIntelligenceData(ticker, asOf);
+  if (!loaded) return null;
 
-  const { data: company } = await supabase
-    .from("companies")
-    .select("id,ticker")
-    .eq("ticker", ticker.toUpperCase())
-    .maybeSingle();
-
-  if (!company) return null;
-
-  let activityQuery = supabase
-    .from("capital_activity")
-    .select("id,activity_type,actor_name,actor_detail,action,shares,price,value,change_pct,amount_range,transaction_date,disclosure_date,position_date,source_url,provider,verified_at,created_at")
-    .eq("company_id", company.id);
-  if (asOf) activityQuery = activityQuery.lte("created_at", asOf);
-  const { data, error } = await activityQuery
-    .order("created_at", { ascending: false })
-    .limit(100);
-
-  if (error) return null;
-  const rows = data ?? [];
-
-  let coverageQuery = supabase
-    .from("capital_coverage_checks")
-    .select("activity_type,status,provider,window_start,window_end,verified_at,record_count,source_url,notes")
-    .eq("company_id", company.id);
-  if (asOf) coverageQuery = coverageQuery.lte("verified_at", asOf);
-  const { data: coverageChecks } = await coverageQuery;
-
+  const { company, rows, coverageChecks, providerHealth } = loaded;
   const coverageByType = new Map(
     (coverageChecks ?? []).map((row) => [row.activity_type, row]),
   );
@@ -126,16 +100,6 @@ export async function CompanyIntelligence({ ticker, asOf = null }: { ticker: str
     if (check.status === "partial") return "Coverage is partial; additional source verification is still needed.";
     if (check.status === "unavailable") return "Current source coverage is unavailable.";
     return "Coverage verified through " + (check.provider ?? "source") + ".";
-  }
-
-  let providerHealth: any[] = [];
-  if (!asOf) {
-    const { data } = await supabase
-      .from("capital_provider_health")
-      .select("provider,feed_type,status,last_success_at,last_verified_at,last_error,metadata")
-      .eq("feed_type", "all")
-      .order("updated_at", { ascending: false });
-    providerHealth = data ?? [];
   }
 
   const dedupedRows = [...rows]
