@@ -4,6 +4,8 @@ import { canonicalSha256 } from "../lib/integrity-hash.mjs";
 import {
   RESEARCH_FACTORY_VERSION,
   parseSecTickerExchange,
+  parseSecDerivedCatalog,
+  issuerNamesCompatible,
   resolveSecIdentity,
   deriveResearchFactoryState,
   buildFactoryStateHash,
@@ -22,7 +24,8 @@ const sb=createClient(url,secret,{auth:{persistSession:false,autoRefreshToken:fa
 
 const secContact=process.env.SEC_CONTACT??"ngkenzy@users.noreply.github.com";
 const secUserAgent=process.env.SEC_USER_AGENT??("SOLPIENT Research "+secContact);
-const sourceUrl="https://www.sec.gov/files/company_tickers_exchange.json";
+const primarySourceUrl="https://www.sec.gov/files/company_tickers_exchange.json";
+const fallbackSourceUrl="https://stock.chatcode.dev/catalog/sec-catalog.json";
 const requestedRunId=arg("factory-run-id",process.env.RESEARCH_FACTORY_RUN_ID??null);
 
 let factoryRun=null;
@@ -62,19 +65,88 @@ const {data:screens,error:screenError}=screenIds.length
 if(screenError)throw screenError;
 const screenById=new Map((screens??[]).map(x=>[x.id,x]));
 
-const response=await fetch(sourceUrl,{
-  headers:{
-    "User-Agent":secUserAgent,
-    From:secContact,
-    Accept:"application/json",
-  },
-});
-if(!response.ok)throw new Error("SEC ticker/exchange mapping HTTP "+response.status);
-const secRows=parseSecTickerExchange(await response.json());
+async function loadIdentityCatalog(){
+  let primaryStatus=null;
+  try{
+    const response=await fetch(primarySourceUrl,{
+      headers:{
+        "User-Agent":secUserAgent,
+        From:secContact,
+        Accept:"application/json",
+      },
+    });
+    primaryStatus=response.status;
+    if(response.ok){
+      const rows=parseSecTickerExchange(await response.json());
+      if(rows.length<500)throw new Error("SEC ticker mapping is unexpectedly small.");
+      return{
+        rows,
+        source_url:primarySourceUrl,
+        source_kind:"sec-live-company-tickers-exchange",
+        source_version:null,
+        source_as_of:null,
+        primary_status:primaryStatus,
+      };
+    }
+  }catch(error){
+    console.error("Primary SEC identity map unavailable:",error instanceof Error?error.message:String(error));
+  }
+
+  const fallback=await fetch(fallbackSourceUrl,{
+    headers:{
+      "User-Agent":"SOLPIENT Research Factory/1.0",
+      Accept:"application/json",
+    },
+  });
+  if(!fallback.ok){
+    throw new Error(
+      "Identity mapping unavailable: SEC status "+String(primaryStatus??"network-error")+
+      "; SEC-derived cache HTTP "+fallback.status
+    );
+  }
+  const body=await fallback.json();
+  return{
+    rows:parseSecDerivedCatalog(body),
+    source_url:fallbackSourceUrl,
+    source_kind:"sec-derived-reviewed-cache",
+    source_version:body?.catalog_version??null,
+    source_as_of:body?.as_of??body?.generated_at??null,
+    primary_status:primaryStatus,
+  };
+}
+
+const identityCatalog=await loadIdentityCatalog();
+const secRows=identityCatalog.rows;
+const sourceUrl=identityCatalog.source_url;
+
+function resolveIdentity(screen,itemTicker){
+  const resolved=resolveSecIdentity({
+    ticker:itemTicker,
+    companyName:screen.company_name,
+  },secRows);
+  if(
+    identityCatalog.source_kind==="sec-derived-reviewed-cache"&&
+    resolved.status==="matched"&&
+    !issuerNamesCompatible(screen.company_name,resolved.match?.company_name)
+  ){
+    return{
+      status:"ambiguous",
+      match:null,
+      candidates:resolved.candidates??1,
+      options:resolved.match?[resolved.match]:[],
+      cache_name_mismatch:true,
+    };
+  }
+  return resolved;
+}
 
 const result={
   factory_run_id:factoryRun.id,
   source_url:sourceUrl,
+  source_kind:identityCatalog.source_kind,
+  source_version:identityCatalog.source_version,
+  source_as_of:identityCatalog.source_as_of,
+  primary_sec_status:identityCatalog.primary_status,
   existing:0,
   created:0,
   enriched:0,
@@ -103,10 +175,7 @@ for(const item of items??[]){
   if(existing){
     result.existing++;
     if(!existing.cik||!existing.exchange||!existing.sector||!existing.industry){
-      identity=resolveSecIdentity({
-        ticker:item.ticker,
-        companyName:screen.company_name,
-      },secRows);
+      identity=resolveIdentity(screen,item.ticker);
       if(identity.status==="matched"){
         const patch={updated_at:new Date().toISOString()};
         if(!existing.cik)patch.cik=identity.match.cik;
@@ -137,6 +206,9 @@ for(const item of items??[]){
         identity_resolution:{
           status:identity?.status??"missing",
           source_url:sourceUrl,
+          source_kind:identityCatalog.source_kind,
+          source_version:identityCatalog.source_version,
+          source_as_of:identityCatalog.source_as_of,
           candidate_count:identity?.candidates??0,
           options:(identity?.options??[]).map(x=>({
             cik:x.cik,company_name:x.company_name,ticker:x.ticker,exchange:x.exchange,
@@ -189,6 +261,9 @@ for(const item of items??[]){
         identity_resolution:{
           status:identity.status,
           source_url:sourceUrl,
+          source_kind:identityCatalog.source_kind,
+          source_version:identityCatalog.source_version,
+          source_as_of:identityCatalog.source_as_of,
           candidate_count:identity.candidates??0,
           options:(identity.options??[]).map(x=>({
             cik:x.cik,company_name:x.company_name,ticker:x.ticker,exchange:x.exchange,
@@ -258,7 +333,9 @@ for(const item of items??[]){
   const identityPayload={
     status:"matched",
     source_url:sourceUrl,
-    source_kind:"SEC company_tickers_exchange.json",
+    source_kind:identityCatalog.source_kind,
+    source_version:identityCatalog.source_version,
+    source_as_of:identityCatalog.source_as_of,
     observed_at:new Date().toISOString(),
     cik:company.cik??identity?.match?.cik??null,
     sec_company_name:identity?.match?.company_name??null,
