@@ -24,8 +24,11 @@ begin
     repeat('a',64),repeat('b',64)
   ) returning id into v_old;
 
-  insert into public.methodology_lifecycle_events(methodology_definition_id,event_type,reason,actor)
-  values (v_old,'registered','fixture','test'),(v_old,'active','fixture active','test');
+  insert into public.methodology_lifecycle_events(
+    methodology_definition_id,event_type,reason,actor,effective_at
+  ) values
+    (v_old,'registered','fixture','test','2026-09-22T00:00:00Z'),
+    (v_old,'active','fixture active','test','2026-09-22T00:00:01Z');
 
   insert into public.methodology_definitions(
     methodology_key,version,name,category,risk_class,purpose,owner,
@@ -42,11 +45,12 @@ begin
     repeat('c',64),repeat('d',64)
   ) returning id into v_new;
 
-  insert into public.methodology_lifecycle_events(methodology_definition_id,event_type,reason,actor)
-  values
-    (v_new,'registered','fixture','test'),
-    (v_new,'candidate','fixture','test'),
-    (v_new,'validated','fixture','test');
+  insert into public.methodology_lifecycle_events(
+    methodology_definition_id,event_type,reason,actor,effective_at
+  ) values
+    (v_new,'registered','fixture','test','2026-09-22T00:00:00Z'),
+    (v_new,'candidate','fixture','test','2026-09-22T00:00:01Z'),
+    (v_new,'validated','fixture','test','2026-09-22T00:00:02Z');
 
   insert into public.methodology_validation_runs(
     methodology_definition_id,validation_type,status,validator,evidence_ref
@@ -101,11 +105,12 @@ begin
     'methodology-registry-v1','{"methodology_key":"fixture_atomic_2","version":"fixture-atomic-2-v1"}'::jsonb,
     repeat('2',64),repeat('3',64)
   ) returning id into v_new;
-  insert into public.methodology_lifecycle_events(methodology_definition_id,event_type,reason,actor)
-  values
-    (v_new,'registered','fixture','test'),
-    (v_new,'candidate','fixture','test'),
-    (v_new,'validated','fixture','test');
+  insert into public.methodology_lifecycle_events(
+    methodology_definition_id,event_type,reason,actor,effective_at
+  ) values
+    (v_new,'registered','fixture','test','2026-09-22T00:01:00Z'),
+    (v_new,'candidate','fixture','test','2026-09-22T00:01:01Z'),
+    (v_new,'validated','fixture','test','2026-09-22T00:01:02Z');
 
   begin
     perform public.activate_universe_methodology_stack_v1_1(
