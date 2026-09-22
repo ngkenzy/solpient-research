@@ -10,14 +10,12 @@ on:
       - "scripts/build-historical-peer-context.mjs"
       - "scripts/build-missing-baselines.mjs"
       - "scripts/test-historical-peer-engine.mjs"
-      - "lib/evidence-provenance.mjs"
-      - "scripts/sync-evidence-provenance.mjs"
       - ".github/workflows/historical-peer-context.yml"
       - "supabase/migrations/0016_historical_peer_context_engine.sql"
 
 concurrency:
-  group: solpient-historical-peer-context
-  cancel-in-progress: true
+  group: solpient-provenance-writer
+  cancel-in-progress: false
 
 jobs:
   build-context:
