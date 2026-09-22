@@ -2,8 +2,6 @@ name: SOLPIENT Coverage v2
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: "11 12 * * *"
   push:
     branches: [main]
     paths:
