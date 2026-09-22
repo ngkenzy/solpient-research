@@ -85,7 +85,8 @@
     "test:research-factory:v2.1": "node scripts/test-autonomous-research-factory-v2-1.mjs",
     "test:review-attestation": "node scripts/test-review-attestation.mjs",
     "local:configure-app": "node scripts/configure-local-data-env.mjs",
-    "local:verify-db": "node --env-file=.env.local scripts/verify-direct-postgres.mjs"
+    "local:verify-db": "node --env-file=.env.local scripts/verify-direct-postgres.mjs",
+    "local:verify-research": "node --env-file=.env.local scripts/verify-research-postgres.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.109.0",
