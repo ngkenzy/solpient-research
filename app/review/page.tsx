@@ -14,7 +14,8 @@ const pct=(value:unknown)=>Number.isFinite(Number(value))?Number(value).toFixed(
 
 function stageFor(row:any) {
   const activeDraft=row.draft&&!row.draft.published_run_id;
-  if (activeDraft&&row.review?.promotion_readiness?.ready) return {label:"Ready to publish",tone:"ready"};
+  if (activeDraft&&row.review?.promotion_readiness?.ready&&row.review?.human_verified_at) return {label:"Ready to publish",tone:"ready"};
+  if (activeDraft&&row.review?.promotion_readiness?.ready) return {label:"Ready for verification",tone:"review"};
   if (activeDraft&&row.review) return {label:"Human review",tone:"review"};
   if (activeDraft&&row.composition) return {label:"Composer ready",tone:"composer"};
   if (activeDraft) return {label:"Draft ready",tone:"composer"};
@@ -34,7 +35,7 @@ export default async function ReviewQueue({searchParams}:{searchParams:Promise<{
   const [companyResult,draftResult,reviewResult,compositionResult,runResult,coverageResult]=await Promise.all([
     supabase.from("companies").select("id,ticker,company_name").order("ticker"),
     supabase.from("baseline_drafts").select("id,company_id,generation_version,generated_at,source_cutoff_at,industry_module,status,evidence_completeness_pct,standard_status,published_run_id").order("generated_at",{ascending:false}),
-    supabase.from("baseline_reviews").select("draft_id,status,promotion_readiness,reviewed_at,published_run_id"),
+    supabase.from("baseline_reviews").select("draft_id,status,promotion_readiness,reviewed_at,prepared_at,preparation_source,human_verified_at,human_verified_by,human_verified_payload_hash,attestation_version,published_run_id"),
     supabase.from("research_compositions").select("id,draft_id,company_id,engine_version,status,validation_result,generated_at").order("generated_at",{ascending:false}),
     supabase.from("research_runs").select("id,company_id,version,researched_at,standard_version,standard_status,completeness_pct").eq("status","published").order("version",{ascending:false}),
     supabase.from("data_coverage_reports").select("company_id,status,overall_pct,generated_at").order("generated_at",{ascending:false}),
@@ -74,7 +75,8 @@ export default async function ReviewQueue({searchParams}:{searchParams:Promise<{
   rows.sort((a:any,b:any)=>priority(a)-priority(b)||a.company.ticker.localeCompare(b.company.ticker));
 
   const publishedV2=rows.filter((row:any)=>row.latestRun?.standard_version==="solpient-v2").length;
-  const ready=rows.filter((row:any)=>row.review?.promotion_readiness?.ready && row.latestRun?.standard_version!=="solpient-v2").length;
+  const ready=rows.filter((row:any)=>row.review?.promotion_readiness?.ready && row.review?.human_verified_at && row.latestRun?.standard_version!=="solpient-v2").length;
+  const readyToVerify=rows.filter((row:any)=>row.review?.promotion_readiness?.ready && !row.review?.human_verified_at && row.latestRun?.standard_version!=="solpient-v2").length;
   const inReview=rows.filter((row:any)=>row.review && !row.review?.promotion_readiness?.ready && row.latestRun?.standard_version!=="solpient-v2").length;
   const composerReady=rows.filter((row:any)=>row.composition && !row.review && row.latestRun?.standard_version!=="solpient-v2").length;
   const backfill=rows.filter((row:any)=>row.latestRun && !row.draft && row.latestRun.standard_version!=="solpient-v2").length;
@@ -104,8 +106,9 @@ export default async function ReviewQueue({searchParams}:{searchParams:Promise<{
 
       <section className={styles.opsGrid}>
         <div className={styles.opsCard}><span>Published V2</span><strong>{publishedV2}</strong><small>Immutable research versions</small></div>
-        <div className={styles.opsCard}><span>Ready to publish</span><strong>{ready}</strong><small>All promotion gates passed</small></div>
-        <div className={styles.opsCard}><span>Human review</span><strong>{inReview}</strong><small>Composer applied; judgment pending</small></div>
+        <div className={styles.opsCard}><span>Ready to publish</span><strong>{ready}</strong><small>Human attestation current</small></div>
+        <div className={styles.opsCard}><span>Ready to verify</span><strong>{readyToVerify}</strong><small>Promotion gates passed; human attestation pending</small></div>
+        <div className={styles.opsCard}><span>Human review</span><strong>{inReview}</strong><small>Judgment or evidence still pending</small></div>
         <div className={styles.opsCard}><span>Composer ready</span><strong>{composerReady}</strong><small>Can be prepared safely</small></div>
         <div className={styles.opsCard}><span>V2 backfill</span><strong>{backfill}</strong><small>Legacy research needs a new draft</small></div>
       </section>
@@ -123,7 +126,7 @@ export default async function ReviewQueue({searchParams}:{searchParams:Promise<{
 
       <section className={styles.queueHeader}>
         <div><span className={styles.kicker}>UNIVERSE STATUS</span><h2>Company completion queue</h2></div>
-        <span>{ready+inReview+composerReady} active V2 draft{ready+inReview+composerReady===1?"":"s"}</span>
+        <span>{ready+readyToVerify+inReview+composerReady} active V2 draft{ready+readyToVerify+inReview+composerReady===1?"":"s"}</span>
       </section>
 
       <section className={styles.queue}>
