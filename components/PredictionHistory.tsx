@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getSupabase } from "@/lib/supabase";
+import { loadPredictionHistoryData } from "@/lib/repositories/prediction-history";
 
 function n(value: unknown) {
   if (value === null || value === undefined || value === "") return null;
@@ -16,19 +16,13 @@ function fmt(value: unknown, unit?: string | null) {
 }
 
 export async function PredictionHistory({ companyId, ticker, asOf = null }: { companyId: string; ticker: string; asOf?: string | null }) {
-  const supabase = getSupabase();
-  if (!supabase) return null;
+  const data = await loadPredictionHistoryData(companyId, asOf);
+  if (!data) return null;
 
-  let snapshotQuery = supabase
-    .from("prediction_snapshots")
-    .select("id,prediction_key,predicted_at,model_version,horizon_months,benchmark_ticker,price_at_prediction,confidence,thesis_status,rationale")
-    .eq("company_id", companyId);
-  if (asOf) snapshotQuery = snapshotQuery.lte("predicted_at", asOf);
-  const { data: snapshots } = await snapshotQuery
-    .order("predicted_at", { ascending: false })
-    .limit(12);
+  const rows = data.snapshots;
+  const outcomes = data.outcomes;
+  const realized = data.realized;
 
-  const rows = snapshots ?? [];
   if (rows.length === 0) {
     return (
       <section className="dashboardPanel intelligenceHistoryPanel">
@@ -49,24 +43,6 @@ export async function PredictionHistory({ companyId, ticker, asOf = null }: { co
       </section>
     );
   }
-
-  const ids = rows.map((r) => r.id);
-  const { data: outcomes } = await supabase
-    .from("prediction_outcomes")
-    .select("id,prediction_snapshot_id,metric_key,label,predicted_value,predicted_low,predicted_high,predicted_probability,predicted_text,unit,target_date")
-    .in("prediction_snapshot_id", ids);
-
-  const outcomeIds = (outcomes ?? []).map((o) => o.id);
-  let realizedQuery = outcomeIds.length
-    ? supabase
-        .from("realized_outcomes")
-        .select("prediction_outcome_id,observed_at,actual_value,actual_text")
-        .in("prediction_outcome_id", outcomeIds)
-    : null;
-  if (realizedQuery && asOf) realizedQuery = realizedQuery.lte("observed_at", asOf);
-  const { data: realized } = realizedQuery
-    ? await realizedQuery.order("observed_at", { ascending: false })
-    : { data: [] as any[] };
 
   const latestRealized = new Map<string, any>();
   for (const item of realized ?? []) {
