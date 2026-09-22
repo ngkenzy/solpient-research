@@ -168,6 +168,48 @@ if(!validationBundle.ready){
 }
 const sb=createClient(url,secret,{auth:{persistSession:false,autoRefreshToken:false}});
 
+const sleep=(ms)=>new Promise(resolve=>setTimeout(resolve,ms));
+const transientTransportError=(error)=>{
+  const message=String(error?.message??error??"");
+  return /\b520\b|\b502\b|\b503\b|\b504\b|cloudflare|fetch failed|network/i.test(message);
+};
+async function rpcWithTransientRetry(name,args,maxAttempts=4){
+  let lastError=null;
+  for(let attempt=1;attempt<=maxAttempts;attempt++){
+    const {data,error}=await sb.rpc(name,args);
+    if(!error)return data;
+    lastError=error;
+    if(!transientTransportError(error)||attempt===maxAttempts)throw error;
+    await sleep(Math.min(500*2**(attempt-1),4000));
+  }
+  throw lastError??new Error("RPC failed: "+name);
+}
+function chunkResultRows(rows,{maxRows=25,maxBytes=180_000}={}){
+  const chunks=[];
+  let current=[];
+  let bytes=2;
+  let startOrdinal=1;
+  for(const row of rows){
+    const rowBytes=Buffer.byteLength(JSON.stringify(row),"utf8")+1;
+    if(rowBytes>maxBytes){
+      throw new Error(
+        "A single universe result exceeds the staging payload ceiling for "+row.ticker+
+        ": "+rowBytes+" bytes."
+      );
+    }
+    if(current.length&&(current.length>=maxRows||bytes+rowBytes>maxBytes)){
+      chunks.push({startOrdinal,rows:current,bytes});
+      startOrdinal+=current.length;
+      current=[];
+      bytes=2;
+    }
+    current.push(row);
+    bytes+=rowBytes;
+  }
+  if(current.length)chunks.push({startOrdinal,rows:current,bytes});
+  return chunks;
+}
+
 const stackKeys=[...new Set(SCREEN_MATERIALIZATION_STACK.map(x=>x.methodology_key))];
 const {data:methodologyDefinitions,error:methodologyDefinitionsError}=await sb
   .from("methodology_definitions")
@@ -314,11 +356,42 @@ const runPayload={
   },
 };
 
-const {data:runId,error:publishError}=await sb.rpc(
-  "publish_universe_screen_package_v1_1",
-  {p_run:runPayload,p_results:resultRows}
+runPayload.metadata.publication_transport="staged-v1.2";
+
+const begin=await rpcWithTransientRetry(
+  "begin_universe_screen_publish_v1_2",
+  {p_run:runPayload}
 );
-if(publishError)throw publishError;
+
+let runId=begin?.run_id??null;
+let publishSessionId=begin?.publish_session_id??null;
+let stagedChunkCount=0;
+
+if(!runId){
+  if(!publishSessionId){
+    throw new Error("Staged publication did not return a publish session id.");
+  }
+
+  const chunks=chunkResultRows(resultRows);
+  for(const chunk of chunks){
+    await rpcWithTransientRetry(
+      "stage_universe_screen_results_v1_2",
+      {
+        p_publish_session_id:publishSessionId,
+        p_start_ordinal:chunk.startOrdinal,
+        p_results:chunk.rows,
+      }
+    );
+    stagedChunkCount++;
+  }
+
+  runId=await rpcWithTransientRetry(
+    "finalize_universe_screen_publish_v1_2",
+    {p_publish_session_id:publishSessionId}
+  );
+}
+
+if(!runId)throw new Error("Universe screen publication did not return a run id.");
 
 const {count:publishedResultCount,error:countError}=await sb
   .from("universe_screen_results")
@@ -336,6 +409,8 @@ console.log(JSON.stringify({
   ...preview,
   materialized:true,
   atomic_publication:true,
+  publication_transport:"staged-v1.2",
+  staged_chunk_count:stagedChunkCount,
   universe_screen_run_id:runId,
   published_result_count:publishedResultCount,
 },null,2));
