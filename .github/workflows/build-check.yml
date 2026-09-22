@@ -52,6 +52,7 @@ jobs:
           npm run test:universe-sector:v2
           npm run test:sector-evidence:v2.1
           npm run test:sector-classification:v2.2
+          npm run test:sector-classification:v2.3
           npm run test:methodology
 
       - name: Check repair center scripts
