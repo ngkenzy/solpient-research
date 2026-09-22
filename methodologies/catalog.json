@@ -1536,6 +1536,83 @@
         "historical_interpretation": true
       },
       "legacy_bootstrap": false
+    },
+    {
+      "methodology_key": "research_candidate_pipeline",
+      "version": "research-candidate-pipeline-v2.4",
+      "name": "Research Candidate Pipeline V2.4 Integrity",
+      "category": "repair",
+      "risk_class": "high",
+      "purpose": "Bind each candidate-pipeline snapshot to one explicit immutable screen run and evaluation timestamp, preserve complete source snapshots, and publish the full candidate set atomically.",
+      "owner": "Solpient",
+      "source_files": [
+        "lib/research-candidate-pipeline-v2-4.mjs",
+        "lib/research-candidate-materialization-v1.mjs",
+        "scripts/materialize-research-candidate-pipeline-v2-4.mjs",
+        "supabase/migrations/20260922050000_research_candidate_pipeline_v2_4_integrity.sql",
+        "docs/RESEARCH_CANDIDATE_PIPELINE_V2_4.md"
+      ],
+      "input_contract": {
+        "universe_screen_run": "explicit immutable solpient-universe-screen-v2.3 run id",
+        "evaluation_as_of": "explicit deterministic timestamp; defaults only to selected screen as_of_at",
+        "screen_result": "deep-research shortlist row from the selected screen run",
+        "valuation_input_pack": "reviewed Valuation V3 inputs no later than evaluation_as_of",
+        "research_scores": "published reviewed scores tied to the selected research run",
+        "coverage": "Coverage V2 evidence no later than evaluation_as_of"
+      },
+      "output_contract": {
+        "stage": "onboarding/valuation_building/research_building/research_ready/decision_ready",
+        "next_actions": "ordered evidence, classification, valuation and readiness repair actions",
+        "source_snapshot": "canonical point-in-time source bundle and SHA-256 hash per candidate",
+        "immutable_run": "one atomically published pipeline run containing the complete selected shortlist"
+      },
+      "weights": {},
+      "thresholds": {
+        "research_ready": "Readiness V1",
+        "decision_ready": "Readiness V1"
+      },
+      "assumptions": {
+        "economic_scoring_unchanged_from_v2_3": true,
+        "screen_score_reuse": false,
+        "valuation_requires_reviewed_inputs": true,
+        "deterministic_evaluation_time": true,
+        "explicit_screen_run_binding": true,
+        "atomic_publication": true,
+        "unsupported_sector_valuation": "block rather than generic fallback"
+      },
+      "dependencies": [
+        {
+          "methodology_key": "universe_screening",
+          "version": "solpient-universe-screen-v2.3",
+          "required": true
+        },
+        {
+          "methodology_key": "valuation_v3",
+          "version": "solpient-valuation-methodology-v3",
+          "required": true
+        },
+        {
+          "methodology_key": "decision_readiness",
+          "version": "readiness-v1",
+          "required": true
+        }
+      ],
+      "known_limitations": [
+        "The first V2.4 run can only be as complete as the reviewed research, coverage, and valuation inputs available at its evaluation timestamp.",
+        "Unsupported insurer, asset-manager, diversified-financial, real-estate, and REIT valuation remains blocked until reviewed sector-specific valuation support exists.",
+        "Company onboarding state is operational metadata and may improve independently of the immutable screening result."
+      ],
+      "change_summary": "Hardens V2.3 without changing economic scoring: explicit screen-run selection, deterministic evaluation time, source-content hashes, staged transport, and atomic immutable publication.",
+      "predecessor_version": "research-candidate-pipeline-v2.3",
+      "impacts": {
+        "database": true,
+        "public_ui": true,
+        "publication": false,
+        "ranking": false,
+        "capital_decision": true,
+        "historical_interpretation": true
+      },
+      "legacy_bootstrap": false
     }
   ]
 }
