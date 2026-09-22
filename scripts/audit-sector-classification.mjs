@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
-import { classifyIssuerSector } from "../lib/universe-sector-model-v2-2.mjs";
+import { classifyIssuerSector } from "../lib/universe-sector-model-v2-3.mjs";
 
 function arg(name,fallback=null){
   const prefix="--"+name+"=";
@@ -46,6 +46,8 @@ const rows=parse(inputPath).map(row=>{
     rule:classification.classification_rule,
     confidence:classification.classification_confidence,
     rationale:classification.classification_rationale??null,
+    review_required:Boolean(classification.classification_review_required),
+    review_reason:classification.classification_review_reason??null,
   };
 });
 
@@ -56,7 +58,13 @@ const repaired=rows.filter(r=>
   r.method==="sic_rule"||
   r.method==="description_rule"
 );
-const unresolved=rows.filter(r=>r.method==="unresolved"||r.sector==="Unknown");
+const reviewQueue=rows.filter(r=>r.method==="review_required"||r.review_required===true);
+const unresolved=rows.filter(r=>r.method==="unresolved");
+const obviousUnknown=rows.filter(r=>
+  r.sector==="Unknown"&&
+  r.method!=="review_required"&&
+  r.method!=="unresolved"
+);
 const changed=rows.filter(r=>
   String(r.previous_sector??"")!==String(r.sector??"")||
   String(r.previous_profile??"")!==String(r.profile??"")
@@ -67,7 +75,11 @@ console.log(JSON.stringify({
   method_counts:Object.fromEntries(Object.entries(counts).sort((a,b)=>b[1]-a[1])),
   repaired_count:repaired.length,
   changed_count:changed.length,
+  review_required_count:reviewQueue.length,
   unresolved_count:unresolved.length,
+  obvious_unknown_count:obviousUnknown.length,
   repaired:repaired.sort((a,b)=>a.ticker.localeCompare(b.ticker)),
+  review_queue:reviewQueue.sort((a,b)=>a.ticker.localeCompare(b.ticker)),
   unresolved:unresolved.sort((a,b)=>a.ticker.localeCompare(b.ticker)),
+  obvious_unknown:obviousUnknown.sort((a,b)=>a.ticker.localeCompare(b.ticker)),
 },null,2));
