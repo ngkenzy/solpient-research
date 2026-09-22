@@ -62,7 +62,9 @@
     "test:sector-evidence:v2.1": "node scripts/test-sector-evidence-model-v2-1.mjs",
     "test:sector-classification:v2.2": "node scripts/test-sector-classification-repair-v2-2.mjs",
     "audit:sector-classification": "node scripts/audit-sector-classification.mjs",
-    "test:sector-classification:v2.3": "node scripts/test-sector-classification-coverage-v2-3.mjs"
+    "test:sector-classification:v2.3": "node scripts/test-sector-classification-coverage-v2-3.mjs",
+    "test:methodology-activation": "node scripts/test-methodology-activation-v1.mjs",
+    "validate:universe-methodologies": "node scripts/validate-activate-universe-methodologies.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.4",

@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - "lib/universe-screening-engine.mjs"
+      - "lib/methodology-activation-v1.mjs"
       - "lib/universe-screening-engine-v1.mjs"
       - "lib/universe-sector-model-v2.mjs"
       - "lib/universe-sector-model-v2-2.mjs"
@@ -20,6 +21,7 @@ on:
       - "scripts/audit-sector-classification.mjs"
       - "scripts/test-universe-screening-engine.mjs"
       - "scripts/run-universe-screen.mjs"
+      - "scripts/test-methodology-activation-v1.mjs"
       - "scripts/fixtures/universe-screen-sample.json"
       - "supabase/migrations/20260921223000_solpient_100_universe_screening.sql"
       - "supabase/tests/universe_screening.sql"
@@ -62,6 +64,8 @@ jobs:
         run: node scripts/test-sector-classification-repair-v2-2.mjs
       - name: Test Sector Classification Coverage V2.3
         run: node scripts/test-sector-classification-coverage-v2-3.mjs
+      - name: Test Methodology Activation V1
+        run: node scripts/test-methodology-activation-v1.mjs
       - name: Audit V2.3 taxonomy coverage
         run: node scripts/audit-sector-classification.mjs --input=scripts/fixtures/sector-classification-v2-3-audit.json --fail-on-obvious-unknown=true --fail-on-unresolved=true
       - name: Syntax check materializer
