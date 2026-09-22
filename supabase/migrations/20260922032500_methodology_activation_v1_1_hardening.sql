@@ -265,3 +265,128 @@ comment on function public.activate_universe_methodology_stack_v1_1(
   jsonb,text,text,text,text,text
 ) is
   'Atomically promotes an already-validated methodology stack to ACTIVE and supersedes prior active versions. Binds activation to an exact validation hash, universe input hash, implementation hash, and commit SHA.';
+
+
+create or replace function public.publish_universe_screen_package_v1_1(
+  p_run jsonb,
+  p_results jsonb
+)
+returns uuid
+language plpgsql
+security invoker
+set search_path = public, pg_temp
+as $$
+declare
+  v_run_id uuid;
+  v_existing uuid;
+  v_expected_count integer;
+begin
+  if jsonb_typeof(p_run) <> 'object' then
+    raise exception 'p_run must be a JSON object';
+  end if;
+  if jsonb_typeof(p_results) <> 'array' then
+    raise exception 'p_results must be a JSON array';
+  end if;
+
+  if coalesce(p_run->>'input_hash','') !~ '^[0-9a-f]{64}$' then
+    raise exception 'invalid universe screen input hash';
+  end if;
+  if coalesce(p_run->'metadata'->>'validation_hash','') !~ '^[0-9a-f]{64}$' then
+    raise exception 'screen run requires validation_hash metadata';
+  end if;
+  if coalesce(p_run->'metadata'->>'universe_input_hash','') !~ '^[0-9a-f]{64}$' then
+    raise exception 'screen run requires universe_input_hash metadata';
+  end if;
+
+  v_expected_count := coalesce((p_run->>'result_count')::integer,-1);
+  if v_expected_count < 0 or v_expected_count <> jsonb_array_length(p_results) then
+    raise exception 'result_count does not match result payload length';
+  end if;
+
+  perform pg_advisory_xact_lock(hashtextextended('solpient-universe-screen-publish-v1.1',0));
+
+  select id into v_existing
+  from public.universe_screen_runs
+  where input_hash=p_run->>'input_hash';
+
+  if v_existing is not null then
+    return v_existing;
+  end if;
+
+  insert into public.universe_screen_runs(
+    as_of_at,methodology_version,selection_version,provider,input_hash,
+    input_count,result_count,excluded_count,watch_count,research_candidate_count,
+    solpient_100_candidate_count,proposed_deep_research_count,metadata
+  ) values (
+    (p_run->>'as_of_at')::timestamptz,
+    p_run->>'methodology_version',
+    p_run->>'selection_version',
+    p_run->>'provider',
+    p_run->>'input_hash',
+    (p_run->>'input_count')::integer,
+    v_expected_count,
+    coalesce((p_run->>'excluded_count')::integer,0),
+    coalesce((p_run->>'watch_count')::integer,0),
+    coalesce((p_run->>'research_candidate_count')::integer,0),
+    coalesce((p_run->>'solpient_100_candidate_count')::integer,0),
+    coalesce((p_run->>'proposed_deep_research_count')::integer,0),
+    coalesce(p_run->'metadata','{}'::jsonb)
+  )
+  returning id into v_run_id;
+
+  insert into public.universe_screen_results(
+    universe_screen_run_id,ticker,company_name,sector,industry,screen_profile,
+    screen_state,universe_rank,shortlist_rank,proposed_for_deep_research,
+    final_membership_requires_review,screen_score,quality_core_score,
+    evidence_coverage_pct,quality_score,durability_score,balance_sheet_score,
+    growth_score,valuation_score,gates,reasons,score_detail,input_summary,result_hash
+  )
+  select
+    v_run_id,
+    r.ticker,r.company_name,r.sector,r.industry,r.screen_profile,
+    r.screen_state,r.universe_rank,r.shortlist_rank,r.proposed_for_deep_research,
+    r.final_membership_requires_review,r.screen_score,r.quality_core_score,
+    r.evidence_coverage_pct,r.quality_score,r.durability_score,r.balance_sheet_score,
+    r.growth_score,r.valuation_score,r.gates,r.reasons,r.score_detail,r.input_summary,r.result_hash
+  from jsonb_to_recordset(p_results) as r(
+    ticker text,
+    company_name text,
+    sector text,
+    industry text,
+    screen_profile text,
+    screen_state text,
+    universe_rank integer,
+    shortlist_rank integer,
+    proposed_for_deep_research boolean,
+    final_membership_requires_review boolean,
+    screen_score numeric,
+    quality_core_score numeric,
+    evidence_coverage_pct numeric,
+    quality_score numeric,
+    durability_score numeric,
+    balance_sheet_score numeric,
+    growth_score numeric,
+    valuation_score numeric,
+    gates jsonb,
+    reasons jsonb,
+    score_detail jsonb,
+    input_summary jsonb,
+    result_hash text
+  );
+
+  if (select count(*) from public.universe_screen_results where universe_screen_run_id=v_run_id)
+     <> v_expected_count then
+    raise exception 'atomic universe screen insert count mismatch';
+  end if;
+
+  return v_run_id;
+end
+$$;
+
+revoke all on function public.publish_universe_screen_package_v1_1(jsonb,jsonb)
+from public,anon,authenticated;
+grant execute on function public.publish_universe_screen_package_v1_1(jsonb,jsonb)
+to service_role;
+
+comment on function public.publish_universe_screen_package_v1_1(jsonb,jsonb) is
+  'Atomically publishes one immutable universe screen run and all result rows. Any result failure rolls back the entire package.';
