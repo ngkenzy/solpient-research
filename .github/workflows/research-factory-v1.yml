@@ -20,6 +20,7 @@ on:
       - "scripts/test-research-factory-v1-1.mjs"
       - "supabase/migrations/20260922123000_research_factory_v1_1_auto_expansion.sql"
       - "supabase/tests/research_factory_v1_1_auto_expansion.sql"
+      - "supabase/migrations/20260922124500_research_factory_v1_1_index_cleanup.sql"
       - ".github/workflows/research-factory-v1-1-kickoff.yml"
       - ".github/workflows/research-factory-v1.yml"
   push:
@@ -42,6 +43,7 @@ on:
       - "scripts/test-research-factory-v1-1.mjs"
       - "supabase/migrations/20260922123000_research_factory_v1_1_auto_expansion.sql"
       - "supabase/tests/research_factory_v1_1_auto_expansion.sql"
+      - "supabase/migrations/20260922124500_research_factory_v1_1_index_cleanup.sql"
       - ".github/workflows/research-factory-v1-1-kickoff.yml"
       - ".github/workflows/research-factory-v1.yml"
   workflow_dispatch:
