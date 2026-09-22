@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { SolpientBrand } from "@/components/SolpientBrand";
-import { getAdminSupabase } from "@/lib/admin-supabase";
+import { loadReviewDraftData } from "@/lib/repositories/review-workbench";
 import { requireReviewAccess } from "@/lib/review-auth";
 // @ts-expect-error Node ESM research helper
 import { applyReviewPatch, defaultReviewTemplate, validatePromotionReadiness } from "@/lib/review-workbench.mjs";
@@ -29,24 +29,10 @@ export default async function ReviewDraft({params,searchParams}:{params:Promise<
   await requireReviewAccess();
   const {id}=await params;
   const messages=await searchParams;
-  const supabase=getAdminSupabase();
-  if (!supabase) return null;
-  const [draftResult,reviewResult,enrichmentRunResult,compositionResult]=await Promise.all([
-    supabase.from("baseline_drafts").select("*").eq("id",id).single(),
-    supabase.from("baseline_reviews").select("*").eq("draft_id",id).maybeSingle(),
-    supabase.from("baseline_enrichment_runs").select("*").eq("draft_id",id).order("generated_at",{ascending:false}).limit(1).maybeSingle(),
-    supabase.from("research_compositions").select("*").eq("draft_id",id).order("generated_at",{ascending:false}).limit(1).maybeSingle(),
-  ]);
-  const draft=draftResult.data, review=reviewResult.data, enrichmentRun=enrichmentRunResult.data, composition=compositionResult.data;
-  if (draftResult.error || !draft) throw draftResult.error ?? new Error("Draft not found.");
-  const {data:company}=await supabase.from("companies").select("ticker,company_name").eq("id",draft.company_id).single();
-
-  let enrichmentItems:any[]=[];
-  if (enrichmentRun) {
-    const result=await supabase.from("baseline_enrichment_items").select("*").eq("run_id",enrichmentRun.id).order("created_at");
-    if (result.error) throw result.error;
-    enrichmentItems=result.data ?? [];
-  }
+  const loaded=await loadReviewDraftData(id);
+  if (!loaded) return null;
+  const {draft,review,enrichmentRun,composition,company,enrichmentItems}=loaded;
+  if (!draft) throw new Error("Draft not found.");
 
   const patch=review?.review_payload ?? defaultReviewTemplate(draft.draft_payload);
   const merged=applyReviewPatch(draft.draft_payload,review?.review_payload ?? {});
