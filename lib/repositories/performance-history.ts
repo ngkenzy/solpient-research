@@ -125,12 +125,13 @@ export async function loadPerformanceHistoryData({
 
   const supabase=getSupabase();
   if(!supabase)return null;
+  const legacySupabase=supabase;
 
   async function fetchMarket(symbol:string,company:string|null){
     const pageSize=1000;
     const rows:any[]=[];
     for(let page=0;page<4;page++){
-      let query=supabase.from("market_snapshots").select("trading_date,price,observed_at")
+      let query=legacySupabase.from("market_snapshots").select("trading_date,price,observed_at")
         .eq("symbol",symbol).order("trading_date",{ascending:true}).range(page*pageSize,page*pageSize+pageSize-1);
       if(company)query=query.eq("company_id",company);
       if(asOf)query=query.lte("trading_date",cutoffDate).lte("observed_at",asOf);
