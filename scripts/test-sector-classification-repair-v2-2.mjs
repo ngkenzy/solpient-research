@@ -7,8 +7,8 @@ import {
   UNIVERSE_SCREENING_VERSION,
   UNIVERSE_SELECTION_VERSION,
   screenCompany,
-} from "../lib/universe-screening-engine.mjs";
-import { RESEARCH_CANDIDATE_PIPELINE_VERSION } from "../lib/research-candidate-pipeline.mjs";
+} from "../lib/universe-screening-engine-v2-2.mjs";
+import { RESEARCH_CANDIDATE_PIPELINE_VERSION } from "../lib/research-candidate-pipeline-v2-2.mjs";
 
 assert.equal(UNIVERSE_SECTOR_MODEL_VERSION,"solpient-universe-sector-model-v2.2");
 assert.equal(UNIVERSE_SCREENING_VERSION,"solpient-universe-screen-v2.2");
