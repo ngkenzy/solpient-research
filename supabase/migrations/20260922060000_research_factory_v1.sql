@@ -370,20 +370,7 @@ begin
       'source_screen_result_id',f.source_screen_result_id,
       'state_hash',f.state_hash
     ),
-    encode(
-      digest(
-        convert_to(
-          jsonb_build_object(
-            'event_type','factory_item_created',
-            'ticker',f.ticker,
-            'state_hash',f.state_hash
-          )::text,
-          'UTF8'
-        ),
-        'sha256'
-      ),
-      'hex'
-    )
+    f.state_hash
   from public.research_factory_items f
   where f.research_factory_run_id=v_run_id;
 
@@ -480,7 +467,7 @@ begin
     v_from,
     p_stage,
     v_payload,
-    encode(digest(convert_to(v_payload::text,'UTF8'),'sha256'),'hex')
+    p_state_hash
   );
 
   return jsonb_build_object(
