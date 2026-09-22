@@ -10,6 +10,7 @@ on:
       - "scripts/test-universe-sector-model-v2.mjs"
       - "scripts/test-sector-classification-repair-v2-2.mjs"
       - "scripts/test-sector-classification-coverage-v2-3.mjs"
+      - "scripts/fixtures/sector-classification-v2-3-audit.json"
       - "scripts/build-sec-universe-fundamentals.mjs"
       - "scripts/enrich-sec-universe-market.mjs"
       - "scripts/test-sec-universe-feed.mjs"
@@ -39,6 +40,8 @@ jobs:
         run: node scripts/test-sector-classification-repair-v2-2.mjs
       - name: Test Sector Classification Coverage V2.3
         run: node scripts/test-sector-classification-coverage-v2-3.mjs
+      - name: Audit V2.3 taxonomy coverage
+        run: node scripts/audit-sector-classification.mjs --input=scripts/fixtures/sector-classification-v2-3-audit.json --fail-on-obvious-unknown=true --fail-on-unresolved=true
       - name: Syntax check bulk builders
         run: |
           node --check scripts/build-sec-universe-fundamentals.mjs
