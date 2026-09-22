@@ -1,8 +1,9 @@
-import fs from "node:fs/promises";import path from "node:path";import process from "node:process";import{createClient}from"@supabase/supabase-js";
+import fs from "node:fs/promises";import path from "node:path";import process from "node:process";import { createPostgresCompatClient } from "../lib/pg-supabase-compat.mjs";
 import{ENRICHMENT_ENGINE_VERSION,materializeEnrichmentItems,validateEnrichmentPack}from"../lib/evidence-enrichment.mjs";
 const ticker=String(process.argv[2]??process.env.ENRICHMENT_TICKER??"").toUpperCase();if(!ticker)throw new Error("Ticker required.");
-const url=process.env.SUPABASE_URL,secret=process.env.SUPABASE_SECRET_KEY??process.env.SUPABASE_SERVICE_ROLE_KEY;if(!url||!secret)throw new Error("Missing Supabase server credentials.");
-const sb=createClient(url,secret,{auth:{persistSession:false,autoRefreshToken:false}});
+if(!process.env.SOLPIENT_DATABASE_URL && typeof process.loadEnvFile==="function"){try{process.loadEnvFile(".env.local");}catch{}}
+if(!process.env.SOLPIENT_DATABASE_URL)throw new Error("Missing SOLPIENT_DATABASE_URL.");
+const sb=createPostgresCompatClient();
 const dir=path.resolve("data/enrichment",ticker),files=(await fs.readdir(dir)).filter(x=>x.endsWith(".json")).sort();if(!files.length)throw new Error("No enrichment pack.");
 const pack=JSON.parse(await fs.readFile(path.join(dir,files.at(-1)),"utf8")),check=validateEnrichmentPack(pack);if(!check.valid)throw new Error(check.errors.join("; "));
 const{data:company,error:ce}=await sb.from("companies").select("id").eq("ticker",ticker).single();if(ce)throw ce;
