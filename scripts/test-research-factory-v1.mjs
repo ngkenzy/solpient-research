@@ -144,6 +144,21 @@ const researchReview=deriveResearchFactoryState({
 });
 assert.equal(researchReview.stage,"research_review");
 
+const missingModuleReview=deriveResearchFactoryState({
+  company:{id:"company-1"},
+  coverage:{overall_pct:80},
+  baselineDraft:{id:"draft"},
+  composition:{id:"composition"},
+  valuationDraft:{id:"valuation-draft"},
+  industryModuleKnown:false,
+});
+assert.equal(missingModuleReview.stage,"valuation_review");
+assert.equal(missingModuleReview.status,"needs_review");
+assert.ok(
+  missingModuleReview.next_actions.some(x=>x.type==="industry_module_review"),
+  "missing static industry-module mapping must remain an explicit review task"
+);
+
 const pipelineRefresh=deriveResearchFactoryState({
   company:{id:"company-1"},
   coverage:{overall_pct:90},
