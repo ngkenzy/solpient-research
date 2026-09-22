@@ -143,10 +143,10 @@ jobs:
           if(autoApproved){
             const {data,error}=await sb
               .from("candidate_valuation_input_packs")
-              .select("id,status,reviewed_by,input_hash,updated_at")
+              .select("id,status,reviewed_by,input_hash,reviewed_at,created_at")
               .eq("company_id",item.company_id)
               .eq("status","reviewed")
-              .order("updated_at",{ascending:false})
+              .order("reviewed_at",{ascending:false})
               .limit(1)
               .maybeSingle();
             if(error)throw error;
