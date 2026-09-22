@@ -3,7 +3,8 @@ import path from "node:path";
 import process from "node:process";
 import { createPostgresCompatClient } from "../lib/pg-supabase-compat.mjs";
 
-if(!process.env.SOLPIENT_DATABASE_URL)throw new Error("Missing SOLPIENT_DATABASE_URL.");\nconst sb=createPostgresCompatClient();
+if(!process.env.SOLPIENT_DATABASE_URL)throw new Error("Missing SOLPIENT_DATABASE_URL.");
+const sb=createPostgresCompatClient();
 const userAgent=process.env.MARKET_DATA_USER_AGENT??"SOLPIENT Research/1.0";
 const outputFlag=process.argv.indexOf("--output");
 const outputPath=outputFlag>=0?process.argv[outputFlag+1]:null;
