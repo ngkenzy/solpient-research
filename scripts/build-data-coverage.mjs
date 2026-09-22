@@ -1,15 +1,12 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
-import { createClient } from "@supabase/supabase-js";
+import { createPostgresCompatClient } from "../lib/pg-supabase-compat.mjs";
 import { buildCoverageReport, COVERAGE_ENGINE_VERSION } from "../lib/data-coverage-engine.mjs";
 import { buildBaselineDraft } from "../lib/baseline-factory.mjs";
 import { latestAutonomousIndustryModule } from "../lib/autonomous-research-factory-db.mjs";
 
-const url=process.env.SUPABASE_URL;
-const secret=process.env.SUPABASE_SECRET_KEY??process.env.SUPABASE_SERVICE_ROLE_KEY;
-if(!url||!secret)throw new Error("Missing SUPABASE_URL and server secret.");
-const sb=createClient(url,secret,{auth:{persistSession:false,autoRefreshToken:false}});
+if(!process.env.SOLPIENT_DATABASE_URL)throw new Error("Missing SOLPIENT_DATABASE_URL.");\nconst sb=createPostgresCompatClient();
 const asOfDate=process.env.COVERAGE_AS_OF_DATE??new Date().toISOString().slice(0,10);
 const outputFlag=process.argv.indexOf("--output");
 const outputPath=outputFlag>=0?process.argv[outputFlag+1]:null;
