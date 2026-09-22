@@ -32,6 +32,7 @@ const actor=arg("actor",process.env.GITHUB_ACTOR??"methodology-validation-activa
 const dbInvariantEvidence=arg("db-invariant-evidence",null);
 const activate=has("activate");
 const acknowledgeReviewItems=has("acknowledge-review-items");
+const acknowledgeClassificationReviewQueue=has("acknowledge-classification-review-queue");
 const approveManualReview=has("approve-manual-review");
 
 if(!inputPath)throw new Error("Provide --input=/path/to/full-universe.json.");
@@ -52,6 +53,7 @@ const rows=parse(inputPath);
 const bundle=buildMethodologyValidationBundle(rows,{
   limit,
   acknowledgeReviewItems,
+  acknowledgeClassificationReviewQueue,
   minInputCount,
 });
 
