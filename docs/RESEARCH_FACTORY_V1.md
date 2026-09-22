@@ -114,3 +114,20 @@ The regular Research Factory workflow has separate verification and operation pa
 - the first V1 deployment includes a one-time bootstrap workflow to initialize the current Pipeline Run #1 queue
 
 The private review surface is `/review/research-factory`.
+
+
+## Automatic Queue Expansion V1.1
+
+Research Factory V1.1 adds the weekday self-draining queue on top of the existing V1 factory run. It is an operational automation layer; the underlying factory run remains `research-factory-v1`.
+
+Each worker refreshes current state, claims at most 10 candidates in shortlist order, and only claims `queued` automatic stages: `evidence_ingestion`, `baseline_draft`, and `research_draft`. Any item with manual review work, identity review, industry-module review, or repair review is excluded.
+
+Claims are transactional and use `FOR UPDATE SKIP LOCKED`. Claimed items are marked `running` with a worker batch ID and attempt counter. A stale automatic claim older than six hours can be returned to `queued` by the next worker, with the recovery recorded in the factory event ledger.
+
+V1.1 is phase-aware. Evidence-ingestion candidates stop after coverage if repair review is required. Baseline candidates stop if industry-module or other human review becomes necessary. Only a still-safe research-draft candidate proceeds to private composition and an evidence-prefilled valuation draft. No valuation draft is auto-reviewed and no research is auto-published.
+
+A candidate counts as having reached the V1.1 target only when it is at a genuine review/post-review gate: valuation review, research review, another explicit identity/industry/repair review action, pipeline refresh, or complete. A `blocked` item does not count as successful progress.
+
+The factory run is marked `completed` only when all 100 candidates are at genuine review/post-review gates with zero blocked, safe-queue, or running items.
+
+The main Research Factory workflow runs on weekdays and defaults to a maximum of **10 safe companies per run**. Manual dispatch can use a smaller batch or a single ticker. Once the factory run is complete, scheduled executions become no-ops.
