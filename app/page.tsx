@@ -1,9 +1,9 @@
 import Link from "next/link";
-import { getSupabase } from "@/lib/supabase";
 import { CapitalActivity, type CapitalActivityItem } from "@/components/CapitalActivity";
 import styles from "./home.module.css";
 import { SolpientBrand } from "@/components/SolpientBrand";
-import { decisionRankingMap, loadLatestDecisionRanking, readinessDisplay } from "@/lib/decision-ranking-read-model";
+import { decisionRankingMap, readinessDisplay } from "@/lib/decision-ranking-read-model";
+import { loadHomeDashboardData } from "@/lib/repositories/home-dashboard";
 
 export const dynamic = "force-dynamic";
 
@@ -153,22 +153,22 @@ function Icon({ children }: { children: React.ReactNode }) {
 }
 
 export default async function Home() {
-  const supabase = getSupabase();
+  const dashboard = await loadHomeDashboardData();
 
-  if (!supabase) {
+  if (!dashboard) {
     return (
       <main className={styles.commandMain}>
         <div className={styles.offlineState}>
           <strong>SOLPIENT</strong>
           <h1>Research command center</h1>
-          <p>Supabase is not configured for this deployment.</p>
+          <p>No Solpient data source is configured for this deployment.</p>
           <Link href="/research">Open research →</Link>
         </div>
       </main>
     );
   }
 
-  const [
+  const {
     companiesResult,
     runsResult,
     marketResult,
@@ -180,60 +180,11 @@ export default async function Home() {
     predictionsResult,
     predictionScoresResult,
     automationResult,
-  ] = await Promise.all([
-    supabase.from("companies").select("id,ticker,company_name,sector,industry").order("ticker"),
-    supabase
-      .from("research_runs")
-      .select("id,company_id,version,researched_at,price_at_research,summary")
-      .eq("status", "published")
-      .order("researched_at", { ascending: false }),
-    supabase
-      .from("market_snapshots")
-      .select("symbol,price,trading_date,observed_at")
-      .order("trading_date", { ascending: false }),
-    supabase
-      .from("filing_events")
-      .select("id,company_id,form_type,filed_at,title,filing_url,created_at")
-      .order("filed_at", { ascending: false })
-      .limit(80),
-    supabase
-      .from("ranking_history")
-      .select("company_id,ranked_at,rank,overall_score,price,base_fair_value")
-      .order("ranked_at", { ascending: false })
-      .limit(200),
-    supabase
-      .from("capital_activity")
-      .select("id,company_id,activity_type,actor_name,actor_detail,action,shares,price,value,change_pct,amount_range,transaction_date,disclosure_date,position_date,source_url,provider,created_at")
-      .order("created_at", { ascending: false })
-      .limit(250),
-    supabase
-      .from("intelligence_events")
-      .select("id,company_id,source_kind,event_type,occurred_at,disclosed_at,title,summary,materiality,review_status,research_run_id,source_url,created_at")
-      .order("disclosed_at", { ascending: false, nullsFirst: false })
-      .limit(150),
-    supabase
-      .from("ranking_explanations")
-      .select("company_id,previous_rank,rank_delta,score_delta,price_delta_pct,valuation_gap_delta_pct,explanation,created_at")
-      .order("created_at", { ascending: false })
-      .limit(200),
-    supabase
-      .from("prediction_snapshots")
-      .select("id,company_id,prediction_key,predicted_at,horizon_months,thesis_status,confidence")
-      .order("predicted_at", { ascending: false })
-      .limit(50),
-    supabase
-      .from("prediction_scores")
-      .select("id,scored_at,direction_correct,absolute_error,percentage_error,benchmark_excess_return")
-      .order("scored_at", { ascending: false })
-      .limit(100),
-    supabase
-      .from("automation_runs")
-      .select("pipeline,started_at,completed_at,status,records_written,message")
-      .order("started_at", { ascending: false })
-      .limit(30),
-  ]);
+    scoresResult,
+    valuationsResult,
+    phase3Ranking,
+  } = dashboard;
 
-  const phase3Ranking = await loadLatestDecisionRanking(supabase);
   const phase3ByCompany = decisionRankingMap(phase3Ranking.rows);
 
   const companies = companiesResult.data ?? [];
@@ -246,19 +197,6 @@ export default async function Home() {
   }
 
   const latestRuns = Array.from(latestRunByCompany.values());
-  const runIds = latestRuns.map((run) => run.id);
-  const [scoresResult, valuationsResult] = runIds.length
-    ? await Promise.all([
-        supabase
-          .from("scores")
-          .select("research_run_id,overall_score,quality_score,valuation_score,thesis_integrity_score")
-          .in("research_run_id", runIds),
-        supabase
-          .from("valuations")
-          .select("research_run_id,base_value,bear_value,bull_value")
-          .in("research_run_id", runIds),
-      ])
-    : [{ data: [] as any[] }, { data: [] as any[] }];
 
   const scoreMap = new Map((scoresResult.data ?? []).map((row: any) => [row.research_run_id, row]));
   const valuationMap = new Map((valuationsResult.data ?? []).map((row: any) => [row.research_run_id, row]));
