@@ -125,6 +125,53 @@ A successful response includes `"mode":"postgres"`.
 
 The homepage, research ranking, core company research record, company-change panel, decision-trigger panel, research-coverage panel, and prediction history now prefer direct PostgreSQL. Remaining legacy modules continue to use the compatibility bridge until they are migrated and verified.
 
+## Phase 2 checkpoint: read path decoupled
+
+The primary read-only application surface now prefers direct PostgreSQL through server-only repository modules.
+
+Direct PostgreSQL readers now cover:
+
+- home dashboard and rankings;
+- company research core records;
+- company performance and historical charts;
+- capital / ownership intelligence;
+- advanced research modules;
+- valuation bridge;
+- Research Standard v1 and v2;
+- company change engine;
+- decision triggers and active trigger feed;
+- research coverage;
+- prediction history;
+- Research Health & Repair Center.
+
+The React components above no longer query Supabase directly. During migration, their repository modules retain a Supabase/PostgREST fallback only when `SOLPIENT_DATABASE_URL` is absent.
+
+Verify Phase 2 locally:
+
+```bash
+npm install
+npm run local:configure-app
+npm run local:verify-db
+npm run local:verify-research
+npm run build
+npm run dev
+```
+
+Then check:
+
+```text
+/
+/research
+/research/ADBE
+/research/DECK
+/research/PFE
+/research-health
+/alerts
+/api/health/db
+```
+
+Do not remove the compatibility bridge or `@supabase/supabase-js` yet. Write-heavy review, publication, ingestion, repair, automation, and research-factory workflows still need to be migrated.
+
 ## Phase 5: remove the Supabase client package
 
 After local parity is proven:
