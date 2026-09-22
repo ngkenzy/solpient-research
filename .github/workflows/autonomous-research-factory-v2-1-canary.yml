@@ -1,5 +1,7 @@
 name: Autonomous Research Factory V2.1 Production Canary
 
+# Retry marker: stable Supabase JS 2.109.0 verified.
+
 on:
   push:
     branches: [main]
