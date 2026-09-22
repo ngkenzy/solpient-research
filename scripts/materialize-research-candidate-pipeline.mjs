@@ -6,6 +6,7 @@ import {
   buildResearchCandidatePipeline,
 } from "../lib/research-candidate-pipeline.mjs";
 import { VALUATION_METHODOLOGY_VERSION } from "../lib/valuation-engine-v3.mjs";
+import { UNIVERSE_SCREENING_VERSION } from "../lib/universe-screening-engine.mjs";
 import { READINESS_METHODOLOGY_VERSION } from "../lib/decision-ranking-engine.mjs";
 
 const url=process.env.SUPABASE_URL;
@@ -21,6 +22,13 @@ const {data:screenRun,error:screenRunError}=await sb.from("universe_screen_runs"
   .maybeSingle();
 if(screenRunError)throw screenRunError;
 if(!screenRun)throw new Error("No universe screening run exists.");
+if(screenRun.methodology_version!==UNIVERSE_SCREENING_VERSION){
+  throw new Error(
+    "Research Candidate Pipeline "+RESEARCH_CANDIDATE_PIPELINE_VERSION+
+    " requires "+UNIVERSE_SCREENING_VERSION+
+    "; latest universe screen is "+screenRun.methodology_version+"."
+  );
+}
 
 const {data:screenRows,error:screenError}=await sb.from("universe_screen_results")
   .select("*")
