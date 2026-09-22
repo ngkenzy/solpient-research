@@ -7,6 +7,7 @@ import {
   sourceQualityClass,
   buildNormalizedFact,
   derivedFormulaForMetric,
+  alignImmutableFactChain,
 } from "../lib/evidence-provenance.mjs";
 import { sanitizeSourceUrl } from "../lib/baseline-factory.mjs";
 
@@ -298,12 +299,35 @@ for(const row of allObs){
 
 const existingFactsRaw=await fetchAll("normalized_facts",(q)=>{
   q=q
-    .select("id,fact_key,company_id,module,metric_key,value_numeric,unit,economic_period_end,economic_period_type,known_at,source_confidence_class,conflict_state,supersedes_fact_id,formula_identifier,derivation_basis")
+    .select("id,fact_key,company_id,module,metric_key,value_numeric,unit,economic_period_start,economic_period_end,economic_period_type,known_at,source_confidence_class,conflict_state,supersedes_fact_id,formula_identifier,derivation_basis")
     .order("known_at",{ascending:true})
     .order("id",{ascending:true});
   return selected.length===1?q.eq("company_id",selected[0].id):q;
 });
 const factByKey=new Map(existingFactsRaw.map((r)=>[r.fact_key,r]));
+const factGroupKey=(row)=>[
+  row.company_id,
+  row.module,
+  row.metric_key,
+  row.economic_period_start??"",
+  row.economic_period_end??"",
+  row.economic_period_type??"",
+].join("|");
+const existingFactsByGroup=new Map();
+const successorByFactId=new Map();
+for(const fact of existingFactsRaw){
+  const key=factGroupKey(fact);
+  const list=existingFactsByGroup.get(key)??[];
+  list.push(fact);
+  existingFactsByGroup.set(key,list);
+  if(fact.supersedes_fact_id)successorByFactId.set(fact.supersedes_fact_id,fact);
+}
+for(const list of existingFactsByGroup.values()){
+  list.sort((a,b)=>
+    String(a.known_at??"").localeCompare(String(b.known_at??"")) ||
+    String(a.id??"").localeCompare(String(b.id??""))
+  );
+}
 let factsPrepared=0;
 let observationLinksPrepared=0;
 let factBuffer=[];
@@ -320,12 +344,22 @@ async function flushFactBuffers(){
   observationLinkBuffer=[];
 }
 
-for(const rows of groups.values()){
+for(const [groupKey,rows] of groups.entries()){
   const sample=rows[0];
   const eventTimes=[...new Set(rows.map((row)=>row.known_at).filter(Boolean))].sort();
+  const groupFacts=existingFactsByGroup.get(groupKey)??[];
   let previousFactId=null;
 
   for(const eventTime of eventTimes){
+    const alignment=alignImmutableFactChain({
+      previousFactId,
+      eventTime,
+      existingGroupFacts:groupFacts,
+      successorByFactId,
+    });
+    previousFactId=alignment.previousFactId;
+    if(alignment.skipEvent)continue;
+
     const eligible=rows.filter((row)=>String(row.known_at)<=String(eventTime));
     const built=buildNormalizedFact({
       companyId:sample.company_id,module:sample.module,metricKey:sample.metric_key,unit:sample.unit,
@@ -343,7 +377,14 @@ for(const rows of groups.values()){
     const factId=existing?.id??built.fact.id;
     if(!existing){
       factBuffer.push(built.fact);
-      factByKey.set(built.fact.fact_key,{...built.fact,id:factId});
+      const storedFact={...built.fact,id:factId};
+      factByKey.set(built.fact.fact_key,storedFact);
+      groupFacts.push(storedFact);
+      groupFacts.sort((a,b)=>
+        String(a.known_at??"").localeCompare(String(b.known_at??"")) ||
+        String(a.id??"").localeCompare(String(b.id??""))
+      );
+      if(previousFactId)successorByFactId.set(previousFactId,storedFact);
       factsPrepared+=1;
       for(const link of built.observationLinks){
         observationLinkBuffer.push({...link,normalized_fact_id:factId});
