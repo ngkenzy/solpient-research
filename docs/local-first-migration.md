@@ -39,23 +39,51 @@ The PostgREST bridge is temporary. It lets the existing application run against 
 5. Verify:
 
    ```bash
-   docker compose -f docker-compose.local.yml --env-file .env.local-stack ps
-   curl http://127.0.0.1:54321/
+   npm run local:status
+   curl -sS http://127.0.0.1:54321/ >/dev/null && echo "local API reachable"
    ```
 
-## Phase 2: copy the existing Supabase PostgreSQL database
+## Phase 2: export the existing Supabase PostgreSQL database
 
-Get the direct PostgreSQL connection string for the existing Solpient Research database and keep it out of Git.
+Supabase's current migration guidance recommends using `supabase db dump` rather than raw `pg_dump`, because the CLI filters Supabase-managed schemas and reserved roles.
+
+Authenticate and link this repo to the existing Solpient Research project:
 
 ```bash
-export SUPABASE_DB_URL='postgresql://...'
+supabase login
+supabase link --project-ref hmfrlpsjszjpvzogrico
+```
+
+The link command may ask for the hosted database password.
+
+Then export the schema and data:
+
+```bash
 bash scripts/export-supabase-public.sh
+```
+
+The export is written to:
+
+```text
+backups/supabase-export/schema.sql
+backups/supabase-export/data.sql
+```
+
+The default Supabase dump excludes managed schemas such as Auth and Storage. Solpient currently needs the application-facing `public` schema and its data for this migration.
+
+## Phase 3: restore into Solpient-owned PostgreSQL
+
+With the local stack running:
+
+```bash
 bash scripts/restore-local-public.sh
 ```
 
-The dump contains only the `public` schema and its data. Supabase Auth, Storage, internal schemas, and platform metadata are intentionally not copied.
+This resets only the local `public` schema, restores the exported schema/data, grants the local PostgREST compatibility role access, and reloads the PostgREST schema cache.
 
-## Phase 3: run Solpient against local data
+Never point this restore script at production.
+
+## Phase 4: run Solpient against local data
 
 Add these values to the application's `.env.local`:
 
@@ -74,7 +102,7 @@ npm run dev
 
 Do not delete the old Supabase variables until the local app has passed its existing tests and the core research pages work.
 
-## Phase 4: remove the Supabase client package
+## Phase 5: remove the Supabase client package
 
 After local parity is proven:
 
@@ -87,7 +115,7 @@ After local parity is proven:
 
 This phase is deliberately last because Solpient currently has many chained `.from(...).select(...)` queries, nested relation reads, upserts, and RPC-style database functions. Converting them behind a stable repository layer is safer than rewriting all call sites at once.
 
-## Phase 5: production VPS
+## Phase 6: production VPS
 
 The production design should not expose PostgreSQL or a privileged PostgREST role to the public internet.
 
