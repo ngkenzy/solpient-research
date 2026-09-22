@@ -1,8 +1,6 @@
 name: SOLPIENT Research Update Planner
 on:
   workflow_dispatch:
-  schedule:
-    - cron: "35 23 * * 1-5"
 concurrency:
   group: solpient-research-update-planner
   cancel-in-progress: true
