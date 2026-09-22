@@ -3,6 +3,7 @@ import { createHash, timingSafeEqual } from "node:crypto";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { adminSupabaseConfigured } from "@/lib/admin-supabase";
+import { databaseConfigured } from "@/lib/db";
 
 const COOKIE_NAME="solpient-review-access";
 const fingerprint=(secret:string)=>createHash("sha256").update("solpient-review-workbench:"+secret).digest("hex");
@@ -10,12 +11,16 @@ function safeEqual(a:string,b:string) {
   const aa=Buffer.from(a), bb=Buffer.from(b);
   return aa.length===bb.length && timingSafeEqual(aa,bb);
 }
+function reviewDataConfigured() {
+  return databaseConfigured() || adminSupabaseConfigured();
+}
+
 export function reviewAccessConfigured() {
-  return Boolean(process.env.REVIEW_WORKBENCH_KEY) && adminSupabaseConfigured();
+  return Boolean(process.env.REVIEW_WORKBENCH_KEY) && reviewDataConfigured();
 }
 export async function hasReviewAccess() {
   const secret=process.env.REVIEW_WORKBENCH_KEY;
-  if (!secret || !adminSupabaseConfigured()) return false;
+  if (!secret || !reviewDataConfigured()) return false;
   const store=await cookies();
   return safeEqual(store.get(COOKIE_NAME)?.value ?? "",fingerprint(secret));
 }
@@ -24,7 +29,7 @@ export async function requireReviewAccess() {
 }
 export async function unlockReviewAccess(candidate:string) {
   const secret=process.env.REVIEW_WORKBENCH_KEY;
-  if (!secret || !adminSupabaseConfigured()) return false;
+  if (!secret || !reviewDataConfigured()) return false;
   if (!safeEqual(fingerprint(candidate),fingerprint(secret))) return false;
   const store=await cookies();
   store.set(COOKIE_NAME,fingerprint(secret),{
