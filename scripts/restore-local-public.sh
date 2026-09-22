@@ -55,8 +55,10 @@ awk '
   { print }
 ' "$SCHEMA" > "$SANITIZED_SCHEMA"
 
-echo "Resetting only the local public schema..."
-docker compose -f docker-compose.local.yml --env-file .env.local-stack exec -T db   psql --username="$DB_USER" --dbname="$DB_NAME" -v ON_ERROR_STOP=1   -c "drop schema if exists public cascade; create schema public; grant all on schema public to $DB_USER; grant usage on schema public to solpient_dev_api;"
+echo "Resetting local Solpient application schemas..."
+docker compose -f docker-compose.local.yml --env-file .env.local-stack exec -T db \
+  psql --username="$DB_USER" --dbname="$DB_NAME" -v ON_ERROR_STOP=1 \
+  -c "drop schema if exists private cascade; drop schema if exists public cascade; create schema public; grant all on schema public to $DB_USER; grant usage on schema public to solpient_dev_api;"
 
 echo "Restoring schema..."
 docker compose -f docker-compose.local.yml --env-file .env.local-stack exec -T db   psql --username="$DB_USER" --dbname="$DB_NAME" -v ON_ERROR_STOP=1 < "$SANITIZED_SCHEMA"
