@@ -27,7 +27,7 @@ Activation requires:
 - explicit manual approval for the capital-decision candidate pipeline
 - live database invariant evidence
 - successful required GitHub Actions for the exact 40-character activation commit SHA
-- a clean worktree matching that commit
+- no tracked source changes relative to that commit (local untracked universe data is allowed)
 
 A nonzero `review_required` classification queue is permitted. Those names remain evidence-capped and cannot auto-promote.
 
@@ -58,7 +58,7 @@ An unrelated or unproven same-key version never satisfies a dependency.
 
 Activation no longer self-attests `unit_tests=pass` or `build=pass`.
 
-The activation CLI queries GitHub Actions for the exact commit SHA and requires successful runs for:
+The activation CLI queries GitHub Actions for the exact commit SHA using `GH_TOKEN`/`GITHUB_TOKEN`, with authenticated `gh api` as a local fallback, and requires successful runs for:
 
 - SOLPIENT Build Check
 - Methodology Registry Governance
