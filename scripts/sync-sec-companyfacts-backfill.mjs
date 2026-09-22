@@ -14,6 +14,21 @@ const onlyTicker=process.env.COVERAGE_TICKER?String(process.env.COVERAGE_TICKER)
 
 function sleep(ms){return new Promise(resolve=>setTimeout(resolve,ms));}
 
+function errorDetails(error,stage){
+  return {
+    stage,
+    message:error?.message??String(error),
+    code:error?.code??null,
+    detail:error?.detail??error?.details??null,
+    hint:error?.hint??null,
+    schema:error?.schema??null,
+    table:error?.table??null,
+    column:error?.column??null,
+    constraint:error?.constraint??null,
+    data_type:error?.dataType??error?.dataTypeName??null,
+  };
+}
+
 async function secJson(cik){
   const padded=String(cik).replace(/\D/g,"").padStart(10,"0");
   const endpoint="https://data.sec.gov/api/xbrl/companyfacts/CIK"+padded+".json";
@@ -74,11 +89,14 @@ let consecutiveBlocked=0;
 
 for(const company of selected){
   const attemptId=await attemptStart(company);
+  let failureStage="request";
   try{
     const {endpoint,body}=await secJson(company.cik);
+    failureStage="normalize";
     const rows=normalizeCompanyFacts(body,{
       companyId:company.id,ticker:company.ticker,cik:company.cik,observedAt:new Date().toISOString()
     });
+    failureStage="upsert_fundamental_snapshots";
     let written=0;
     for(let i=0;i<rows.length;i+=100){
       const chunk=rows.slice(i,i+100);
@@ -111,10 +129,11 @@ for(const company of selected){
     summary.push({ticker:company.ticker,status:written>0?"success":"partial",rows:written,fiscal_years:years.length,latest_period:rows[0]?.period_end??null});
     console.log("SEC companyfacts",company.ticker,"rows="+written,"years="+years.length);
   }catch(error){
-    const message=error instanceof Error?error.message:String(error);
-    await attemptFinish(attemptId,"failed",0,message,{ticker:company.ticker});
-    summary.push({ticker:company.ticker,status:"failed",rows:0,error:message});
-    console.warn("SEC companyfacts failed",company.ticker,message);
+    const diagnostics=errorDetails(error,failureStage);
+    const message=diagnostics.message;
+    await attemptFinish(attemptId,"failed",0,message,{ticker:company.ticker,...diagnostics});
+    summary.push({ticker:company.ticker,status:"failed",rows:0,error:message,diagnostics});
+    console.warn("SEC companyfacts failed",company.ticker,JSON.stringify(diagnostics));
     if(error?.code==="SEC_BLOCKED"){
       consecutiveBlocked+=1;
       if(consecutiveBlocked>=3){
