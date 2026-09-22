@@ -80,8 +80,6 @@ jobs:
     env:
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-      SEC_CONTACT: ${{ secrets.SEC_CONTACT }}
-      SEC_USER_AGENT: ${{ secrets.SEC_USER_AGENT }}
       RESEARCH_FACTORY_MAX_COMPANIES: ${{ github.event.inputs.max_companies || '5' }}
       RESEARCH_FACTORY_TICKER: ${{ github.event.inputs.ticker || '' }}
     steps:
