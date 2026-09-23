@@ -15,8 +15,10 @@ import {
   loadPriorAutonomousRunsPg,
   createAutonomousRunPg,
   finishAutonomousRunPg,
+  transitionFactoryItemPg,
 } from "../lib/factory-worker-pg.mjs";
 import { postgresConfigured } from "../lib/postgres-node.mjs";
+import { buildFactoryStateHash } from "../lib/research-factory-v1.mjs";
 
 function arg(name,fallback=null){
   const prefix="--"+name+"=";
@@ -166,9 +168,54 @@ for(const item of selected){
 
     let current=await freshFactoryItemPg(item.id);
     if(current.status==="quarantined"){
-      outcome="quarantined";
-      results.push(await settledResult(item,{outcome,steps}));
-      continue;
+      const industryQuarantine=
+        current?.state_snapshot?.autonomous_v2_1?.industry_assignment?.status==="quarantined";
+
+      if(industryQuarantine){
+        outcome="quarantined";
+        results.push(await settledResult(item,{outcome,steps}));
+        continue;
+      }
+
+      // A prior valuation/evidence quarantine should not permanently block a
+      // manual or changed-evidence recheck. Industry assignment has cleared,
+      // so reopen the item long enough to rebuild evidence and re-evaluate the
+      // downstream autonomous gates.
+      const snapshot={
+        ...(current.state_snapshot??{}),
+        autonomous_v2_1:{
+          ...(current?.state_snapshot?.autonomous_v2_1??{}),
+          quarantine_recheck:{
+            status:"running",
+            autonomous_run_id:autoRun.id,
+            reopened_at:new Date().toISOString(),
+            selection_reason:item.selection_reason??null,
+          },
+        },
+      };
+      await transitionFactoryItemPg({
+        itemId:current.id,
+        stage:current.stage,
+        status:"queued",
+        companyId:current.company_id,
+        coverageReportId:current.coverage_report_id,
+        baselineDraftId:current.baseline_draft_id,
+        compositionId:current.composition_id,
+        coveragePct:current.coverage_pct,
+        repairJobCount:current.repair_job_count,
+        manualReviewCount:current.manual_review_count,
+        nextActions:[{
+          priority:100,
+          type:"autonomous_recheck",
+          action:"Rebuild evidence and re-evaluate the prior quarantine under the current autonomous policy.",
+          reason:item.selection_reason??"manual_or_changed_evidence_recheck",
+        }],
+        stateSnapshot:snapshot,
+        stateHash:buildFactoryStateHash(snapshot),
+        lastError:null,
+        eventType:"autonomous_quarantine_recheck_started",
+      });
+      current=await freshFactoryItemPg(item.id);
     }
 
     for(const [label,script,args,env,critical] of [
