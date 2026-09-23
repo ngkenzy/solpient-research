@@ -5785,3 +5785,182 @@ h2 { letter-spacing: -.02em; }
   .coverageLayerGrid,
   .coverageGapList { grid-template-columns:1fr; }
 }
+
+
+/* Baseline Research V1 */
+.baselineResearchShell {
+  padding-bottom: 72px;
+}
+
+.baselineHero {
+  margin-bottom: 18px;
+}
+
+.baselineBuildingStatus {
+  padding: 7px 10px;
+  border: 1px solid rgba(215,181,109,.28);
+  border-radius: 999px;
+  color: #e6c982;
+  background: rgba(215,181,109,.07);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.baselineStatusGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin: 14px 0 24px;
+}
+
+.baselineStatusGrid article {
+  min-height: 108px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 15px;
+  background: linear-gradient(180deg, #13171c, #101318);
+  display: grid;
+  align-content: center;
+  gap: 6px;
+}
+
+.baselineStatusGrid span,
+.baselineStatusGrid small {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.baselineStatusGrid strong {
+  font-size: 18px;
+}
+
+.baselineResearchIntro {
+  display: flex;
+  justify-content: space-between;
+  gap: 28px;
+  align-items: end;
+  margin: 24px 0 14px;
+}
+
+.baselineResearchIntro h2 {
+  margin: 5px 0 0;
+  font-size: 25px;
+}
+
+.baselineResearchIntro > p {
+  max-width: 620px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.65;
+}
+
+.baselineSectionGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.baselineSectionCard {
+  min-height: 172px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: #111419;
+}
+
+.baselineSectionCard.supported {
+  border-color: rgba(94,217,143,.16);
+  background:
+    radial-gradient(circle at 92% 10%, rgba(94,217,143,.055), transparent 30%),
+    #111419;
+}
+
+.baselineSectionCard.insufficient {
+  border-color: rgba(215,181,109,.12);
+}
+
+.baselineSectionHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 13px;
+}
+
+.baselineSectionHeader span {
+  color: var(--muted);
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: .11em;
+}
+
+.baselineSectionCard.supported .baselineSectionHeader span {
+  color: #70d99a;
+}
+
+.baselineSectionHeader h3 {
+  margin: 5px 0 0;
+  font-size: 17px;
+}
+
+.baselineSectionHeader > strong {
+  color: #70d99a;
+  font-size: 17px;
+}
+
+.baselineSectionCard.insufficient .baselineSectionHeader > strong {
+  color: var(--accent);
+}
+
+.baselineClaims {
+  display: grid;
+  gap: 12px;
+}
+
+.baselineClaims > div {
+  display: grid;
+  gap: 7px;
+}
+
+.baselineClaims p,
+.baselineLimitation {
+  margin: 0;
+  color: #d6dae1;
+  font-size: 12px;
+  line-height: 1.65;
+}
+
+.baselineClaims small {
+  color: #747d89;
+  font-size: 9px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.baselineLimitation {
+  color: #9ba3af;
+}
+
+.baselineFootnote {
+  margin-top: 18px;
+}
+
+@media (max-width: 900px) {
+  .baselineStatusGrid,
+  .baselineSectionGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .baselineResearchIntro {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 620px) {
+  .baselineStatusGrid,
+  .baselineSectionGrid {
+    grid-template-columns: 1fr;
+  }
+}
