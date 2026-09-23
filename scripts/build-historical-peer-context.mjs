@@ -26,6 +26,16 @@ if(companiesError)throw companiesError;
 
 const tracked=new Set((companies??[]).map(c=>c.ticker));
 const selected=(companies??[]).filter(c=>!onlyTicker||c.ticker===onlyTicker);
+const selectedTickers=new Set(selected.map(c=>c.ticker));
+const dependencyTickers=new Set(selectedTickers);
+
+for(const company of selected){
+  for(const peer of peerSetForTicker(company.ticker)){
+    if(tracked.has(peer.ticker))dependencyTickers.add(peer.ticker);
+  }
+}
+
+const calculationCompanies=(companies??[]).filter(c=>dependencyTickers.has(c.ticker));
 const results=new Map();
 
 async function upsertRows(table,rows,onConflict){
@@ -36,7 +46,7 @@ async function upsertRows(table,rows,onConflict){
   }
 }
 
-for(const company of selected){
+for(const company of calculationCompanies){
   const [fundR,marketR]=await Promise.all([
     sb.from("fundamental_snapshots").select("*").eq("company_id",company.id).lte("observed_at",knowledgeCutoffAt).order("period_end",{ascending:false}).limit(160),
     sb.from("market_snapshots").select("*").eq("company_id",company.id).lte("trading_date",asOfDate).lte("observed_at",knowledgeCutoffAt).order("trading_date",{ascending:false}).limit(3200),
@@ -51,7 +61,7 @@ for(const company of selected){
   const result=buildCompanyHistory({
     company,
     fundamentals:fundR.data??[],
-    markets:marketR.data??[],
+    markets:(marketR.data??[]).filter(row=>Number(row?.price)>0&&Number(row?.market_cap)>0),
     industryModuleOverride:autonomousIndustryModule,
   });
   results.set(company.ticker,result);
@@ -60,12 +70,14 @@ for(const company of selected){
   await upsertRows("capital_allocation_history",result.capital,"company_id,period_end");
   await upsertRows("valuation_history",result.valuations,"company_id,trading_date,provider");
 
-  const peerRows=peerSetForTicker(company.ticker).map(peer=>({
-    company_id:company.id,peer_ticker:peer.ticker,peer_name:null,peer_module:null,
-    relationship_type:peer.relationship_type??"reference",rationale:peer.rationale??null,
-    is_active:true,updated_at:new Date().toISOString()
-  }));
-  await upsertRows("company_peers",peerRows,"company_id,peer_ticker");
+  if(selectedTickers.has(company.ticker)){
+    const peerRows=peerSetForTicker(company.ticker).map(peer=>({
+      company_id:company.id,peer_ticker:peer.ticker,peer_name:null,peer_module:null,
+      relationship_type:peer.relationship_type??"reference",rationale:peer.rationale??null,
+      is_active:true,updated_at:new Date().toISOString()
+    }));
+    await upsertRows("company_peers",peerRows,"company_id,peer_ticker");
+  }
 }
 
 const latestByTicker=new Map([...results.entries()].map(([ticker,result])=>[ticker,latestMetricMap(result)]));
