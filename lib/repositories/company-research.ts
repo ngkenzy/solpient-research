@@ -7,6 +7,56 @@ function first<T>(rows: T[]) {
   return rows[0] ?? null;
 }
 
+async function optionalBaselinePostgres(companyId: string) {
+  try {
+    return first(
+      await dbQuery<any>(
+        `
+          select
+            c.id,
+            c.draft_id,
+            c.company_id,
+            c.engine_version,
+            c.status,
+            c.composition_payload,
+            c.validation_result,
+            c.generated_at,
+            c.updated_at,
+            b.industry_module,
+            b.evidence_completeness_pct,
+            b.source_cutoff_at
+          from public.research_compositions c
+          join public.baseline_drafts b on b.id = c.draft_id
+          where c.company_id = $1
+            and c.engine_version = 'baseline-research-composer-v1'
+            and c.status in ('generated','applied')
+          order by c.generated_at desc, c.updated_at desc
+          limit 1
+        `,
+        [companyId],
+      ),
+    );
+  } catch (error: any) {
+    if (error?.code === "42P01") return null;
+    throw error;
+  }
+}
+
+async function latestMarketPostgres(ticker: string) {
+  return first(
+    await dbQuery<any>(
+      `
+        select price,trading_date,provider,observed_at
+        from public.market_snapshots
+        where symbol = $1
+        order by trading_date desc, observed_at desc nulls last
+        limit 1
+      `,
+      [ticker],
+    ),
+  );
+}
+
 export async function loadCompanyResearchData(
   ticker: string,
   requestedVersion: number | null,
@@ -33,6 +83,7 @@ export async function loadCompanyResearchData(
         changes: [],
         v2: null,
         latestMarket: null,
+        baselineComposition: null,
       };
     }
 
@@ -57,6 +108,10 @@ export async function loadCompanyResearchData(
     );
 
     if (!run) {
+      const [baselineComposition, latestMarket] = await Promise.all([
+        requestedVersion == null ? optionalBaselinePostgres(company.id) : Promise.resolve(null),
+        latestMarketPostgres(company.ticker),
+      ]);
       return {
         source: "postgres" as const,
         company,
@@ -69,7 +124,8 @@ export async function loadCompanyResearchData(
         history: [],
         changes: [],
         v2: null,
-        latestMarket: null,
+        latestMarket,
+        baselineComposition,
       };
     }
 
@@ -179,6 +235,7 @@ export async function loadCompanyResearchData(
       changes,
       v2,
       latestMarket,
+      baselineComposition: null,
     };
   }
 
@@ -205,6 +262,7 @@ export async function loadCompanyResearchData(
       changes: [],
       v2: null,
       latestMarket: null,
+      baselineComposition: null,
     };
   }
 
@@ -223,6 +281,26 @@ export async function loadCompanyResearchData(
   const { data: run } = await runQuery.maybeSingle();
 
   if (!run) {
+    const [baselineResult, marketResult] = await Promise.all([
+      requestedVersion == null
+        ? supabase
+            .from("research_compositions")
+            .select("id,draft_id,company_id,engine_version,status,composition_payload,validation_result,generated_at,updated_at")
+            .eq("company_id", company.id)
+            .eq("engine_version", "baseline-research-composer-v1")
+            .in("status", ["generated", "applied"])
+            .order("generated_at", { ascending: false })
+            .limit(1)
+            .maybeSingle()
+        : Promise.resolve({ data: null, error: null }),
+      supabase
+        .from("market_snapshots")
+        .select("price,trading_date,provider,observed_at")
+        .eq("symbol", company.ticker)
+        .order("trading_date", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+    ]);
     return {
       source: "supabase" as const,
       company,
@@ -235,7 +313,8 @@ export async function loadCompanyResearchData(
       history: [],
       changes: [],
       v2: null,
-      latestMarket: null,
+      latestMarket: marketResult.data ?? null,
+      baselineComposition: baselineResult.error ? null : baselineResult.data ?? null,
     };
   }
 
@@ -307,5 +386,6 @@ export async function loadCompanyResearchData(
     changes: changesResult.data ?? [],
     v2: v2Result.data ?? null,
     latestMarket,
+    baselineComposition: null,
   };
 }
