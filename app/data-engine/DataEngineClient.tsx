@@ -76,7 +76,7 @@ export function DataEngineClient({ snapshot }: { snapshot: DataEngineSnapshot })
         </article>
         <article>
           <span>Adapter</span>
-          <strong>PENDING ENGINE</strong>
+          <strong>{snapshot.adapter === "local_postgres" ? "LOCAL POSTGRES" : "PENDING ENGINE"}</strong>
           <small>{snapshot.adapter}</small>
         </article>
       </section>
