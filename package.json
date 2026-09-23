@@ -114,7 +114,11 @@
     "test:baseline-factory100": "node scripts/test-solpient-100-baseline-factory-v1.mjs",
     "baseline:factory:plan": "node scripts/run-solpient-100-baseline-factory-v1.mjs --dry-run",
     "baseline:factory": "node scripts/with-pipeline-lock.mjs --lock=baseline_research.lock -- node scripts/run-solpient-100-baseline-factory-v1.mjs --max=5",
-    "baseline:factory:all": "node scripts/with-pipeline-lock.mjs --lock=baseline_research.lock -- node scripts/run-solpient-100-baseline-factory-v1.mjs --all"
+    "baseline:factory:all": "node scripts/with-pipeline-lock.mjs --lock=baseline_research.lock -- node scripts/run-solpient-100-baseline-factory-v1.mjs --all",
+    "local:migrate:daily-score": "node scripts/apply-solpient-100-daily-score-v1.mjs",
+    "scores:daily100": "node scripts/refresh-solpient-100-private-scores-v1.mjs",
+    "test:daily-score100": "node scripts/test-solpient-100-daily-score-v1.mjs",
+    "daily:100": "node scripts/with-pipeline-lock.mjs --lock=solpient_daily.lock -- node scripts/run-solpient-daily.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.109.0",
