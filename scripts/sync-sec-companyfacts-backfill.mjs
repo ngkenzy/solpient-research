@@ -69,10 +69,34 @@ function fundamentalConflictKey(row){
 }
 
 function comparableFundamental(row){
-  const out={};
-  for(const [key,value] of Object.entries(row??{})){
-    if(["id","observed_at","created_at","updated_at"].includes(key))continue;
-    out[key]=value;
+  const numericKeys=[
+    "fiscal_year","revenue","net_income","operating_cash_flow",
+    "capital_expenditure","free_cash_flow","shares_outstanding","eps_diluted"
+  ];
+  const out={
+    company_id:row?.company_id??null,
+    provider:row?.provider??null,
+    period_end:row?.period_end??null,
+    fiscal_year:row?.fiscal_year??null,
+    fiscal_period:row?.fiscal_period??null,
+    form:row?.form??null,
+    filed_at:row?.filed_at??null,
+    revenue:row?.revenue??null,
+    net_income:row?.net_income??null,
+    operating_cash_flow:row?.operating_cash_flow??null,
+    capital_expenditure:row?.capital_expenditure??null,
+    free_cash_flow:row?.free_cash_flow??null,
+    shares_outstanding:row?.shares_outstanding??null,
+    eps_diluted:row?.eps_diluted??null,
+    source_url:row?.source_url??null,
+    raw_payload:row?.raw_payload??{},
+  };
+  for(const key of numericKeys){
+    if(out[key]===null||out[key]===undefined||out[key]==="")out[key]=null;
+    else{
+      const value=Number(out[key]);
+      out[key]=Number.isFinite(value)?value:out[key];
+    }
   }
   return out;
 }
