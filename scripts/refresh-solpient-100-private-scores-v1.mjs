@@ -11,6 +11,7 @@ import {
   DECISION_RANKING_METHODOLOGY_VERSION,
   READINESS_METHODOLOGY_VERSION,
   buildDecisionRanking,
+  currentPriceExpectedCagr,
   sortDecisionRankings,
 } from "../lib/decision-ranking-engine.mjs";
 import { applyReviewPatch } from "../lib/review-workbench.mjs";
@@ -33,14 +34,13 @@ function latestBy(rows,key){
   return out;
 }
 
-function baseFiveYearCagr(payload={}){
+function baseFiveYearScenario(payload={}){
   const rows=Array.isArray(payload?.expected_return_scenarios)
     ? payload.expected_return_scenarios
     : [];
-  const row=rows.find((item)=>
+  return rows.find((item)=>
     item?.scenario==="base"&&Number(item?.horizon_years)===5
-  );
-  return n(row?.expected_cagr);
+  )??null;
 }
 
 function privateAnalysisSummary(payload={}){
@@ -201,7 +201,7 @@ try{
           [publishedRunIds],
         ),
         pgQuery(
-          "select * from public.expected_return_scenarios "+
+          "select research_run_id,scenario,horizon_years,expected_cagr,estimated_terminal_value_per_share,assumptions,created_at from public.expected_return_scenarios "+
             "where research_run_id=any($1::uuid[]) and scenario='base' and horizon_years=5 "+
             "order by created_at desc",
           [publishedRunIds],
@@ -244,7 +244,7 @@ try{
     let sourceCompositionId=null;
     let scores={};
     let valuation={};
-    let base5yCagr=null;
+    let base5yScenario=null;
     let researchedAt=published?.researched_at??null;
     let analysisSummary={
       summary:published?.summary??null,
@@ -267,7 +267,7 @@ try{
       sourceCompositionId=privateSource.composition_id??null;
       scores=merged?.scores??{};
       valuation=merged?.valuations??{};
-      base5yCagr=baseFiveYearCagr(merged);
+      base5yScenario=baseFiveYearScenario(merged);
       researchedAt=
         privateSource.review_updated_at??
         privateSource.composition_generated_at??
@@ -277,12 +277,13 @@ try{
     }else if(published){
       scores=scoreByRun.get(published.id)??{};
       valuation=valuationByRun.get(published.id)??{};
-      base5yCagr=n(returnByRun.get(published.id)?.expected_cagr);
+      base5yScenario=returnByRun.get(published.id)??null;
     }
 
     const market=marketByCompany.get(company.id)??null;
     const price=n(market?.price)??n(published?.price_at_research);
     const coverage=coverageByCompany.get(company.id)??{};
+    const base5yCagr=currentPriceExpectedCagr(price,base5yScenario??{});
 
     const decision=buildDecisionRanking({
       scores,
@@ -304,6 +305,7 @@ try{
       scores,
       valuation,
       base5yCagr,
+      base5yScenario,
       price,
       coverage,
       researchedAt,
