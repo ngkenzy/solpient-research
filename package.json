@@ -110,7 +110,11 @@
     "test:baseline-batch": "node scripts/test-baseline-research-batch-v1.mjs",
     "baseline:compose:batch": "node scripts/with-pipeline-lock.mjs --lock=baseline_research.lock -- node scripts/run-baseline-research-batch-v1.mjs",
     "baseline:compose:proof": "node scripts/with-pipeline-lock.mjs --lock=baseline_research.lock -- node scripts/run-baseline-research-batch-v1.mjs --tickers=ADBE,PFE,JPM,XOM,AMT",
-    "baseline:compose:persist": "node scripts/with-pipeline-lock.mjs --lock=baseline_research.lock -- node scripts/run-baseline-research-batch-v1.mjs --persist"
+    "baseline:compose:persist": "node scripts/with-pipeline-lock.mjs --lock=baseline_research.lock -- node scripts/run-baseline-research-batch-v1.mjs --persist",
+    "test:baseline-factory100": "node scripts/test-solpient-100-baseline-factory-v1.mjs",
+    "baseline:factory:plan": "node scripts/run-solpient-100-baseline-factory-v1.mjs --dry-run",
+    "baseline:factory": "node scripts/with-pipeline-lock.mjs --lock=baseline_research.lock -- node scripts/run-solpient-100-baseline-factory-v1.mjs --max=5",
+    "baseline:factory:all": "node scripts/with-pipeline-lock.mjs --lock=baseline_research.lock -- node scripts/run-solpient-100-baseline-factory-v1.mjs --all"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.109.0",
