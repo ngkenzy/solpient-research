@@ -118,7 +118,8 @@
     "local:migrate:daily-score": "node scripts/apply-solpient-100-daily-score-v1.mjs",
     "scores:daily100": "node scripts/refresh-solpient-100-private-scores-v1.mjs",
     "test:daily-score100": "node scripts/test-solpient-100-daily-score-v1.mjs",
-    "daily:100": "node scripts/with-pipeline-lock.mjs --lock=solpient_daily.lock -- node scripts/run-solpient-daily.mjs"
+    "daily:100": "node scripts/with-pipeline-lock.mjs --lock=solpient_daily.lock -- node scripts/run-solpient-daily.mjs",
+    "sync:sec-filings100": "node scripts/sync-sec-filings-solpient-100-v1.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.109.0",
