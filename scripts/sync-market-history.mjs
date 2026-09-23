@@ -3,6 +3,7 @@ import path from "node:path";
 import process from "node:process";
 import { createPostgresCompatClient } from "../lib/pg-supabase-compat.mjs";
 import { pgQuery } from "../lib/postgres-node.mjs";
+import { marketNumber, positiveMarketPrice } from "../lib/market-history.mjs";
 
 if(!process.env.SOLPIENT_DATABASE_URL)throw new Error("Missing SOLPIENT_DATABASE_URL.");
 const sb=createPostgresCompatClient();
@@ -12,7 +13,6 @@ const outputPath=outputFlag>=0?process.argv[outputFlag+1]:null;
 const onlyTicker=process.env.COVERAGE_TICKER?String(process.env.COVERAGE_TICKER).toUpperCase():null;
 
 function sleep(ms){return new Promise(resolve=>setTimeout(resolve,ms));}
-function n(v){if(v===null||v===undefined||(typeof v==="string"&&v.trim()===""))return null;const x=Number(v);return Number.isFinite(x)?x:null;}
 
 async function yahooHistory(symbol,range){
   const endpoint="https://query1.finance.yahoo.com/v8/finance/chart/"+encodeURIComponent(symbol)+
@@ -33,7 +33,7 @@ async function yahooHistory(symbol,range){
 
 function selectShareSeries(rows){
   const priority={sec_companyfacts:0,fmp:1,alpha_vantage:2,unknown:9};
-  const sorted=[...rows].filter(r=>n(r.shares_outstanding)>0).sort((a,b)=>{
+  const sorted=[...rows].filter(r=>marketNumber(r.shares_outstanding)>0).sort((a,b)=>{
     const d=String(b.period_end).localeCompare(String(a.period_end));
     return d||((priority[a.provider]??8)-(priority[b.provider]??8));
   });
@@ -42,7 +42,7 @@ function selectShareSeries(rows){
 }
 function sharesAt(series,date){
   const found=series.find(r=>String(r.period_end)<=String(date));
-  return n(found?.shares_outstanding);
+  return marketNumber(found?.shares_outstanding);
 }
 async function insertBatches(rows){
   for(let i=0;i<rows.length;i+=400){
@@ -63,12 +63,12 @@ async function syncBenchmark(symbol="SPY",range="10y"){
     const timestamps=result.timestamp??[],quotes=result.indicators?.quote?.[0]??{},closes=quotes.close??[],volumes=quotes.volume??[];
     const rows=[];
     for(let i=0;i<timestamps.length;i++){
-      const price=n(closes[i]);if(price==null||price<=0)continue;
+      const price=positiveMarketPrice(closes[i]);if(price==null)continue;
       const tradingDate=new Date(Number(timestamps[i])*1000).toISOString().slice(0,10);
       rows.push({
         company_id:null,symbol,observed_at:new Date().toISOString(),
-        trading_date:tradingDate,price,previous_close:i>0?n(closes[i-1]):null,
-        volume:n(volumes[i]),market_cap:null,provider:"yahoo-chart-history",
+        trading_date:tradingDate,price,previous_close:i>0?marketNumber(closes[i-1]):null,
+        volume:marketNumber(volumes[i]),market_cap:null,provider:"yahoo-chart-history",
         source_url:endpoint,raw_payload:{currency:result.meta?.currency??null,exchangeName:result.meta?.exchangeName??null,range,benchmark:true,temporary_source:true}
       });
     }
@@ -96,13 +96,13 @@ for(const company of (companies??[]).filter(c=>!onlyTicker||c.ticker===onlyTicke
     const shareSeries=selectShareSeries(fundamentals??[]);
     const rows=[];
     for(let i=0;i<timestamps.length;i++){
-      const price=n(closes[i]);if(price==null)continue;
+      const price=positiveMarketPrice(closes[i]);if(price==null)continue;
       const tradingDate=new Date(Number(timestamps[i])*1000).toISOString().slice(0,10);
       const shares=sharesAt(shareSeries,tradingDate);
       rows.push({
         company_id:company.id,symbol:company.ticker,observed_at:new Date().toISOString(),
-        trading_date:tradingDate,price,previous_close:i>0?n(closes[i-1]):null,
-        volume:n(volumes[i]),market_cap:shares?shares*price:null,provider:"yahoo-chart-history",
+        trading_date:tradingDate,price,previous_close:i>0?marketNumber(closes[i-1]):null,
+        volume:marketNumber(volumes[i]),market_cap:shares?shares*price:null,provider:"yahoo-chart-history",
         source_url:endpoint,raw_payload:{currency:result.meta?.currency??null,exchangeName:result.meta?.exchangeName??null,range,temporary_source:true}
       });
     }
