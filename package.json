@@ -89,7 +89,8 @@
     "local:verify-research": "node scripts/verify-research-postgres.mjs",
     "local:verify-review": "node scripts/verify-review-postgres.mjs",
     "local:verify-phase3b": "node scripts/verify-phase3b-postgres.mjs",
-    "local:sync-db-password": "bash scripts/sync-local-db-password.sh"
+    "local:sync-db-password": "bash scripts/sync-local-db-password.sh",
+    "local:repair-db-grants": "bash scripts/repair-local-db-grants.sh"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.109.0",
