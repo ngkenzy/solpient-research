@@ -207,3 +207,33 @@ The contract tests five deliberately different cases:
 - AMT / unreviewed REIT-like sector assignment
 
 The AMT case is intentionally blocked from public baseline readiness. This catches the exact failure mode where generic metrics masquerade as sector-aware research.
+
+
+## Local commands
+
+Run the deterministic contract tests:
+
+```bash
+npm run test:baseline-contract
+```
+
+Build a five-name proof evidence-pack set from local PostgreSQL:
+
+```bash
+npm run baseline:packs:proof
+```
+
+Build packs for the full governed Solpient 100:
+
+```bash
+npm run baseline:packs
+```
+
+Generated files are local-only:
+
+```text
+data/baseline-research/index.json
+data/baseline-research/packs/<TICKER>.json
+```
+
+The pack builder performs **no AI calls and no database writes**. It reads the latest complete 100-member candidate snapshot and existing Solpient evidence, then materializes hashed composer inputs on the local machine.
