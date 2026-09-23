@@ -6,6 +6,7 @@ import { pgQuery, closePostgresPool } from "../lib/postgres-node.mjs";
 
 const dryRun = process.argv.includes("--dry-run");
 const skipSec = process.argv.includes("--skip-sec");
+const skipFilings = process.argv.includes("--skip-filings");
 const skipMarket = process.argv.includes("--skip-market");
 const skipResearch = process.argv.includes("--skip-research");
 const skipPrivateScores = process.argv.includes("--skip-private-scores");
@@ -17,6 +18,13 @@ const marketArtifact = path.resolve("data/rankings/market-sync-latest.json");
 const listArtifact = path.resolve("data/rankings/solpient-lists-latest.json");
 
 const steps = [
+  ...(!skipFilings
+    ? [{
+        name: "sec_filing_refresh",
+        script: "scripts/sync-sec-filings-solpient-100-v1.mjs",
+        args: [],
+      }]
+    : []),
   ...(!skipSec
     ? [{
         name: "sec_refresh",
@@ -118,7 +126,7 @@ if (dryRun) {
     steps,
     note:
       "Daily V2 deliberately does not rerun the governed broad-universe screen. " +
-      "It checks SEC and market data for the immutable Solpient 100, rebuilds only stale private analysis, " +
+      "It checks SEC filings, Companyfacts, and market data for the immutable Solpient 100, rebuilds only stale private analysis, " +
       "scores all 100 with Phase 3, refreshes released/public ranking, and regenerates derived 20/5.",
   }, null, 2));
   process.exit(0);
