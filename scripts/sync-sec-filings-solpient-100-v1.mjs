@@ -45,6 +45,17 @@ function accessionPath(accession){
   return String(accession??"").replaceAll("-","");
 }
 
+function acceptedIso(value){
+  const text=String(value??"").trim();
+  const match=text.match(/^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})$/);
+  if(match){
+    return match[1]+"-"+match[2]+"-"+match[3]+"T"+
+      match[4]+":"+match[5]+":"+match[6]+"Z";
+  }
+  const parsed=Date.parse(text);
+  return Number.isFinite(parsed)?new Date(parsed).toISOString():null;
+}
+
 function filingUrl(cik,accession,primaryDocument){
   if(!cik||!accession||!primaryDocument)return null;
   const cikNumber=String(Number(String(cik).replace(/\D/g,"")));
@@ -74,7 +85,7 @@ function rowsFromRecent(company,body){
       provider:SEC_SUBMISSIONS_PROVIDER,
       form_type:form,
       filed_at:filed[i]??null,
-      accepted_at:accepted[i]??null,
+      accepted_at:acceptedIso(accepted[i]),
       accession_number:accession,
       filing_url:filingUrl(company.cik,accession,primaryDocs[i]),
       period_end:report[i]||null,
