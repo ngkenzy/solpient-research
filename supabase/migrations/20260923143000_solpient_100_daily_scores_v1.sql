@@ -8,7 +8,7 @@ create table if not exists public.solpient_100_daily_scores (
   ticker text not null,
   scored_at timestamptz not null,
   rank integer not null check (rank > 0),
-  source_kind text not null check (source_kind in ('published','private_review')),
+  source_kind text not null check (source_kind in ('published','private_review','building')),
   source_research_run_id uuid references public.research_runs(id) on delete set null,
   source_draft_id uuid references public.baseline_drafts(id) on delete set null,
   source_composition_id uuid references public.research_compositions(id) on delete set null,
@@ -44,6 +44,6 @@ alter table public.solpient_100_daily_scores enable row level security;
 comment on table public.solpient_100_daily_scores is
   'Private daily score ledger for all governed Solpient 100 members. Uses decision-ranking-v1; unreleased research stays outside public ranking_history.';
 comment on column public.solpient_100_daily_scores.source_kind is
-  'published uses the latest immutable research run; private_review uses the latest private Composer V2 review package.';
+  'published uses the latest immutable research run; private_review uses the latest private Composer V2 review package; building means analysis is not yet sufficient to score.';
 comment on column public.solpient_100_daily_scores.analysis_summary is
   'Compact private analysis snapshot for the review workbench. Full research remains in the governed draft/review package.';
