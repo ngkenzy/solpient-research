@@ -29,8 +29,8 @@ const sufficientCoverage = (module) => ({
   coverage_details: { industry_module: module },
 });
 
-function metricRows(module, { omitSector = [] } = {}) {
-  const universal = V2_CORE_METRIC_KEYS.map((metric_key, index) => ({
+function metricRows(module, { omitSector = [], omitUniversal = [] } = {}) {
+  const universal = V2_CORE_METRIC_KEYS.filter((metric_key) => !omitUniversal.includes(metric_key)).map((metric_key, index) => ({
     module: "universal",
     metric_key,
     label: metric_key,
@@ -143,6 +143,8 @@ const adobe = packFor("ADBE", "software_platform");
 assert.equal(adobe.baseline_gate.public_baseline_ready, true);
 assert.equal(adobe.sector_evidence.coverage_pct, 100);
 assert.match(adobe.evidence_pack_hash, /^[0-9a-f]{64}$/);
+assert.ok(adobe.evidence_items.some((row) => row.id === "identity:company"));
+assert.ok(adobe.evidence_items.some((row) => row.id === "sector:assignment"));
 assert.equal(adobe.deterministic_summary.current_price, 100);
 assert.equal(adobe.deterministic_summary.base_fair_value, 125);
 assert.equal(adobe.deterministic_summary.valuation_gap_pct, 20);
@@ -175,11 +177,33 @@ assert.ok(
       gap.metric_key === "patent_expiry_revenue_exposure",
   ),
 );
+assert.ok(
+  pfe.evidence_items.some(
+    (row) =>
+      row.kind === "evidence_gap" &&
+      row.metric_key === "patent_expiry_revenue_exposure",
+  ),
+);
 
 // Bank: uses its sector-specific metric contract rather than a generic FCF rule.
-const jpm = packFor("JPM", "financial_bank");
+const jpm = packFor("JPM", "financial_bank", {
+  omitUniversal: [
+    "gross_margin",
+    "operating_margin",
+    "operating_cash_flow",
+    "free_cash_flow",
+    "fcf_margin",
+    "fcf_per_share",
+    "fcf_conversion",
+    "net_debt",
+    "price_to_fcf",
+    "fcf_yield",
+  ],
+});
 assert.equal(jpm.baseline_gate.public_baseline_ready, true);
 assert.equal(jpm.sector_evidence.required_metric_count, 6);
+assert.equal(jpm.universal_evidence.required_metric_keys.includes("free_cash_flow"), false);
+assert.equal(jpm.universal_evidence.required_metric_keys.includes("fcf_yield"), false);
 
 // Generic operating company can be supported when the reviewed factory assignment is explicit.
 const xom = packFor("XOM", "generic_corporate");
