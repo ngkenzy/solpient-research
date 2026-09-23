@@ -134,11 +134,20 @@ try {
 
   let marketSummary = null;
   let listSummary = null;
+  let scoreSummary = null;
   try {
     marketSummary = JSON.parse(await fs.readFile(marketArtifact, "utf8"));
   } catch {}
   try {
     listSummary = JSON.parse(await fs.readFile(listArtifact, "utf8"));
+  } catch {}
+  try {
+    const scoreRows = await pgQuery(
+      "select status,details,completed_at from public.automation_runs " +
+        "where pipeline='solpient_100_daily_scores_v1' " +
+        "order by started_at desc limit 1"
+    );
+    scoreSummary = scoreRows[0] ?? null;
   } catch {}
 
   const marketFailures = Array.isArray(marketSummary?.summary)
@@ -156,6 +165,16 @@ try {
           failures: marketFailures,
         }
       : null,
+    scores: scoreSummary
+      ? {
+          status: scoreSummary.status,
+          scored: scoreSummary.details?.scored ?? null,
+          unscored: scoreSummary.details?.unscored ?? null,
+          private_review_sources: scoreSummary.details?.private_review_sources ?? null,
+          published_sources: scoreSummary.details?.published_sources ?? null,
+          building_sources: scoreSummary.details?.building_sources ?? null,
+        }
+      : null,
     lists: listSummary
       ? {
           generated_at: listSummary.generated_at,
@@ -171,16 +190,23 @@ try {
       (listSummary?.counts?.solpient_5 ?? 0),
   };
 
+  const unscored = Number(scoreSummary?.details?.unscored ?? 0);
+  const dailyStatus = marketFailures || unscored > 0 ? "partial" : "success";
+  const messageParts = [];
+  if (marketFailures) messageParts.push(String(marketFailures) + " market-data ticker failure(s)");
+  if (unscored > 0) messageParts.push(String(unscored) + " company score(s) still building");
+  const message = messageParts.length
+    ? "Daily Solpient 100 update completed with " + messageParts.join(" and ") + "."
+    : "Daily Solpient 100 analysis and scoring completed successfully.";
+
   await finishRun(
     runId,
-    "success",
-    marketFailures
-      ? "Daily Solpient ranking completed with " + marketFailures + " market-data ticker failures."
-      : "Daily Solpient ranking completed successfully.",
+    dailyStatus,
+    message,
     details,
   );
 
-  console.log(JSON.stringify({ pipeline: "solpient_daily", status: "success", ...details }, null, 2));
+  console.log(JSON.stringify({ pipeline: "solpient_daily", status: dailyStatus, ...details }, null, 2));
 } catch (error) {
   const failedStep = error?.stepResult ?? null;
   const details = {
