@@ -1,0 +1,39 @@
+name: Portfolio Capital Allocation Simulator
+
+on:
+  pull_request:
+    paths:
+      - "lib/portfolio-simulator.mjs"
+      - "types/portfolio-simulator-mjs.d.ts"
+      - "scripts/test-portfolio-simulator.mjs"
+      - "scripts/simulate-portfolio.mjs"
+      - "scripts/fixtures/portfolio-simulator-sample.json"
+      - "app/review/portfolio-simulator/**"
+      - "docs/PORTFOLIO_SIMULATOR.md"
+      - ".github/workflows/portfolio-simulator.yml"
+  push:
+    branches: [main]
+    paths:
+      - "lib/portfolio-simulator.mjs"
+      - "scripts/test-portfolio-simulator.mjs"
+      - "scripts/simulate-portfolio.mjs"
+      - ".github/workflows/portfolio-simulator.yml"
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+      - name: Test portfolio simulator
+        run: node scripts/test-portfolio-simulator.mjs
+      - name: Syntax check simulator CLI
+        run: node --check scripts/simulate-portfolio.mjs
+      - name: Exercise sample scenario
+        run: node scripts/simulate-portfolio.mjs --input=scripts/fixtures/portfolio-simulator-sample.json

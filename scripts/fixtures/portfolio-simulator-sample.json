@@ -1,0 +1,75 @@
+{
+  "portfolio": {
+    "name": "Example allocation",
+    "cash": 10000,
+    "positions": [
+      {
+        "ticker": "AAA",
+        "company_name": "Alpha",
+        "group": "Software",
+        "market_value": 40000,
+        "readiness_state": "decision_ready",
+        "decision_score": 88,
+        "business_quality_score": 92,
+        "investment_opportunity_score": 85,
+        "evidence_confidence_score": 95,
+        "base_5y_cagr": 13,
+        "current_price": 100,
+        "bear_value": 80,
+        "base_value": 130,
+        "bull_value": 170
+      },
+      {
+        "ticker": "BBB",
+        "company_name": "Beta",
+        "group": "Healthcare",
+        "market_value": 30000,
+        "readiness_state": "research_ready",
+        "decision_score": 72,
+        "business_quality_score": 80,
+        "investment_opportunity_score": 67,
+        "evidence_confidence_score": 78,
+        "base_5y_cagr": 9,
+        "current_price": 50,
+        "bear_value": 40,
+        "base_value": 55,
+        "bull_value": 70
+      }
+    ]
+  },
+  "candidates": [
+    {
+      "ticker": "CCC",
+      "company_name": "Gamma",
+      "group": "Industrial",
+      "readiness_state": "decision_ready",
+      "decision_score": 90,
+      "business_quality_score": 90,
+      "investment_opportunity_score": 90,
+      "evidence_confidence_score": 92,
+      "base_5y_cagr": 14,
+      "current_price": 75,
+      "bear_value": 60,
+      "base_value": 100,
+      "bull_value": 130
+    }
+  ],
+  "trades": [
+    {
+      "ticker": "AAA",
+      "amount": -10000
+    },
+    {
+      "ticker": "CCC",
+      "amount": 10000
+    }
+  ],
+  "constraints": {
+    "max_position_pct": 50,
+    "max_group_pct": 60,
+    "min_cash_pct": 5,
+    "max_building_pct": 10,
+    "min_decision_ready_pct": 50,
+    "min_weighted_evidence_score": 65
+  }
+}
