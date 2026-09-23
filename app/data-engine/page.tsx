@@ -6,8 +6,8 @@ import styles from "./data-engine.module.css";
 
 export const dynamic = "force-dynamic";
 
-export default function DataEnginePage() {
-  const snapshot = getDataEngineSnapshot();
+export default async function DataEnginePage() {
+  const snapshot = await getDataEngineSnapshot();
 
   return (
     <div className={styles.shell}>
