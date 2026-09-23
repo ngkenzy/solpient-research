@@ -1,17 +1,35 @@
 import fs from "node:fs/promises";
+import fsSync from "node:fs";
 import path from "node:path";
 import process from "node:process";
 import { createPostgresCompatClient } from "../lib/pg-supabase-compat.mjs";
 import { normalizeCompanyFacts, SEC_PROVIDER } from "../lib/sec-companyfacts.mjs";
 
-if(typeof process.loadEnvFile==="function"){
-  try{process.loadEnvFile(".env.local");}catch{}
+function localEnvValue(key){
+  const envPath=path.resolve(process.cwd(),".env.local");
+  if(!fsSync.existsSync(envPath))return null;
+  for(const rawLine of fsSync.readFileSync(envPath,"utf8").split(/\r?\n/)){
+    const line=rawLine.trim();
+    if(!line||line.startsWith("#"))continue;
+    const prefix=key+"=";
+    if(!line.startsWith(prefix))continue;
+    let value=line.slice(prefix.length).trim();
+    if(
+      (value.startsWith('"')&&value.endsWith('"'))||
+      (value.startsWith("'")&&value.endsWith("'"))
+    ){
+      value=value.slice(1,-1);
+    }
+    return value;
+  }
+  return null;
 }
+
 if(!process.env.SOLPIENT_DATABASE_URL)throw new Error("Missing SOLPIENT_DATABASE_URL.");
 const sb=createPostgresCompatClient();
 
-const secContact=String(process.env.SEC_CONTACT??"").trim();
-const configuredUserAgent=String(process.env.SEC_USER_AGENT??"").trim();
+const secContact=String(localEnvValue("SEC_CONTACT")??process.env.SEC_CONTACT??"").trim();
+const configuredUserAgent=String(localEnvValue("SEC_USER_AGENT")??process.env.SEC_USER_AGENT??"").trim();
 if(!secContact){
   throw new Error(
     "Missing SEC_CONTACT in .env.local. SEC automated access requires identifiable contact information."
