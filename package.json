@@ -91,7 +91,14 @@
     "local:verify-phase3b": "node scripts/verify-phase3b-postgres.mjs",
     "local:sync-db-password": "bash scripts/sync-local-db-password.sh",
     "local:repair-db-grants": "bash scripts/repair-local-db-grants.sh",
-    "test:market-history": "node scripts/test-market-history-normalization.mjs"
+    "test:market-history": "node scripts/test-market-history-normalization.mjs",
+    "rankings:refresh": "node scripts/refresh-rankings.mjs",
+    "lists:refresh": "node scripts/refresh-solpient-lists.mjs",
+    "test:lists": "node scripts/test-solpient-list-engine.mjs",
+    "local:daily": "node scripts/run-solpient-daily.mjs",
+    "local:daily:dry-run": "node scripts/run-solpient-daily.mjs --dry-run",
+    "local:scheduler:install": "node scripts/install-solpient-daily-launchd.mjs",
+    "local:scheduler:uninstall": "node scripts/install-solpient-daily-launchd.mjs --uninstall"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.109.0",
