@@ -114,8 +114,8 @@ const stale = {
 const stalePlan = deriveSolpient100BaselinePlan(stale);
 assert.ok(stalePlan.steps.includes("build_historical_peer_context"));
 assert.ok(stalePlan.steps.includes("build_baseline_draft"));
-assert.ok(stalePlan.steps.includes("compose_review_package"));
-assert.ok(stalePlan.steps.includes("prepare_review_package"));
+assert.equal(stalePlan.steps.includes("compose_review_package"), false);
+assert.equal(stalePlan.steps.includes("prepare_review_package"), false);
 
 // An industry assignment change rebuilds sector-specific baseline evidence.
 const sectorChanged = {
@@ -126,8 +126,21 @@ const sectorChanged = {
 };
 const sectorPlan = deriveSolpient100BaselinePlan(sectorChanged);
 assert.ok(sectorPlan.steps.includes("build_baseline_draft"));
-assert.ok(sectorPlan.steps.includes("compose_review_package"));
-assert.ok(sectorPlan.steps.includes("prepare_review_package"));
+assert.equal(sectorPlan.steps.includes("compose_review_package"), false);
+assert.equal(sectorPlan.steps.includes("prepare_review_package"), false);
+
+const rebuiltForSector = {
+  ...sectorChanged,
+  baseline_draft_id: "draft-xom-v2",
+  baseline_generated_at: "2026-09-23T15:00:00Z",
+  baseline_source_cutoff_at: "2026-09-23T14:00:00Z",
+  baseline_industry_module: "energy_integrated",
+  review_draft_id: "draft-xom",
+  composition_draft_id: "draft-xom",
+};
+const rebuiltSectorPlan = deriveSolpient100BaselinePlan(rebuiltForSector);
+assert.ok(rebuiltSectorPlan.steps.includes("compose_review_package"));
+assert.ok(rebuiltSectorPlan.steps.includes("prepare_review_package"));
 
 // Identity failures fail closed rather than producing orphan research.
 const noIdentity = deriveSolpient100BaselinePlan({
