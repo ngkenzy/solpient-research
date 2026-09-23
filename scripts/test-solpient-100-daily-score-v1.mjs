@@ -66,6 +66,20 @@ assert.ok(a.decision.decisionScore!=null);
 assert.ok(b.decision.decisionScore!=null);
 assert.ok(a.decision.decisionScore>b.decision.decisionScore);
 
+
+const sameResearchHigherPrice=score({
+  ticker:"AAA-HIGHER-PRICE",quality:85,moat:80,financial:90,
+  price:115,base:120,bear:75,bull:150,mos25:90,mos35:78,cagr:14,evidence:92,
+});
+assert.ok(
+  a.decision.investmentOpportunity.score >
+  sameResearchHigherPrice.decision.investmentOpportunity.score
+);
+assert.ok(
+  a.decision.decisionScore >
+  sameResearchHigherPrice.decision.decisionScore
+);
+
 const ordered=[b,a].sort(sortDecisionRankings);
 assert.equal(ordered[0].ticker,"AAA");
 
