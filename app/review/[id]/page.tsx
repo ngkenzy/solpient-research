@@ -31,7 +31,7 @@ export default async function ReviewDraft({params,searchParams}:{params:Promise<
   const messages=await searchParams;
   const loaded=await loadReviewDraftData(id);
   if (!loaded) return null;
-  const {draft,review,enrichmentRun,composition,company,enrichmentItems}=loaded;
+  const {draft,review,enrichmentRun,composition,company,enrichmentItems,dailyScore}=loaded;
   if (!draft) throw new Error("Draft not found.");
 
   const patch=review?.review_payload ?? defaultReviewTemplate(draft.draft_payload);
@@ -54,6 +54,9 @@ export default async function ReviewDraft({params,searchParams}:{params:Promise<
           <p>Evidence cutoff {new Date(draft.source_cutoff_at).toLocaleString("en-US")}. Drafts do not affect rankings until promotion succeeds.</p>
         </div>
         <div className={styles.readinessCard}>
+          <span>Solpient score</span>
+          <strong>{dailyScore?.decision_score!=null?Number(dailyScore.decision_score).toFixed(1):"—"}</strong>
+          <small>{dailyScore?.readiness_state?.replaceAll("_"," ") ?? "score building"} · evidence {dailyScore?.evidence_confidence_score!=null?Number(dailyScore.evidence_confidence_score).toFixed(1)+"%":"—"}</small>
           <span>Promotion readiness</span>
           <strong className={readiness.ready?styles.readyText:styles.pendingText}>{readiness.ready?"READY":"BLOCKED"}</strong>
           <small>{readiness.standard.completenessPct ?? 0}% structural completeness</small>
