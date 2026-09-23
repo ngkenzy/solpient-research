@@ -16,3 +16,4 @@ pnpm-debug.log*
 data/rankings/
 logs/
 data/locks/
+data/baseline-research/
