@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import {
   buildDecisionRanking,
+  currentPriceExpectedCagr,
   sortDecisionRankings,
 } from "../lib/decision-ranking-engine.mjs";
 
@@ -79,6 +80,18 @@ assert.ok(
   a.decision.decisionScore >
   sameResearchHigherPrice.decision.decisionScore
 );
+
+
+const scenario={
+  horizon_years:5,
+  terminal_value:160,
+  return_decomposition:{dividends_assumed:10},
+  expected_cagr:99,
+};
+const lowPriceCagr=currentPriceExpectedCagr(80,scenario);
+const highPriceCagr=currentPriceExpectedCagr(120,scenario);
+assert.ok(lowPriceCagr>highPriceCagr);
+assert.notEqual(lowPriceCagr,99);
 
 const ordered=[b,a].sort(sortDecisionRankings);
 assert.equal(ordered[0].ticker,"AAA");
