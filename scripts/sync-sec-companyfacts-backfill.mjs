@@ -4,6 +4,7 @@ import path from "node:path";
 import process from "node:process";
 import { createPostgresCompatClient } from "../lib/pg-supabase-compat.mjs";
 import { normalizeCompanyFacts, SEC_PROVIDER } from "../lib/sec-companyfacts.mjs";
+import { canonicalSha256 } from "../lib/integrity-hash.mjs";
 
 function localEnvValue(key){
   const envPath=path.resolve(process.cwd(),".env.local");
@@ -65,6 +66,18 @@ function fundamentalConflictKey(row){
     row.form??"",
     row.provider??"",
   ].join("|");
+}
+
+function comparableFundamental(row){
+  const out={};
+  for(const [key,value] of Object.entries(row??{})){
+    if(["id","observed_at","created_at","updated_at"].includes(key))continue;
+    out[key]=value;
+  }
+  return out;
+}
+function fundamentalFingerprint(row){
+  return canonicalSha256(comparableFundamental(row));
 }
 
 function dedupeFundamentalRows(rows){
@@ -188,6 +201,20 @@ for(const company of selected){
     });
     const rows=dedupeFundamentalRows(normalizedRows);
     const duplicateRowsRemoved=normalizedRows.length-rows.length;
+
+    const {data:existingRows,error:existingError}=await sb
+      .from("fundamental_snapshots")
+      .select("*")
+      .eq("company_id",company.id)
+      .eq("provider",SEC_PROVIDER);
+    if(existingError)throw existingError;
+    const existingByKey=new Map(
+      (existingRows??[]).map(row=>[fundamentalConflictKey(row),row])
+    );
+    const changedRows=rows.filter(row=>{
+      const prior=existingByKey.get(fundamentalConflictKey(row));
+      return !prior||fundamentalFingerprint(prior)!==fundamentalFingerprint(row);
+    });
     console.log(
       "SEC companyfacts normalized",
       company.ticker,
@@ -197,8 +224,8 @@ for(const company of selected){
     );
     failureStage="upsert_fundamental_snapshots";
     let written=0;
-    for(let i=0;i<rows.length;i+=100){
-      const chunk=rows.slice(i,i+100);
+    for(let i=0;i<changedRows.length;i+=100){
+      const chunk=changedRows.slice(i,i+100);
       const {error}=await sb.from("fundamental_snapshots").upsert(chunk,{
         onConflict:"company_id,period_end,form,provider"
       });
@@ -221,14 +248,26 @@ for(const company of selected){
       attemptId,
       written>0?"success":"partial",
       written,
-      "SEC companyfacts stored "+written+" normalized quarters.",
-      {endpoint,fiscal_years:years.length,latest_period:rows[0]?.period_end??null,latest_field_coverage:primaryFields}
+      written>0
+        ? "SEC companyfacts stored "+written+" changed/new normalized quarters."
+        : "SEC companyfacts unchanged; no fundamental rows rewritten.",
+      {
+        endpoint,
+        fiscal_years:years.length,
+        latest_period:rows[0]?.period_end??null,
+        latest_field_coverage:primaryFields,
+        normalized_rows:rows.length,
+        changed_rows:written,
+        unchanged_rows:rows.length-written
+      }
     );
     consecutiveBlocked=0;
     summary.push({
       ticker:company.ticker,
       status:written>0?"success":"partial",
       rows:written,
+      normalized_rows:rows.length,
+      unchanged_rows:rows.length-written,
       fiscal_years:years.length,
       latest_period:rows[0]?.period_end??null,
       duplicate_rows_removed:duplicateRowsRemoved,
