@@ -20,14 +20,15 @@ Immutable Solpient 100
      -> existing Baseline Factory V2
      -> existing Coverage V2
      -> existing valuation-evidence worker
-  -> Baseline Research Evidence Pack V1
-  -> Baseline Research Composer V1
-  -> canonical validator
-  -> private research_compositions
-  -> existing /research/<TICKER> page
+  -> private Composer V2 research package
+  -> /review staging
+  -> human verification
+  -> controlled release
+  -> immutable published research
+  -> /research/<TICKER>
 ```
 
-Published research remains authoritative. The baseline factory never replaces or auto-publishes a published research run.
+Published research remains authoritative. The factory never auto-publishes. Generated analysis stays private in /review until an authorized release creates the next immutable research version.
 
 ## Baseline completion
 
@@ -111,3 +112,30 @@ data/baseline-research/compositions/<TICKER>.json
 ```
 
 These are operational artifacts. PostgreSQL remains the application source of truth for persisted research state.
+
+
+## Review and release model
+
+The public site does not display generated baseline analysis directly.
+
+The release boundary is:
+
+```text
+factory
+  -> /review
+  -> ready for verification
+  -> human verified
+  -> released
+  -> /research
+```
+
+The review queue now includes two controlled bulk actions:
+
+- **Verify all ready** — records an exact SHA-256 human attestation for every current package that still passes all promotion gates.
+- **Release all verified** — publishes only packages whose exact current payload remains verified.
+
+Neither action bypasses Research Standard V2 readiness, decision-grade gates, evidence checks, or publication-integrity checks.
+
+If a review package already exists, the autonomous factory treats it as human-owned and will not overwrite it. New evidence can create a newer draft, but the existing review remains untouched.
+
+Blocked review packages stay private until their missing evidence or judgments are resolved.
