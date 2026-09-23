@@ -15,7 +15,7 @@ export async function loadReviewQueueData(){
       dbQuery<any>(`select id,ticker,company_name from public.companies order by ticker`),
       dbQuery<any>(`select id,company_id,generation_version,generated_at,source_cutoff_at,industry_module,status,evidence_completeness_pct,standard_status,published_run_id from public.baseline_drafts order by generated_at desc`),
       dbQuery<any>(`select draft_id,status,promotion_readiness,reviewed_at,prepared_at,preparation_source,human_verified_at,human_verified_by,human_verified_payload_hash,attestation_version,published_run_id from public.baseline_reviews`),
-      dbQuery<any>(`select id,draft_id,company_id,engine_version,status,validation_result,generated_at from public.research_compositions order by generated_at desc`),
+      dbQuery<any>(`select id,draft_id,company_id,engine_version,status,validation_result,generated_at from public.research_compositions where engine_version='composer-v2' order by generated_at desc`),
       dbQuery<any>(`select id,company_id,version,researched_at,standard_version,standard_status,completeness_pct from public.research_runs where status='published' order by version desc`),
       dbQuery<any>(`select company_id,status,overall_pct,generated_at from public.data_coverage_reports order by generated_at desc`),
     ]);
@@ -28,7 +28,7 @@ export async function loadReviewQueueData(){
     supabase.from("companies").select("id,ticker,company_name").order("ticker"),
     supabase.from("baseline_drafts").select("id,company_id,generation_version,generated_at,source_cutoff_at,industry_module,status,evidence_completeness_pct,standard_status,published_run_id").order("generated_at",{ascending:false}),
     supabase.from("baseline_reviews").select("draft_id,status,promotion_readiness,reviewed_at,prepared_at,preparation_source,human_verified_at,human_verified_by,human_verified_payload_hash,attestation_version,published_run_id"),
-    supabase.from("research_compositions").select("id,draft_id,company_id,engine_version,status,validation_result,generated_at").order("generated_at",{ascending:false}),
+    supabase.from("research_compositions").select("id,draft_id,company_id,engine_version,status,validation_result,generated_at").eq("engine_version","composer-v2").order("generated_at",{ascending:false}),
     supabase.from("research_runs").select("id,company_id,version,researched_at,standard_version,standard_status,completeness_pct").eq("status","published").order("version",{ascending:false}),
     supabase.from("data_coverage_reports").select("company_id,status,overall_pct,generated_at").order("generated_at",{ascending:false}),
   ]);
@@ -52,7 +52,7 @@ export async function loadReviewDraftData(id:string){
       dbQuery<any>(`select * from public.baseline_drafts where id=$1 limit 1`,[id]).then(r=>r[0]??null),
       dbQuery<any>(`select * from public.baseline_reviews where draft_id=$1 limit 1`,[id]).then(r=>r[0]??null),
       dbQuery<any>(`select * from public.baseline_enrichment_runs where draft_id=$1 order by generated_at desc limit 1`,[id]).then(r=>r[0]??null),
-      dbQuery<any>(`select * from public.research_compositions where draft_id=$1 order by generated_at desc limit 1`,[id]).then(r=>r[0]??null),
+      dbQuery<any>(`select * from public.research_compositions where draft_id=$1 and engine_version='composer-v2' order by generated_at desc limit 1`,[id]).then(r=>r[0]??null),
     ]);
     if(!draft)return {source:"postgres" as const,draft:null,review:null,enrichmentRun:null,composition:null,company:null,enrichmentItems:[]};
     const [company,enrichmentItems]=await Promise.all([
@@ -70,7 +70,7 @@ export async function loadReviewDraftData(id:string){
     supabase.from("baseline_drafts").select("*").eq("id",id).single(),
     supabase.from("baseline_reviews").select("*").eq("draft_id",id).maybeSingle(),
     supabase.from("baseline_enrichment_runs").select("*").eq("draft_id",id).order("generated_at",{ascending:false}).limit(1).maybeSingle(),
-    supabase.from("research_compositions").select("*").eq("draft_id",id).order("generated_at",{ascending:false}).limit(1).maybeSingle(),
+    supabase.from("research_compositions").select("*").eq("draft_id",id).eq("engine_version","composer-v2").order("generated_at",{ascending:false}).limit(1).maybeSingle(),
   ]);
   if(draftResult.error||!draftResult.data)throw draftResult.error??new Error("Draft not found.");
   const draft=draftResult.data;
@@ -363,7 +363,7 @@ export async function loadPrepareV2Data(){
     const [drafts,reviews,compositions]=await Promise.all([
       dbQuery<any>(`select * from public.baseline_drafts where status<>'promoted'`),
       dbQuery<any>(`select draft_id,status from public.baseline_reviews`),
-      dbQuery<any>(`select * from public.research_compositions where status='generated' order by generated_at asc`),
+      dbQuery<any>(`select * from public.research_compositions where engine_version='composer-v2' and status='generated' order by generated_at asc`),
     ]);
     return {drafts,reviews,compositions};
   }
@@ -372,7 +372,7 @@ export async function loadPrepareV2Data(){
   const [draftResult,reviewResult,compositionResult]=await Promise.all([
     supabase.from("baseline_drafts").select("*").neq("status","promoted"),
     supabase.from("baseline_reviews").select("draft_id,status"),
-    supabase.from("research_compositions").select("*").eq("status","generated").order("generated_at",{ascending:true}),
+    supabase.from("research_compositions").select("*").eq("engine_version","composer-v2").eq("status","generated").order("generated_at",{ascending:true}),
   ]);
   if(draftResult.error)throw draftResult.error;
   if(reviewResult.error)throw reviewResult.error;
