@@ -2,7 +2,13 @@ import Link from "next/link";
 import { SolpientBrand } from "@/components/SolpientBrand";
 import { loadReviewQueueData } from "@/lib/repositories/review-workbench";
 import { requireReviewAccess } from "@/lib/review-auth";
-import { buildCompanyReviewAction, logoutReviewAction, prepareV2ReviewsAction } from "./actions";
+import {
+  buildCompanyReviewAction,
+  logoutReviewAction,
+  prepareV2ReviewsAction,
+  releaseAllVerifiedReviewsAction,
+  verifyAllReadyReviewsAction,
+} from "./actions";
 // @ts-expect-error Node ESM research helper
 import { BASELINE_FACTORY_VERSION } from "@/lib/baseline-factory.mjs";
 import styles from "./review.module.css";
@@ -26,7 +32,15 @@ function stageFor(row:any) {
   return {label:"Needs data",tone:"blocked"};
 }
 
-export default async function ReviewQueue({searchParams}:{searchParams:Promise<{prepared?:string}>}) {
+export default async function ReviewQueue({searchParams}:{searchParams:Promise<{
+  prepared?:string;
+  bulk_verified?:string;
+  bulk_released?:string;
+  bulk_blocked?:string;
+  bulk_failed?:string;
+  bulk_verification?:string;
+  bulk_release?:string;
+}>}) {
   await requireReviewAccess();
   const messages=await searchParams;
   const data=await loadReviewQueueData();
@@ -100,6 +114,10 @@ export default async function ReviewQueue({searchParams}:{searchParams:Promise<{
       </section>
 
       {messages.prepared?<div className={styles.successBanner}>{messages.prepared} V2 review package(s) prepared. Nothing was published automatically.</div>:null}
+      {messages.bulk_verified?<div className={styles.successBanner}>{messages.bulk_verified} review package(s) verified for release. {messages.bulk_blocked??"0"} blocked · {messages.bulk_failed??"0"} failed.</div>:null}
+      {messages.bulk_released?<div className={styles.successBanner}>{messages.bulk_released} verified research package(s) released. {messages.bulk_blocked??"0"} blocked · {messages.bulk_failed??"0"} failed.</div>:null}
+      {messages.bulk_verification==="confirm"?<div className={styles.errorBanner}>Bulk verification requires the explicit review attestation checkbox.</div>:null}
+      {messages.bulk_release==="confirm"?<div className={styles.errorBanner}>Bulk release requires explicit confirmation.</div>:null}
 
       <section className={styles.opsGrid}>
         <div className={styles.opsCard}><span>Published V2</span><strong>{publishedV2}</strong><small>Immutable research versions</small></div>
@@ -119,6 +137,32 @@ export default async function ReviewQueue({searchParams}:{searchParams:Promise<{
         <form action={prepareV2ReviewsAction}>
           <button type="submit" disabled={!prepareCount}>Prepare {prepareCount} review package{prepareCount===1?"":"s"}</button>
         </form>
+      </section>
+
+      <section className={styles.preparePanel}>
+        <div>
+          <span className={styles.kicker}>CONTROLLED BULK RELEASE</span>
+          <h2>Verify and release the reviewed universe</h2>
+          <p>
+            Generated research stays private here. Bulk verification applies a SHA-256 human attestation to each package that currently passes every promotion gate. Release All publishes only packages whose exact payload is still verified.
+          </p>
+        </div>
+        <div className={styles.bulkReleaseActions}>
+          <form action={verifyAllReadyReviewsAction} className={styles.bulkReleaseForm}>
+            <label>
+              <input type="checkbox" name="bulk_human_verification" value="confirmed" required />
+              I reviewed all {readyToVerify} currently-ready package{readyToVerify===1?"":"s"} and intend to approve their exact current payloads.
+            </label>
+            <button type="submit" disabled={!readyToVerify}>Verify all ready ({readyToVerify})</button>
+          </form>
+          <form action={releaseAllVerifiedReviewsAction} className={styles.bulkReleaseForm}>
+            <label>
+              <input type="checkbox" name="bulk_release" value="confirmed" required />
+              Release all {ready} currently verified package{ready===1?"":"s"} as immutable research versions.
+            </label>
+            <button type="submit" disabled={!ready}>Release all verified ({ready})</button>
+          </form>
+        </div>
       </section>
 
       <section className={styles.queueHeader}>
