@@ -11,28 +11,35 @@ export function directReviewDbConfigured(){
 
 export async function loadReviewQueueData(){
   if(databaseConfigured()){
-    const [companies,drafts,reviews,compositions,runs,coverage]=await Promise.all([
+    const [companies,drafts,reviews,compositions,runs,coverage,dailyScores]=await Promise.all([
       dbQuery<any>(`select id,ticker,company_name from public.companies order by ticker`),
       dbQuery<any>(`select id,company_id,generation_version,generated_at,source_cutoff_at,industry_module,status,evidence_completeness_pct,standard_status,published_run_id from public.baseline_drafts order by generated_at desc`),
       dbQuery<any>(`select draft_id,status,promotion_readiness,reviewed_at,prepared_at,preparation_source,human_verified_at,human_verified_by,human_verified_payload_hash,attestation_version,published_run_id from public.baseline_reviews`),
       dbQuery<any>(`select id,draft_id,company_id,engine_version,status,validation_result,generated_at from public.research_compositions where engine_version='composer-v2' order by generated_at desc`),
       dbQuery<any>(`select id,company_id,version,researched_at,standard_version,standard_status,completeness_pct from public.research_runs where status='published' order by version desc`),
       dbQuery<any>(`select company_id,status,overall_pct,generated_at from public.data_coverage_reports order by generated_at desc`),
+      dbQuery<any>(`
+        select *
+        from public.solpient_100_daily_scores
+        where scored_at=(select max(scored_at) from public.solpient_100_daily_scores)
+        order by rank asc
+      `),
     ]);
-    return {source:"postgres" as const,companies,drafts,reviews,compositions,runs,coverage};
+    return {source:"postgres" as const,companies,drafts,reviews,compositions,runs,coverage,dailyScores};
   }
 
   const supabase=getAdminSupabase();
   if(!supabase)return null;
-  const [companyResult,draftResult,reviewResult,compositionResult,runResult,coverageResult]=await Promise.all([
+  const [companyResult,draftResult,reviewResult,compositionResult,runResult,coverageResult,dailyScoreResult]=await Promise.all([
     supabase.from("companies").select("id,ticker,company_name").order("ticker"),
     supabase.from("baseline_drafts").select("id,company_id,generation_version,generated_at,source_cutoff_at,industry_module,status,evidence_completeness_pct,standard_status,published_run_id").order("generated_at",{ascending:false}),
     supabase.from("baseline_reviews").select("draft_id,status,promotion_readiness,reviewed_at,prepared_at,preparation_source,human_verified_at,human_verified_by,human_verified_payload_hash,attestation_version,published_run_id"),
     supabase.from("research_compositions").select("id,draft_id,company_id,engine_version,status,validation_result,generated_at").eq("engine_version","composer-v2").order("generated_at",{ascending:false}),
     supabase.from("research_runs").select("id,company_id,version,researched_at,standard_version,standard_status,completeness_pct").eq("status","published").order("version",{ascending:false}),
     supabase.from("data_coverage_reports").select("company_id,status,overall_pct,generated_at").order("generated_at",{ascending:false}),
+    supabase.from("solpient_100_daily_scores").select("*").order("scored_at",{ascending:false}).order("rank",{ascending:true}).limit(100),
   ]);
-  for(const result of [companyResult,draftResult,reviewResult,compositionResult,runResult,coverageResult]){
+  for(const result of [companyResult,draftResult,reviewResult,compositionResult,runResult,coverageResult,dailyScoreResult]){
     if(result.error)throw result.error;
   }
   return {
@@ -43,6 +50,7 @@ export async function loadReviewQueueData(){
     compositions:compositionResult.data??[],
     runs:runResult.data??[],
     coverage:coverageResult.data??[],
+    dailyScores:dailyScoreResult.data??[],
   };
 }
 
@@ -55,13 +63,19 @@ export async function loadReviewDraftData(id:string){
       dbQuery<any>(`select * from public.research_compositions where draft_id=$1 and engine_version='composer-v2' order by generated_at desc limit 1`,[id]).then(r=>r[0]??null),
     ]);
     if(!draft)return {source:"postgres" as const,draft:null,review:null,enrichmentRun:null,composition:null,company:null,enrichmentItems:[]};
-    const [company,enrichmentItems]=await Promise.all([
+    const [company,enrichmentItems,dailyScore]=await Promise.all([
       dbQuery<any>(`select ticker,company_name from public.companies where id=$1 limit 1`,[draft.company_id]).then(r=>r[0]??null),
       enrichmentRun
         ? dbQuery<any>(`select * from public.baseline_enrichment_items where run_id=$1 order by created_at`,[enrichmentRun.id])
         : Promise.resolve([]),
+      dbQuery<any>(`
+        select * from public.solpient_100_daily_scores
+        where company_id=$1
+        order by scored_at desc
+        limit 1
+      `,[draft.company_id]).then(r=>r[0]??null),
     ]);
-    return {source:"postgres" as const,draft,review,enrichmentRun,composition,company,enrichmentItems};
+    return {source:"postgres" as const,draft,review,enrichmentRun,composition,company,enrichmentItems,dailyScore};
   }
 
   const supabase=getAdminSupabase();
@@ -82,6 +96,14 @@ export async function loadReviewDraftData(id:string){
     if(result.error)throw result.error;
     enrichmentItems=result.data??[];
   }
+  const {data:dailyScore}=await supabase
+    .from("solpient_100_daily_scores")
+    .select("*")
+    .eq("company_id",draft.company_id)
+    .order("scored_at",{ascending:false})
+    .limit(1)
+    .maybeSingle();
+
   return {
     source:"supabase" as const,
     draft,
@@ -90,6 +112,7 @@ export async function loadReviewDraftData(id:string){
     composition:compositionResult.data??null,
     company,
     enrichmentItems,
+    dailyScore:dailyScore??null,
   };
 }
 
