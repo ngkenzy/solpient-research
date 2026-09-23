@@ -246,7 +246,7 @@ for(const company of selected){
     }));
     await attemptFinish(
       attemptId,
-      written>0?"success":"partial",
+      "success",
       written,
       written>0
         ? "SEC companyfacts stored "+written+" changed/new normalized quarters."
@@ -264,7 +264,7 @@ for(const company of selected){
     consecutiveBlocked=0;
     summary.push({
       ticker:company.ticker,
-      status:written>0?"success":"partial",
+      status:"success",
       rows:written,
       normalized_rows:rows.length,
       unchanged_rows:rows.length-written,
