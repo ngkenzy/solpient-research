@@ -5,7 +5,10 @@ import { spawn } from "node:child_process";
 import { pgQuery, closePostgresPool } from "../lib/postgres-node.mjs";
 
 const dryRun = process.argv.includes("--dry-run");
+const skipSec = process.argv.includes("--skip-sec");
 const skipMarket = process.argv.includes("--skip-market");
+const skipResearch = process.argv.includes("--skip-research");
+const skipPrivateScores = process.argv.includes("--skip-private-scores");
 const skipRanking = process.argv.includes("--skip-ranking");
 const skipLists = process.argv.includes("--skip-lists");
 
@@ -14,6 +17,13 @@ const marketArtifact = path.resolve("data/rankings/market-sync-latest.json");
 const listArtifact = path.resolve("data/rankings/solpient-lists-latest.json");
 
 const steps = [
+  ...(!skipSec
+    ? [{
+        name: "sec_refresh",
+        script: "scripts/sync-sec-companyfacts-backfill.mjs",
+        args: ["--solpient-100"],
+      }]
+    : []),
   ...(!skipMarket
     ? [{
         name: "market_refresh",
@@ -21,8 +31,22 @@ const steps = [
         args: ["--solpient-100", "--output", marketArtifact],
       }]
     : []),
+  ...(!skipResearch
+    ? [{
+        name: "research_refresh",
+        script: "scripts/run-solpient-100-baseline-factory-v1.mjs",
+        args: ["--all", "--continue-on-partial"],
+      }]
+    : []),
+  ...(!skipPrivateScores
+    ? [{
+        name: "private_phase3_scores",
+        script: "scripts/refresh-solpient-100-private-scores-v1.mjs",
+        args: [],
+      }]
+    : []),
   ...(!skipRanking
-    ? [{ name: "phase3_ranking", script: "scripts/refresh-rankings.mjs", args: [] }]
+    ? [{ name: "published_phase3_ranking", script: "scripts/refresh-rankings.mjs", args: [] }]
     : []),
   ...(!skipLists
     ? [{
@@ -93,8 +117,9 @@ if (dryRun) {
     local_first: true,
     steps,
     note:
-      "Daily V1 deliberately does not rerun the governed broad-universe screen. " +
-      "It refreshes the existing immutable Solpient 100, Phase 3 ranking, and derived 20/5.",
+      "Daily V2 deliberately does not rerun the governed broad-universe screen. " +
+      "It checks SEC and market data for the immutable Solpient 100, rebuilds only stale private analysis, " +
+      "scores all 100 with Phase 3, refreshes released/public ranking, and regenerates derived 20/5.",
   }, null, 2));
   process.exit(0);
 }
@@ -122,6 +147,7 @@ try {
 
   const details = {
     local_first: true,
+    daily_research_engine: "solpient-100-daily-analysis-score-v1",
     steps: results,
     market: marketSummary
       ? {
