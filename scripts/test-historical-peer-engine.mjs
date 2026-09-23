@@ -4,6 +4,11 @@ import { PEER_SETS, TRACKED_TICKERS } from "../lib/peer-sets.mjs";
 
 assert.equal(TRACKED_TICKERS.length,23);
 assert.ok(TRACKED_TICKERS.includes("PFE"));
+assert.deepEqual(
+  PEER_SETS.ADBE.map(peer=>peer.ticker),
+  ["CRM","MSFT","PTC"],
+  "ADBE should use three locally coverable software peers"
+);
 for(const ticker of TRACKED_TICKERS){
   assert.ok(Array.isArray(PEER_SETS[ticker])&&PEER_SETS[ticker].length>=2,ticker+" needs at least two peers");
   assert.equal(PEER_SETS[ticker].some(p=>p.ticker===ticker),false,ticker+" cannot peer with itself");
