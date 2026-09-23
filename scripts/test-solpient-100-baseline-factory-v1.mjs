@@ -87,6 +87,18 @@ assert.ok(
 assert.ok(reopenedPublished.steps.includes("build_historical_peer_context"));
 assert.ok(reopenedPublished.steps.includes("build_baseline_draft"));
 
+
+const publishedWithNewFiling = {
+  ...publishedState,
+  latest_material_filing_at: "2026-09-23T13:30:00Z",
+};
+const reopenedForFiling = deriveSolpient100BaselinePlan(publishedWithNewFiling);
+assert.equal(reopenedForFiling.status, "work_required");
+assert.ok(
+  reopenedForFiling.warnings.includes("published_research_has_newer_durable_evidence"),
+);
+assert.ok(reopenedForFiling.steps.includes("build_baseline_draft"));
+
 // JPM-like missing research gets the full deterministic completion path.
 const jpm = {
   ...base("JPM", 2),
