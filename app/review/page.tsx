@@ -53,6 +53,7 @@ export default async function ReviewQueue({searchParams}:{searchParams:Promise<{
     compositions,
     runs,
     coverage,
+    dailyScores,
   }=data;
 
   const latestByCompany=<T extends {company_id:string}>(rows:T[])=>{
@@ -65,6 +66,7 @@ export default async function ReviewQueue({searchParams}:{searchParams:Promise<{
   const compositionByCompany=latestByCompany(compositions);
   const runByCompany=latestByCompany(runs);
   const coverageByCompany=latestByCompany(coverage);
+  const dailyScoreByCompany=latestByCompany(dailyScores??[]);
   const reviewByDraft=new Map(reviews.map((row:any)=>[row.draft_id,row]));
 
   const rows=companies.map((company:any)=>{
@@ -76,6 +78,7 @@ export default async function ReviewQueue({searchParams}:{searchParams:Promise<{
       composition:compositionByCompany.get(company.id),
       latestRun:runByCompany.get(company.id),
       coverage:coverageByCompany.get(company.id),
+      dailyScore:dailyScoreByCompany.get(company.id),
     };
   });
 
@@ -178,11 +181,11 @@ export default async function ReviewQueue({searchParams}:{searchParams:Promise<{
             <div className={styles.companyMark}>{row.company.ticker.slice(0,2)}</div>
             <div className={styles.companyCopy}>
               <strong>{row.company.ticker} · {row.company.company_name}</strong>
-              <span>{row.draft?.industry_module?.replaceAll("_"," ") ?? (row.latestRun?"legacy published research":row.coverage?.status==="sufficient"?"data ready; draft not built":"research setup pending")}</span>
+              <span>{row.draft?.industry_module?.replaceAll("_"," ") ?? (row.latestRun?"legacy published research":row.coverage?.status==="sufficient"?"data ready; draft not built":"research setup pending")} · {row.dailyScore?.readiness_state?.replaceAll("_"," ") ?? "score building"}</span>
             </div>
             <div className={styles.queueMetric}><span>Data coverage</span><strong>{pct(row.coverage?.overall_pct)}</strong></div>
-            <div className={styles.queueMetric}><span>V2 draft</span><strong>{composed!=null?pct(composed):row.latestRun?.standard_version==="solpient-v2"?pct(row.latestRun.completeness_pct):"—"}</strong></div>
-            <div className={styles.queueMetric}><span>Version</span><strong>{row.latestRun?"v"+row.latestRun.version:"—"}</strong></div>
+            <div className={styles.queueMetric}><span>Solpient score</span><strong>{row.dailyScore?.decision_score!=null?Number(row.dailyScore.decision_score).toFixed(1):"—"}</strong></div>
+            <div className={styles.queueMetric}><span>Evidence</span><strong>{row.dailyScore?.evidence_confidence_score!=null?pct(row.dailyScore.evidence_confidence_score):composed!=null?pct(composed):"—"}</strong></div>
             <div className={styles.stageCell}><span className={styles["stage_"+stage.tone]}>{stage.label}</span></div>
           </>;
           const needsInitialBuild=!row.draft&&row.coverage?.status==="sufficient"&&!row.latestRun;
