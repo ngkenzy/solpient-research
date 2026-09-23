@@ -540,6 +540,165 @@ export async function prepareV2ReviewsAction() {
   redirect("/review?prepared="+prepared);
 }
 
+
+export async function verifyAllReadyReviewsAction(formData:FormData) {
+  await requireReviewAccess();
+  const confirmation=String(formData.get("bulk_human_verification") ?? "");
+  if (confirmation!=="confirmed") redirect("/review?bulk_verification=confirm");
+
+  const queue=await loadReviewQueueData();
+  if (!queue) redirect("/review/login?setup=1");
+
+  const readyDraftIds=new Set(
+    queue.reviews
+      .filter((row:any)=>
+        row?.promotion_readiness?.ready===true &&
+        !row?.human_verified_at &&
+        !row?.published_run_id
+      )
+      .map((row:any)=>String(row.draft_id))
+  );
+
+  let verified=0;
+  let blocked=0;
+  let failed=0;
+
+  for (const draftId of readyDraftIds) {
+    try {
+      const {draft,review}=await getReviewDraftPair(draftId);
+      if (!draft || !review || draft.published_run_id) {
+        blocked+=1;
+        continue;
+      }
+
+      const merged=applyReviewPatch(draft.draft_payload,review.review_payload);
+      const readiness=validatePromotionReadiness(merged);
+      if (!readiness.ready) {
+        await updateReviewVerification({
+          reviewId:review.id,
+          status:"editing",
+          validationResult:readiness.standard,
+          promotionReadiness:readiness,
+          humanVerifiedAt:null,
+          humanVerifiedBy:null,
+          humanVerifiedPayloadHash:null,
+          attestationVersion:null,
+          now:new Date().toISOString(),
+        });
+        blocked+=1;
+        continue;
+      }
+
+      const now=new Date().toISOString();
+      const attestation=buildHumanReviewAttestation({draft,payload:merged});
+      await updateReviewVerification({
+        reviewId:review.id,
+        status:"ready",
+        validationResult:readiness.standard,
+        promotionReadiness:readiness,
+        humanVerifiedAt:now,
+        humanVerifiedBy:reviewerIdentity(),
+        humanVerifiedPayloadHash:attestation.payload_hash,
+        attestationVersion:REVIEW_ATTESTATION_VERSION,
+        now,
+      });
+      verified+=1;
+    } catch {
+      failed+=1;
+    }
+  }
+
+  revalidatePath("/review");
+  redirect(
+    "/review?bulk_verified="+verified+
+    "&bulk_blocked="+blocked+
+    "&bulk_failed="+failed
+  );
+}
+
+export async function releaseAllVerifiedReviewsAction(formData:FormData) {
+  await requireReviewAccess();
+  const confirmation=String(formData.get("bulk_release") ?? "");
+  if (confirmation!=="confirmed") redirect("/review?bulk_release=confirm");
+
+  const queue=await loadReviewQueueData();
+  if (!queue) redirect("/review/login?setup=1");
+
+  const verifiedDraftIds=new Set(
+    queue.reviews
+      .filter((row:any)=>
+        row?.promotion_readiness?.ready===true &&
+        Boolean(row?.human_verified_at) &&
+        !row?.published_run_id
+      )
+      .map((row:any)=>String(row.draft_id))
+  );
+
+  const supabase=databaseConfigured()?null:getAdminSupabase();
+  if (!databaseConfigured() && !supabase) redirect("/review/login?setup=1");
+
+  let released=0;
+  let blocked=0;
+  let failed=0;
+  const releasedTickers:string[]=[];
+
+  for (const draftId of verifiedDraftIds) {
+    try {
+      const {draft,review}=await getReviewDraftPair(draftId);
+      if (!draft || !review || draft.published_run_id) {
+        blocked+=1;
+        continue;
+      }
+
+      const merged=applyReviewPatch(draft.draft_payload,review.review_payload);
+      const readiness=validatePromotionReadiness(merged);
+      if (!readiness.ready) {
+        await updateReviewReadiness({
+          reviewId:review.id,
+          status:"editing",
+          validationResult:readiness.standard,
+          promotionReadiness:readiness,
+          now:new Date().toISOString(),
+        });
+        blocked+=1;
+        continue;
+      }
+
+      const attestation=validateHumanReviewAttestation({draft,review,payload:merged});
+      if (!attestation.valid) {
+        blocked+=1;
+        continue;
+      }
+
+      await promoteReviewedBaseline({
+        supabase,
+        draft,
+        review,
+        payload:merged,
+      });
+
+      const ticker=String(merged?.ticker ?? "").toUpperCase();
+      if (ticker) {
+        releasedTickers.push(ticker);
+        revalidatePath("/research/"+ticker);
+      }
+      released+=1;
+    } catch {
+      failed+=1;
+    }
+  }
+
+  revalidatePath("/");
+  revalidatePath("/research");
+  revalidatePath("/review");
+
+  redirect(
+    "/review?bulk_released="+released+
+    "&bulk_blocked="+blocked+
+    "&bulk_failed="+failed
+  );
+}
+
 export async function promoteReviewAction(formData:FormData) {
   await requireReviewAccess();
   const draftId=String(formData.get("draft_id") ?? "");
