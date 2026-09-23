@@ -1,0 +1,59 @@
+name: Decision Readiness Repair Planner
+
+on:
+  pull_request:
+    paths:
+      - "lib/decision-readiness-repair-engine.mjs"
+      - "scripts/build-decision-readiness-repair-plans.mjs"
+      - "scripts/test-decision-readiness-repair-engine.mjs"
+      - "supabase/migrations/20260921210500_decision_readiness_repair_engine.sql"
+      - ".github/workflows/decision-readiness-repair.yml"
+      - "app/review/readiness-repair/page.tsx"
+  workflow_dispatch:
+  schedule:
+    - cron: "5 13 * * 1-5"
+  push:
+    branches: [main]
+    paths:
+      - "lib/decision-readiness-repair-engine.mjs"
+      - "scripts/build-decision-readiness-repair-plans.mjs"
+      - "scripts/test-decision-readiness-repair-engine.mjs"
+      - "supabase/migrations/20260921210500_decision_readiness_repair_engine.sql"
+      - ".github/workflows/decision-readiness-repair.yml"
+
+concurrency:
+  group: solpient-decision-readiness-repair
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Test readiness repair engine
+        run: node scripts/test-decision-readiness-repair-engine.mjs
+      - name: Syntax check planner
+        run: node --check scripts/build-decision-readiness-repair-plans.mjs
+
+  plan:
+    if: github.event_name != 'pull_request'
+    needs: verify
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+      - name: Build decision-readiness repair plans
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: node scripts/build-decision-readiness-repair-plans.mjs
