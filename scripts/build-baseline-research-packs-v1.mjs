@@ -102,6 +102,7 @@ async function loadSupportingData(members) {
     drafts,
     coverage,
     valuationDrafts,
+    industryAssignments,
     publishedValuations,
     market,
   ] = await Promise.all([
@@ -144,6 +145,17 @@ async function loadSupportingData(members) {
       : Promise.resolve([]),
     companyIds.length
       ? pgQuery(
+          `select distinct on (company_id) *
+           from public.research_factory_industry_assignments
+           where company_id=any($1::uuid[])
+             and status='applied'
+             and confidence>=0.80
+           order by company_id, created_at desc`,
+          [companyIds],
+        )
+      : Promise.resolve([]),
+    companyIds.length
+      ? pgQuery(
           `select distinct on (r.company_id)
              r.company_id,
              r.id as research_run_id,
@@ -177,6 +189,7 @@ async function loadSupportingData(members) {
     drafts: byCompany(drafts),
     coverage: byCompany(coverage),
     valuationDrafts: byCompany(valuationDrafts),
+    industryAssignments: byCompany(industryAssignments),
     publishedValuations: byCompany(publishedValuations),
     market: byTicker(market),
   };
@@ -209,14 +222,9 @@ try {
     const baselineDraft = supporting.drafts.get(member.company_id) ?? null;
     const coverage = supporting.coverage.get(member.company_id) ?? null;
     const valuationDraft = supporting.valuationDrafts.get(member.company_id) ?? null;
+    const industryAssignment = supporting.industryAssignments.get(member.company_id) ?? null;
     const publishedValuation = supporting.publishedValuations.get(member.company_id) ?? null;
     const latestMarket = supporting.market.get(ticker) ?? null;
-
-    const industryModule =
-      baselineDraft?.industry_module ??
-      valuationDraft?.industry_module ??
-      coverage?.coverage_details?.industry_module ??
-      null;
 
     packs.push(
       buildBaselineEvidencePack({
@@ -227,7 +235,7 @@ try {
         valuationDraft,
         publishedValuation,
         latestMarket,
-        industryModule,
+        industryAssignment,
         generatedAt,
       }),
     );
