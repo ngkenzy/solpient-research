@@ -90,7 +90,8 @@
     "local:verify-review": "node scripts/verify-review-postgres.mjs",
     "local:verify-phase3b": "node scripts/verify-phase3b-postgres.mjs",
     "local:sync-db-password": "bash scripts/sync-local-db-password.sh",
-    "local:repair-db-grants": "bash scripts/repair-local-db-grants.sh"
+    "local:repair-db-grants": "bash scripts/repair-local-db-grants.sh",
+    "test:market-history": "node scripts/test-market-history-normalization.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.109.0",
