@@ -189,10 +189,10 @@ export default async function CompanyResearch({
           </div>
         </section>
         <section className="emptyState">
-          <strong>{version == null ? "Research is still building." : "No published research found."}</strong>
+          <strong>{version == null ? "Research has not been released." : "No published research found."}</strong>
           <p>
             {version == null
-              ? "Solpient has not persisted a validated baseline composition for this company yet."
+              ? "Generated research stays private in the review workbench until an authorized release creates a published research version."
               : "The requested research version does not exist or has not been published."}
           </p>
         </section>
