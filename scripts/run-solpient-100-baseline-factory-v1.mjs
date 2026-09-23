@@ -250,7 +250,7 @@ try {
 
   const factoryRunId = loaded.factoryRun.id;
   const tickerResults = [];
-  const composeTickers = [];
+  const reviewTickers = [];
 
   for (const selection of selected) {
     const ticker = String(selection.state.ticker).toUpperCase();
@@ -316,9 +316,10 @@ try {
     if (
       afterPlan.needs_composition ||
       !afterPrep.composition_id ||
-      afterPrep.composition_valid !== true
+      afterPrep.composition_valid !== true ||
+      !afterPrep.review_id
     ) {
-      composeTickers.push(ticker);
+      reviewTickers.push(ticker);
     }
 
     tickerResults.push({
@@ -329,33 +330,33 @@ try {
     });
   }
 
-  let packBuild = null;
-  let compositionBatch = null;
+  const reviewPackageResults = [];
 
-  if (composeTickers.length) {
-    packBuild = await optional(
-      "rebuild canonical Solpient 100 evidence packs",
-      "scripts/build-baseline-research-packs-v1.mjs",
+  for (const ticker of reviewTickers) {
+    const composed = await optional(
+      ticker + " · compose private Research Standard V2 package",
+      "scripts/compose-research-drafts.mjs",
+      ["--ticker=" + ticker],
+      { COVERAGE_TICKER: ticker },
     );
+    reviewPackageResults.push({
+      ticker,
+      step: "compose_review_package",
+      ...composed,
+    });
+    if (!composed.ok) continue;
 
-    if (packBuild.ok) {
-      compositionBatch = await optional(
-        "compose and persist selected baseline research",
-        "scripts/run-baseline-research-batch-v1.mjs",
-        [
-          "--tickers=" + composeTickers.join(","),
-          "--persist",
-          "--force",
-        ],
-      );
-    } else {
-      compositionBatch = {
-        label: "compose and persist selected baseline research",
-        ok: false,
-        code: null,
-        summary: "Skipped because evidence-pack build failed.",
-      };
-    }
+    const prepared = await optional(
+      ticker + " · stage package in /review",
+      "scripts/prepare-generated-review-package-v1.mjs",
+      ["--ticker=" + ticker],
+      { COVERAGE_TICKER: ticker },
+    );
+    reviewPackageResults.push({
+      ticker,
+      step: "prepare_review_package",
+      ...prepared,
+    });
   }
 
   await optional(
@@ -384,7 +385,11 @@ try {
       : result.pre_compose_plan;
     const covered =
       Boolean(state?.published_research_run_id) ||
-      Boolean(state?.composition_id && state?.composition_valid);
+      Boolean(
+        state?.composition_id &&
+        state?.composition_valid &&
+        state?.review_id
+      );
     return {
       ...result,
       final: state
@@ -400,6 +405,10 @@ try {
             composition_id: state.composition_id,
             composition_valid: state.composition_valid,
             composition_public_ready: state.composition_public_ready,
+            review_id: state.review_id,
+            review_status: state.review_status,
+            review_promotion_ready: state.review_promotion_ready,
+            review_human_verified_at: state.review_human_verified_at,
             published_research_run_id: state.published_research_run_id,
           }
         : null,
@@ -426,8 +435,7 @@ try {
     covered_count: coveredCount,
     before: beforeSummary,
     after: afterSummary,
-    pack_build: packBuild,
-    composition_batch: compositionBatch,
+    review_package_results: reviewPackageResults,
     results: finalResults,
     auto_publish: false,
   };
