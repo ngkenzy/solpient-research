@@ -15,3 +15,4 @@ yarn-error.log*
 pnpm-debug.log*
 data/rankings/
 logs/
+data/locks/
