@@ -95,11 +95,13 @@
     "rankings:refresh": "node scripts/refresh-rankings.mjs",
     "lists:refresh": "node scripts/refresh-solpient-lists.mjs",
     "test:lists": "node scripts/test-solpient-list-engine.mjs",
-    "local:daily": "node scripts/run-solpient-daily.mjs",
+    "local:daily": "node scripts/with-pipeline-lock.mjs --lock=solpient_daily.lock -- node scripts/run-solpient-daily.mjs",
     "local:daily:dry-run": "node scripts/run-solpient-daily.mjs --dry-run",
     "local:scheduler:install": "node scripts/install-solpient-daily-launchd.mjs",
     "local:scheduler:uninstall": "node scripts/install-solpient-daily-launchd.mjs --uninstall",
-    "test:data-engine": "node scripts/test-data-engine.mjs"
+    "test:data-engine": "node scripts/test-data-engine.mjs",
+    "test:local-update": "node scripts/test-local-update-reconcile.mjs",
+    "local:governed:plan": "node scripts/run-solpient-governed.mjs --dry-run"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.109.0",
