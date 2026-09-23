@@ -43,6 +43,15 @@ function byTicker(rows = []) {
   );
 }
 
+async function optionalQuery(sql, values = []) {
+  try {
+    return await pgQuery(sql, values);
+  } catch (error) {
+    if (error?.code === "42P01") return [];
+    throw error;
+  }
+}
+
 async function loadLatestCandidateRun() {
   const run = await pgMaybeOne(
     `select *
@@ -134,7 +143,7 @@ async function loadSupportingData(members) {
         )
       : Promise.resolve([]),
     companyIds.length
-      ? pgQuery(
+      ? optionalQuery(
           `select distinct on (company_id) *
            from public.research_factory_valuation_drafts
            where company_id=any($1::uuid[])
@@ -144,7 +153,7 @@ async function loadSupportingData(members) {
         )
       : Promise.resolve([]),
     companyIds.length
-      ? pgQuery(
+      ? optionalQuery(
           `select distinct on (company_id) *
            from public.research_factory_industry_assignments
            where company_id=any($1::uuid[])
