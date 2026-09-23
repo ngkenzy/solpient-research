@@ -35,10 +35,13 @@ const existing = await pgMaybeOne(
   [draft.id],
 );
 
-if (existing?.human_verified_at) {
+if (existing) {
   console.log(JSON.stringify({
-    ticker, status: "skipped", reason: "human_verified_review_exists",
-    draft_id: draft.id, review_id: existing.id
+    ticker,
+    status: "skipped",
+    reason: existing.human_verified_at ? "human_verified_review_exists" : "review_exists_human_owned",
+    draft_id: draft.id,
+    review_id: existing.id
   }, null, 2));
   process.exit(0);
 }
