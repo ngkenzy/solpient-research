@@ -39,6 +39,7 @@ const userAgent=configuredUserAgent||("Solpient Research "+secContact);
 const outputFlag=process.argv.indexOf("--output");
 const outputPath=outputFlag>=0?process.argv[outputFlag+1]:null;
 const onlyTicker=process.env.COVERAGE_TICKER?String(process.env.COVERAGE_TICKER).toUpperCase():null;
+const solpient100Only=process.argv.includes("--solpient-100");
 
 function sleep(ms){return new Promise(resolve=>setTimeout(resolve,ms));}
 
@@ -144,7 +145,35 @@ const {data:companies,error:companiesError}=await sb
   .order("ticker");
 if(companiesError)throw companiesError;
 
-const selected=(companies??[]).filter(c=>c.cik&&(!onlyTicker||c.ticker===onlyTicker));
+let governedTickers=null;
+if(solpient100Only){
+  const {data:runs,error:runError}=await sb
+    .from("research_candidate_pipeline_runs")
+    .select("id,candidate_count")
+    .order("evaluation_as_of",{ascending:false})
+    .order("created_at",{ascending:false})
+    .limit(1);
+  if(runError)throw runError;
+  const run=runs?.[0]??null;
+  if(!run||Number(run.candidate_count)!==100){
+    throw new Error("SEC Solpient 100 refresh requires a complete governed 100-member candidate run.");
+  }
+  const {data:items,error:itemError}=await sb
+    .from("research_candidate_pipeline_items")
+    .select("ticker")
+    .eq("research_candidate_pipeline_run_id",run.id);
+  if(itemError)throw itemError;
+  governedTickers=new Set((items??[]).map(row=>String(row.ticker).toUpperCase()));
+  if(governedTickers.size!==100){
+    throw new Error("SEC Solpient 100 refresh found "+governedTickers.size+" governed tickers.");
+  }
+}
+
+const selected=(companies??[]).filter(c=>
+  c.cik&&
+  (!onlyTicker||c.ticker===onlyTicker)&&
+  (!governedTickers||governedTickers.has(String(c.ticker).toUpperCase()))
+);
 const summary=[];
 let consecutiveBlocked=0;
 
@@ -232,6 +261,7 @@ for(const company of selected){
 const artifact={
   generated_at:new Date().toISOString(),
   provider:SEC_PROVIDER,
+  scope:solpient100Only?"solpient_100":onlyTicker?"ticker":"all_companies",
   companies:selected.length,
   success:summary.filter(x=>x.status==="success").length,
   partial:summary.filter(x=>x.status==="partial").length,
