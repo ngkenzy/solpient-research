@@ -5,6 +5,34 @@ import { getAdminSupabase } from "@/lib/admin-supabase";
 
 const j=(value:unknown)=>JSON.stringify(value??null);
 
+async function loadLatestDailyScoresPg(){
+  try{
+    return await dbQuery<any>(`
+      select *
+      from public.solpient_100_daily_scores
+      where scored_at=(select max(scored_at) from public.solpient_100_daily_scores)
+      order by rank asc
+    `);
+  }catch(error:any){
+    if(error?.code==="42P01")return [];
+    throw error;
+  }
+}
+
+async function loadCompanyDailyScorePg(companyId:string){
+  try{
+    return await dbQuery<any>(`
+      select * from public.solpient_100_daily_scores
+      where company_id=$1
+      order by scored_at desc
+      limit 1
+    `,[companyId]).then(r=>r[0]??null);
+  }catch(error:any){
+    if(error?.code==="42P01")return null;
+    throw error;
+  }
+}
+
 export function directReviewDbConfigured(){
   return databaseConfigured();
 }
@@ -18,12 +46,7 @@ export async function loadReviewQueueData(){
       dbQuery<any>(`select id,draft_id,company_id,engine_version,status,validation_result,generated_at from public.research_compositions where engine_version='composer-v2' order by generated_at desc`),
       dbQuery<any>(`select id,company_id,version,researched_at,standard_version,standard_status,completeness_pct from public.research_runs where status='published' order by version desc`),
       dbQuery<any>(`select company_id,status,overall_pct,generated_at from public.data_coverage_reports order by generated_at desc`),
-      dbQuery<any>(`
-        select *
-        from public.solpient_100_daily_scores
-        where scored_at=(select max(scored_at) from public.solpient_100_daily_scores)
-        order by rank asc
-      `),
+      loadLatestDailyScoresPg(),
     ]);
     return {source:"postgres" as const,companies,drafts,reviews,compositions,runs,coverage,dailyScores};
   }
@@ -39,9 +62,11 @@ export async function loadReviewQueueData(){
     supabase.from("data_coverage_reports").select("company_id,status,overall_pct,generated_at").order("generated_at",{ascending:false}),
     supabase.from("solpient_100_daily_scores").select("*").order("scored_at",{ascending:false}).order("rank",{ascending:true}).limit(100),
   ]);
-  for(const result of [companyResult,draftResult,reviewResult,compositionResult,runResult,coverageResult,dailyScoreResult]){
+  for(const result of [companyResult,draftResult,reviewResult,compositionResult,runResult,coverageResult]){
     if(result.error)throw result.error;
   }
+  const dailyScoreMissingTable=["42P01","PGRST205"].includes(String(dailyScoreResult.error?.code??""));
+  if(dailyScoreResult.error&&!dailyScoreMissingTable)throw dailyScoreResult.error;
   return {
     source:"supabase" as const,
     companies:companyResult.data??[],
@@ -50,7 +75,7 @@ export async function loadReviewQueueData(){
     compositions:compositionResult.data??[],
     runs:runResult.data??[],
     coverage:coverageResult.data??[],
-    dailyScores:dailyScoreResult.data??[],
+    dailyScores:dailyScoreMissingTable?[]:(dailyScoreResult.data??[]),
   };
 }
 
@@ -68,12 +93,7 @@ export async function loadReviewDraftData(id:string){
       enrichmentRun
         ? dbQuery<any>(`select * from public.baseline_enrichment_items where run_id=$1 order by created_at`,[enrichmentRun.id])
         : Promise.resolve([]),
-      dbQuery<any>(`
-        select * from public.solpient_100_daily_scores
-        where company_id=$1
-        order by scored_at desc
-        limit 1
-      `,[draft.company_id]).then(r=>r[0]??null),
+      loadCompanyDailyScorePg(draft.company_id),
     ]);
     return {source:"postgres" as const,draft,review,enrichmentRun,composition,company,enrichmentItems,dailyScore};
   }
@@ -96,13 +116,16 @@ export async function loadReviewDraftData(id:string){
     if(result.error)throw result.error;
     enrichmentItems=result.data??[];
   }
-  const {data:dailyScore}=await supabase
+  const dailyScoreResult=await supabase
     .from("solpient_100_daily_scores")
     .select("*")
     .eq("company_id",draft.company_id)
     .order("scored_at",{ascending:false})
     .limit(1)
     .maybeSingle();
+  const dailyScoreMissingTable=["42P01","PGRST205"].includes(String(dailyScoreResult.error?.code??""));
+  if(dailyScoreResult.error&&!dailyScoreMissingTable)throw dailyScoreResult.error;
+  const dailyScore=dailyScoreMissingTable?null:(dailyScoreResult.data??null);
 
   return {
     source:"supabase" as const,
