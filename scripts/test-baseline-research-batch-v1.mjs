@@ -143,18 +143,56 @@ assert.equal(second.failed_count, 0);
 assert.equal(second.succeeded_count, 0);
 assert.equal(second.skipped_unchanged_count, 2);
 
+// Regression: an unchanged locally composed output must still persist if its
+// previous checkpoint says persistence was disabled.
+let persisted = 0;
+const third = await runBaselineResearchBatch({
+  inputDir: root,
+  outputDir: outDir,
+  checkpointPath: checkpoint,
+  persist: true,
+  persistFn: async ({ pack }) => {
+    persisted += 1;
+    return {
+      persisted: true,
+      reason: null,
+      composition_id: "composition-" + pack.company.ticker.toLowerCase(),
+    };
+  },
+});
+assert.equal(third.failed_count, 0);
+assert.equal(third.persistence_failed_count, 0);
+assert.equal(third.persisted_count, 2);
+assert.equal(third.skipped_unchanged_count, 0);
+assert.equal(persisted, 2);
+assert.equal(third.authoritative, true);
+
+// Once persisted, the same hash can be skipped safely.
+const fourth = await runBaselineResearchBatch({
+  inputDir: root,
+  outputDir: outDir,
+  checkpointPath: checkpoint,
+  persist: true,
+  persistFn: async () => {
+    throw new Error("persist should not be called for already-persisted unchanged packs");
+  },
+});
+assert.equal(fourth.skipped_unchanged_count, 2);
+assert.equal(fourth.persisted_count, 0);
+assert.equal(fourth.authoritative, true);
+
 const brokenIndex = JSON.parse(await fs.readFile(path.join(root, "index.json"), "utf8"));
 brokenIndex.rows.push({ ticker: "MISSING", evidence_pack_hash: "x" });
 await fs.writeFile(path.join(root, "index.json"), JSON.stringify(brokenIndex));
 
-const third = await runBaselineResearchBatch({
+const fifth = await runBaselineResearchBatch({
   inputDir: root,
   outputDir: outDir,
   checkpointPath: checkpoint,
   force: true,
 });
-assert.equal(third.failed_count, 1);
-assert.equal(third.authoritative, false);
+assert.equal(fifth.failed_count, 1);
+assert.equal(fifth.authoritative, false);
 
 await fs.rm(root, { recursive: true, force: true });
 console.log("Baseline Research Batch V1 tests passed.");
