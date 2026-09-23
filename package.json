@@ -85,10 +85,10 @@
     "test:research-factory:v2.1": "node scripts/test-autonomous-research-factory-v2-1.mjs",
     "test:review-attestation": "node scripts/test-review-attestation.mjs",
     "local:configure-app": "node scripts/configure-local-data-env.mjs",
-    "local:verify-db": "node --env-file=.env.local scripts/verify-direct-postgres.mjs",
-    "local:verify-research": "node --env-file=.env.local scripts/verify-research-postgres.mjs",
-    "local:verify-review": "node --env-file=.env.local scripts/verify-review-postgres.mjs",
-    "local:verify-phase3b": "node --env-file=.env.local scripts/verify-phase3b-postgres.mjs",
+    "local:verify-db": "node scripts/verify-direct-postgres.mjs",
+    "local:verify-research": "node scripts/verify-research-postgres.mjs",
+    "local:verify-review": "node scripts/verify-review-postgres.mjs",
+    "local:verify-phase3b": "node scripts/verify-phase3b-postgres.mjs",
     "local:sync-db-password": "bash scripts/sync-local-db-password.sh"
   },
   "dependencies": {
