@@ -420,7 +420,7 @@ try{
       details,
     );
     console.log(JSON.stringify({...details,skipped:true},null,2));
-    process.exit(scoredCount===100?0:2);
+    process.exit(0);
   }
 
   await pgTransaction(async(client)=>{
@@ -484,7 +484,7 @@ try{
   );
 
   console.log(JSON.stringify(details,null,2));
-  if(scoredCount!==100)process.exitCode=2;
+  // Partial coverage is reported in automation_runs; daily orchestration continues.
 }catch(error){
   await finishRun(
     runId,
