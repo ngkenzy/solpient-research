@@ -58,11 +58,25 @@ assert.deepEqual(complete.steps, []);
 const publishedState = {
   ...base("ADBE", 1),
   published_research_run_id: "research-adbe",
+  published_research_researched_at: "2026-09-22T12:00:00Z",
 };
 const published = deriveSolpient100BaselinePlan(publishedState);
 assert.equal(published.status, "published");
 assert.equal(published.complete, true);
 assert.deepEqual(published.steps, []);
+
+
+const publishedWithNewEvidence = {
+  ...publishedState,
+  latest_fundamental_observed_at: "2026-09-23T12:00:00Z",
+};
+const reopenedPublished = deriveSolpient100BaselinePlan(publishedWithNewEvidence);
+assert.equal(reopenedPublished.status, "work_required");
+assert.ok(
+  reopenedPublished.warnings.includes("published_research_has_newer_durable_evidence"),
+);
+assert.ok(reopenedPublished.steps.includes("build_historical_peer_context"));
+assert.ok(reopenedPublished.steps.includes("build_baseline_draft"));
 
 // JPM-like missing research gets the full deterministic completion path.
 const jpm = {
