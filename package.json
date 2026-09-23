@@ -98,7 +98,8 @@
     "local:daily": "node scripts/run-solpient-daily.mjs",
     "local:daily:dry-run": "node scripts/run-solpient-daily.mjs --dry-run",
     "local:scheduler:install": "node scripts/install-solpient-daily-launchd.mjs",
-    "local:scheduler:uninstall": "node scripts/install-solpient-daily-launchd.mjs --uninstall"
+    "local:scheduler:uninstall": "node scripts/install-solpient-daily-launchd.mjs --uninstall",
+    "test:data-engine": "node scripts/test-data-engine.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.109.0",
