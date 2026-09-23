@@ -170,6 +170,7 @@ function stepCommand(step, { ticker, factoryRunId }) {
 
 const dryRun = process.argv.includes("--dry-run");
 const all = process.argv.includes("--all");
+const continueOnPartial = process.argv.includes("--continue-on-partial");
 const tickerArg = arg("ticker", null);
 const maxArg = Number(arg("max", all ? "100" : "5"));
 const maxItems = Math.max(
@@ -451,7 +452,7 @@ try {
 
   console.log(JSON.stringify(artifact, null, 2));
 
-  if (status !== "success") process.exitCode = 1;
+  if (status !== "success" && !continueOnPartial) process.exitCode = 1;
 } finally {
   await closePostgresPool();
 }
