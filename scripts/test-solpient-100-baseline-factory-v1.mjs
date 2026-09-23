@@ -54,6 +54,15 @@ assert.equal(complete.complete, true);
 assert.equal(complete.status, "staged_for_review");
 assert.deepEqual(complete.steps, []);
 
+
+const marketOnlyChange = {
+  ...base("PRICE", 2),
+  latest_market_observed_at: "2026-09-23T16:00:00Z",
+};
+const marketOnlyPlan = deriveSolpient100BaselinePlan(marketOnlyChange);
+assert.equal(marketOnlyPlan.complete, true);
+assert.deepEqual(marketOnlyPlan.steps, []);
+
 // Published research is authoritative and needs no baseline factory work.
 const publishedState = {
   ...base("ADBE", 1),
