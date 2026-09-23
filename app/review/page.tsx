@@ -86,7 +86,11 @@ export default async function ReviewQueue({searchParams}:{searchParams:Promise<{
     const stage=stageFor(row).tone;
     return ({ready:0,review:1,composer:2,backfill:3,blocked:4,published:5} as Record<string,number>)[stage] ?? 9;
   };
-  rows.sort((a:any,b:any)=>priority(a)-priority(b)||a.company.ticker.localeCompare(b.company.ticker));
+  rows.sort((a:any,b:any)=>
+    priority(a)-priority(b)||
+    Number(a.dailyScore?.rank??Number.MAX_SAFE_INTEGER)-Number(b.dailyScore?.rank??Number.MAX_SAFE_INTEGER)||
+    a.company.ticker.localeCompare(b.company.ticker)
+  );
 
   const publishedV2=rows.filter((row:any)=>row.latestRun?.standard_version==="solpient-v2").length;
   const ready=rows.filter((row:any)=>row.review?.promotion_readiness?.ready && row.review?.human_verified_at && row.latestRun?.standard_version!=="solpient-v2").length;
@@ -180,7 +184,7 @@ export default async function ReviewQueue({searchParams}:{searchParams:Promise<{
           const content=<>
             <div className={styles.companyMark}>{row.company.ticker.slice(0,2)}</div>
             <div className={styles.companyCopy}>
-              <strong>{row.company.ticker} · {row.company.company_name}</strong>
+              <strong>{row.dailyScore?.rank?"#"+row.dailyScore.rank+" · ":""}{row.company.ticker} · {row.company.company_name}</strong>
               <span>{row.draft?.industry_module?.replaceAll("_"," ") ?? (row.latestRun?"legacy published research":row.coverage?.status==="sufficient"?"data ready; draft not built":"research setup pending")} · {row.dailyScore?.readiness_state?.replaceAll("_"," ") ?? "score building"}</span>
             </div>
             <div className={styles.queueMetric}><span>Data coverage</span><strong>{pct(row.coverage?.overall_pct)}</strong></div>
