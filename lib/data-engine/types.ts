@@ -126,7 +126,7 @@ export interface PipelineHealth {
 }
 
 export interface DataEngineSnapshot {
-  adapter: "mock_pending_chatgpt_engine";
+  adapter: "mock_pending_chatgpt_engine" | "local_postgres";
   generatedAt: string;
   health: PipelineHealth;
   universe: UniverseCounters;
