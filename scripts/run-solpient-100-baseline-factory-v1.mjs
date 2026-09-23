@@ -282,7 +282,8 @@ try {
 
       const nextStep = plan.steps.find(
         (step) =>
-          step !== "compose_and_persist_baseline" &&
+          step !== "compose_review_package" &&
+          step !== "prepare_review_package" &&
           step !== "onboard_identity" &&
           !attempted.has(step),
       );
