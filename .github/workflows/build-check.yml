@@ -61,6 +61,7 @@ jobs:
           npm run test:research-factory:v1.1
           npm run test:screen-publish
           npm run test:lists
+          npm run test:data-engine
           npm run local:daily:dry-run
 
       - name: Check repair center scripts
