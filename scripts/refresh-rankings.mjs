@@ -7,6 +7,7 @@ import {
   DECISION_RANKING_METHODOLOGY_VERSION,
   READINESS_METHODOLOGY_VERSION,
   buildDecisionRanking,
+  currentPriceExpectedCagr,
   sortDecisionRankings,
   readinessLabel,
 } from "../lib/decision-ranking-engine.mjs";
@@ -273,7 +274,7 @@ try {
           .in("research_run_id", runIds),
         supabase
           .from("expected_return_scenarios")
-          .select("research_run_id,scenario,horizon_years,expected_cagr,created_at")
+          .select("research_run_id,scenario,horizon_years,expected_cagr,estimated_terminal_value_per_share,assumptions,created_at")
           .in("research_run_id", runIds)
           .eq("scenario", "base")
           .eq("horizon_years", 5)
@@ -315,12 +316,13 @@ try {
     const price = n(marketRow?.price) ?? n(run.price_at_research);
     const baseReturn = returns.get(run.id);
     const coverageRow = coverage.get(company.id) ?? {};
+    const base5yCagr = currentPriceExpectedCagr(price, baseReturn ?? {});
 
     const decision = buildDecisionRanking({
       scores: score,
       valuation,
       price,
-      base5yCagr: baseReturn?.expected_cagr ?? null,
+      base5yCagr,
       coverage: coverageRow,
       researchedAt: run.researched_at,
     });
@@ -333,7 +335,7 @@ try {
       valuation,
       price,
       base: n(valuation.base_value),
-      base5yCagr: n(baseReturn?.expected_cagr),
+      base5yCagr: n(base5yCagr),
       coverage: coverageRow,
       decision,
     });
