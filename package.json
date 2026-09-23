@@ -104,7 +104,8 @@
     "local:governed:plan": "node scripts/run-solpient-governed.mjs --dry-run",
     "test:baseline-contract": "node scripts/test-baseline-research-contract-v1.mjs",
     "baseline:packs": "node scripts/build-baseline-research-packs-v1.mjs",
-    "baseline:packs:proof": "node scripts/build-baseline-research-packs-v1.mjs --tickers=ADBE,PFE,JPM,XOM,AMT"
+    "baseline:packs:proof": "node scripts/build-baseline-research-packs-v1.mjs --tickers=ADBE,PFE,JPM,XOM,AMT",
+    "baseline:validate": "node scripts/validate-baseline-composer-output-v1.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.109.0",
