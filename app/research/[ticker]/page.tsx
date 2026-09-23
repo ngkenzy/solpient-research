@@ -12,6 +12,7 @@ import { PredictionHistory } from "@/components/PredictionHistory";
 import { SolpientBrand } from "@/components/SolpientBrand";
 import { ResearchStandardV1 } from "@/components/ResearchStandardV1";
 import { ResearchStandardV2 } from "@/components/ResearchStandardV2";
+import { BaselineResearchView } from "@/components/BaselineResearchView";
 import { loadCompanyResearchData } from "@/lib/repositories/company-research";
 
 export const dynamic = "force-dynamic";
@@ -173,11 +174,22 @@ export default async function CompanyResearch({
     changes,
     v2,
     latestMarket,
+    baselineComposition,
   } = research;
 
   if (!company) notFound();
 
   if (!run) {
+    if (version == null && baselineComposition?.validation_result?.valid) {
+      return (
+        <BaselineResearchView
+          company={company}
+          baselineComposition={baselineComposition}
+          latestMarket={latestMarket}
+        />
+      );
+    }
+
     return (
       <main className="researchShell">
         <Link className="backLink" href="/research">← Research</Link>
@@ -189,8 +201,12 @@ export default async function CompanyResearch({
           </div>
         </section>
         <section className="emptyState">
-          <strong>No published research found.</strong>
-          <p>The requested research version does not exist or has not been published.</p>
+          <strong>{version == null ? "Research is still building." : "No published research found."}</strong>
+          <p>
+            {version == null
+              ? "Solpient has not persisted a validated baseline composition for this company yet."
+              : "The requested research version does not exist or has not been published."}
+          </p>
         </section>
       </main>
     );
