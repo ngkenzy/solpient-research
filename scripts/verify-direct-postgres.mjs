@@ -1,22 +1,24 @@
-import { Pool } from "pg";
+import { closePostgresPool, pgMaybeOne, postgresConfigured } from "../lib/postgres-node.mjs";
 
-const connectionString = process.env.SOLPIENT_DATABASE_URL;
-if (!connectionString) {
+if(!postgresConfigured()){
   throw new Error("SOLPIENT_DATABASE_URL is not configured. Run npm run local:configure-app first.");
 }
 
-const pool = new Pool({ connectionString, max: 1 });
-
-try {
-  const { rows } = await pool.query(`
+try{
+  const row=await pgMaybeOne(`
     select
       current_database() as database,
+      current_user as database_user,
       (select count(*)::int from public.companies) as companies,
       (select count(*)::int from public.normalized_facts) as normalized_facts,
       (select count(*)::int from public.market_snapshots) as market_snapshots
   `);
 
-  console.log(JSON.stringify({ ok: true, ...rows[0] }, null, 2));
-} finally {
-  await pool.end();
+  console.log(JSON.stringify({
+    ok:true,
+    connection_source:"project-.env.local",
+    ...row,
+  },null,2));
+}finally{
+  await closePostgresPool();
 }
