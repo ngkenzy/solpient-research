@@ -11,6 +11,7 @@ import {
   loadComposerApplyData,
   loadEnrichmentApplyData,
   loadPrepareV2Data,
+  loadReviewQueueData,
   saveReviewState,
   updateReviewVerification,
   updateReviewReadiness,
@@ -640,7 +641,6 @@ export async function releaseAllVerifiedReviewsAction(formData:FormData) {
   let released=0;
   let blocked=0;
   let failed=0;
-  const releasedTickers:string[]=[];
 
   for (const draftId of verifiedDraftIds) {
     try {
@@ -679,7 +679,6 @@ export async function releaseAllVerifiedReviewsAction(formData:FormData) {
 
       const ticker=String(merged?.ticker ?? "").toUpperCase();
       if (ticker) {
-        releasedTickers.push(ticker);
         revalidatePath("/research/"+ticker);
       }
       released+=1;
