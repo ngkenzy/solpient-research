@@ -238,7 +238,7 @@ try{
       }
     }
 
-    let sourceKind="published";
+    let sourceKind=published?"published":"building";
     let sourceResearchRunId=published?.id??null;
     let sourceDraftId=null;
     let sourceCompositionId=null;
@@ -464,6 +464,7 @@ try{
     unscored:100-scoredCount,
     private_review_sources:rows.filter((row)=>row.source_kind==="private_review").length,
     published_sources:rows.filter((row)=>row.source_kind==="published").length,
+    building_sources:rows.filter((row)=>row.source_kind==="building").length,
     state_fingerprint:currentFingerprint,
     top_10:rows.slice(0,10).map((row)=>({
       rank:row.rank,
