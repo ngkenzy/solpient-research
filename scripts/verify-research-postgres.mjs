@@ -1,11 +1,11 @@
-import { Pool } from "pg";
+import { closePostgresPool, pgMaybeOne, postgresConfigured } from "../lib/postgres-node.mjs";
 
-const connectionString=process.env.SOLPIENT_DATABASE_URL;
-if(!connectionString)throw new Error("SOLPIENT_DATABASE_URL is not configured. Run npm run local:configure-app first.");
+if(!postgresConfigured()){
+  throw new Error("SOLPIENT_DATABASE_URL is not configured. Run npm run local:configure-app first.");
+}
 
-const pool=new Pool({connectionString,max:1});
 try{
-  const {rows:[sample]}=await pool.query(`
+  const sample=await pgMaybeOne(`
     select c.id as company_id,c.ticker,r.id as research_run_id,r.standard_version
     from public.companies c
     join lateral (
@@ -21,7 +21,7 @@ try{
 
   if(!sample)throw new Error("No published research run found in local PostgreSQL.");
 
-  const {rows:[checks]}=await pool.query(`
+  const checks=await pgMaybeOne(`
     select
       (select count(*)::int from public.companies) as companies,
       (select count(*)::int from public.capital_activity where company_id=$1) as capital_activity,
@@ -39,10 +39,11 @@ try{
   console.log(JSON.stringify({
     ok:true,
     mode:"postgres",
+    connection_source:"project-.env.local",
     sampleTicker:sample.ticker,
     standardVersion:sample.standard_version,
     ...checks,
   },null,2));
 }finally{
-  await pool.end();
+  await closePostgresPool();
 }
