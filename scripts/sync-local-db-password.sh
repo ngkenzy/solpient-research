@@ -11,8 +11,8 @@ fi
 
 COMPOSE=(docker compose -f docker-compose.local.yml --env-file .env.local-stack)
 
-echo "Recreating the local PostgreSQL container with the current .env.local-stack settings..."
-"${COMPOSE[@]}" up -d --force-recreate db
+echo "Starting the local PostgreSQL container..."
+"${COMPOSE[@]}" up -d db
 
 echo "Waiting for PostgreSQL..."
 for _ in {1..30}; do
@@ -34,8 +34,22 @@ echo "Synchronizing the PostgreSQL role password without printing the secret..."
 ALTER ROLE :"db_role" WITH LOGIN PASSWORD :'db_password';
 SQL
 
-echo "Recreating the temporary compatibility services with the same credentials..."
+echo "Regenerating .env.local from .env.local-stack..."
+node scripts/configure-local-data-env.mjs >/dev/null
+
+echo "Restarting temporary compatibility services..."
 "${COMPOSE[@]}" up -d --force-recreate rest gateway
 
-echo "Local PostgreSQL credentials are synchronized."
-echo "Now run: npm run local:configure-app && npm run local:verify-db"
+echo "Verifying a real TCP login using the app connection URL..."
+node --env-file=.env.local scripts/verify-direct-postgres.mjs >/tmp/solpient-db-verify.json
+
+if ! grep -q '"ok": true' /tmp/solpient-db-verify.json; then
+  cat /tmp/solpient-db-verify.json
+  echo "TCP login verification failed." >&2
+  exit 1
+fi
+
+cat /tmp/solpient-db-verify.json
+rm -f /tmp/solpient-db-verify.json
+
+echo "Local PostgreSQL credentials are synchronized and verified."
