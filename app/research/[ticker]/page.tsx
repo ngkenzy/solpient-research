@@ -173,7 +173,6 @@ export default async function CompanyResearch({
     changes,
     v2,
     latestMarket,
-    baselineComposition,
   } = research;
 
   if (!company) notFound();
