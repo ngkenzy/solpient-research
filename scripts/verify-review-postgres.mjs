@@ -1,11 +1,11 @@
-import { Pool } from "pg";
+import { closePostgresPool, pgMaybeOne, postgresConfigured } from "../lib/postgres-node.mjs";
 
-const connectionString=process.env.SOLPIENT_DATABASE_URL;
-if(!connectionString)throw new Error("SOLPIENT_DATABASE_URL is not configured. Run npm run local:configure-app first.");
+if(!postgresConfigured()){
+  throw new Error("SOLPIENT_DATABASE_URL is not configured. Run npm run local:configure-app first.");
+}
 
-const pool=new Pool({connectionString,max:1});
 try{
-  const {rows:[row]}=await pool.query(`
+  const row=await pgMaybeOne(`
     select
       current_user as db_user,
       has_table_privilege(current_user,'public.baseline_drafts','SELECT,UPDATE') as baseline_drafts_rw,
@@ -29,12 +29,11 @@ try{
   console.log(JSON.stringify({
     ok:privileges.every(Boolean),
     mode:"postgres",
+    connection_source:"project-.env.local",
     ...row,
   },null,2));
 
-  if(!privileges.every(Boolean)){
-    process.exitCode=1;
-  }
+  if(!privileges.every(Boolean))process.exitCode=1;
 }finally{
-  await pool.end();
+  await closePostgresPool();
 }
