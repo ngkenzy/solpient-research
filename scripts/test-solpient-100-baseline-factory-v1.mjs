@@ -39,6 +39,11 @@ function base(ticker, ordinal = 1) {
     composition_generated_at: "2026-09-21T16:00:00Z",
     composition_valid: true,
     composition_public_ready: false,
+    review_id: "review-" + ticker.toLowerCase(),
+    review_draft_id: "draft-" + ticker.toLowerCase(),
+    review_status: "editing",
+    review_promotion_ready: false,
+    review_human_verified_at: null,
     published_research_run_id: null,
   };
 }
@@ -46,7 +51,7 @@ function base(ticker, ordinal = 1) {
 // Already-composed baseline: no work.
 const complete = deriveSolpient100BaselinePlan(base("COMPLETE"));
 assert.equal(complete.complete, true);
-assert.equal(complete.status, "baseline_building");
+assert.equal(complete.status, "staged_for_review");
 assert.deepEqual(complete.steps, []);
 
 // Published research is authoritative and needs no baseline factory work.
@@ -81,6 +86,8 @@ const jpm = {
   composition_id: null,
   composition_draft_id: null,
   composition_valid: false,
+  review_id: null,
+  review_draft_id: null,
 };
 const jpmPlan = deriveSolpient100BaselinePlan(jpm);
 for (const step of [
@@ -92,7 +99,8 @@ for (const step of [
   "build_baseline_draft",
   "build_coverage",
   "build_valuation_evidence",
-  "compose_and_persist_baseline",
+  "compose_review_package",
+  "prepare_review_package",
 ]) {
   assert.ok(jpmPlan.steps.includes(step), "missing JPM step: " + step);
 }
@@ -106,7 +114,8 @@ const stale = {
 const stalePlan = deriveSolpient100BaselinePlan(stale);
 assert.ok(stalePlan.steps.includes("build_historical_peer_context"));
 assert.ok(stalePlan.steps.includes("build_baseline_draft"));
-assert.ok(stalePlan.steps.includes("compose_and_persist_baseline"));
+assert.ok(stalePlan.steps.includes("compose_review_package"));
+assert.ok(stalePlan.steps.includes("prepare_review_package"));
 
 // An industry assignment change rebuilds sector-specific baseline evidence.
 const sectorChanged = {
@@ -117,7 +126,8 @@ const sectorChanged = {
 };
 const sectorPlan = deriveSolpient100BaselinePlan(sectorChanged);
 assert.ok(sectorPlan.steps.includes("build_baseline_draft"));
-assert.ok(sectorPlan.steps.includes("compose_and_persist_baseline"));
+assert.ok(sectorPlan.steps.includes("compose_review_package"));
+assert.ok(sectorPlan.steps.includes("prepare_review_package"));
 
 // Identity failures fail closed rather than producing orphan research.
 const noIdentity = deriveSolpient100BaselinePlan({
