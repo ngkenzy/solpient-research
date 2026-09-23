@@ -47,6 +47,11 @@ grant usage on schema public to solpient_dev_api;
 grant usage on schema auth to solpient_dev_api;
 grant execute on all functions in schema auth to solpient_dev_api;
 
+-- Restored provenance functions may be owned by the compatibility postgres role
+-- and call pgcrypto/uuid functions from the extensions schema.
+grant usage on schema extensions to solpient, postgres, solpient_dev_api, service_role;
+grant execute on all functions in schema extensions to solpient, postgres, solpient_dev_api, service_role;
+
 alter default privileges for role solpient in schema public
   grant select, insert, update, delete on tables to solpient_dev_api;
 alter default privileges for role solpient in schema public
