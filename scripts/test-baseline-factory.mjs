@@ -90,6 +90,26 @@ const unlabeled = buildBaselineDraft({
 const unlabeledMetrics=new Map(unlabeled.payload.metric_observations.map((row)=>[row.metric_key+":"+row.module,row]));
 assert.ok(Math.abs(unlabeledMetrics.get("revenue_growth_1y:universal").value_numeric-((15034/14653-1)*100))<1e-9);
 
+const secPreferredFundamentals = [
+  {...quarter({date:"2026-06-30",fiscalYear:2026,period:"Q4",revenue:1200,netIncome:300,ocf:500,capex:200,fcf:300,shares:100,grossProfit:800,operatingIncome:420,rd:120,sbc:30,cash:250}),provider:"sec_companyfacts"},
+  {...quarter({date:"2026-07-02",fiscalYear:2026,period:null,revenue:1200,netIncome:300,ocf:500,capex:200,fcf:999,shares:null,grossProfit:800,operatingIncome:420,rd:120,sbc:30,cash:250}),provider:"yahoo_fundamentals"},
+  {...quarter({date:"2026-03-31",fiscalYear:2026,period:"Q3",revenue:1100,netIncome:280,ocf:450,capex:180,fcf:270,shares:101,grossProfit:740,operatingIncome:390,rd:110,sbc:28,cash:240}),provider:"sec_companyfacts"},
+  {...quarter({date:"2025-12-31",fiscalYear:2026,period:"Q2",revenue:1000,netIncome:260,ocf:420,capex:170,fcf:250,shares:102,grossProfit:680,operatingIncome:350,rd:105,sbc:27,cash:230}),provider:"sec_companyfacts"},
+  {...quarter({date:"2025-09-30",fiscalYear:2026,period:"Q1",revenue:900,netIncome:240,ocf:390,capex:160,fcf:230,shares:103,grossProfit:610,operatingIncome:320,rd:100,sbc:25,cash:220}),provider:"sec_companyfacts"},
+];
+
+const secPreferred = buildBaselineDraft({
+  company:{ticker:"MSFT",company_name:"Microsoft Corporation"},
+  market:{price:500,market_cap:50000,trading_date:"2026-09-18",observed_at:"2026-09-20T10:00:00Z",source_url:"https://market.test/MSFT"},
+  fundamentals:secPreferredFundamentals,
+  filings:[],
+  generatedAt:"2026-09-20T12:00:00Z",
+});
+const secPreferredMetrics=new Map(secPreferred.payload.metric_observations.map((row)=>[row.metric_key+":"+row.module,row]));
+assert.equal(secPreferredMetrics.get("free_cash_flow:universal").value_numeric,1050);
+assert.equal(secPreferredMetrics.get("fcf_per_share:universal").value_numeric,10.5);
+assert.match(secPreferredMetrics.get("fcf_per_share:universal").source_title,/SEC_COMPANYFACTS/);
+
 const serialized = JSON.stringify(result.payload);
 assert.equal(serialized.includes("do-not-store"), false);
 assert.equal(serialized.includes("secret-value"), false);
