@@ -62,7 +62,9 @@ jobs:
           npm run test:screen-publish
           npm run test:lists
           npm run test:data-engine
+          npm run test:local-update
           npm run local:daily:dry-run
+          npm run local:governed:plan
 
       - name: Check repair center scripts
         run: |
@@ -78,6 +80,8 @@ jobs:
           node --check scripts/refresh-solpient-lists.mjs
           node --check scripts/run-solpient-daily.mjs
           node --check scripts/install-solpient-daily-launchd.mjs
+          node --check scripts/with-pipeline-lock.mjs
+          node --check scripts/run-solpient-governed.mjs
           node --check scripts/refresh-rankings.mjs
           node --check scripts/sync-market-history.mjs
 
