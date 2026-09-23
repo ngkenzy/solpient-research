@@ -4,10 +4,20 @@ import process from "node:process";
 import { createPostgresCompatClient } from "../lib/pg-supabase-compat.mjs";
 import { normalizeCompanyFacts, SEC_PROVIDER } from "../lib/sec-companyfacts.mjs";
 
+if(typeof process.loadEnvFile==="function"){
+  try{process.loadEnvFile(".env.local");}catch{}
+}
 if(!process.env.SOLPIENT_DATABASE_URL)throw new Error("Missing SOLPIENT_DATABASE_URL.");
 const sb=createPostgresCompatClient();
-const secContact=process.env.SEC_CONTACT??"ngkenzy@users.noreply.github.com";
-const userAgent=process.env.SEC_USER_AGENT??("SOLPIENT Research "+secContact);
+
+const secContact=String(process.env.SEC_CONTACT??"").trim();
+const configuredUserAgent=String(process.env.SEC_USER_AGENT??"").trim();
+if(!secContact){
+  throw new Error(
+    "Missing SEC_CONTACT in .env.local. SEC automated access requires identifiable contact information."
+  );
+}
+const userAgent=configuredUserAgent||("Solpient Research "+secContact);
 const outputFlag=process.argv.indexOf("--output");
 const outputPath=outputFlag>=0?process.argv[outputFlag+1]:null;
 const onlyTicker=process.env.COVERAGE_TICKER?String(process.env.COVERAGE_TICKER).toUpperCase():null;
@@ -69,8 +79,16 @@ async function secJson(cik){
         }
       });
       if(response.status===403){
-        const error=new Error("SEC companyfacts HTTP 403");
+        const bodyText=await response.text().catch(()=>"");
+        const error=new Error(
+          "SEC companyfacts HTTP 403. SEC rejected automated access. "+
+          "Verify SEC_CONTACT/SEC_USER_AGENT and, if this IP was rate-limited, "+
+          "allow about 10 minutes below the SEC request-rate threshold before retrying."
+        );
         error.code="SEC_BLOCKED";
+        error.status=403;
+        error.endpoint=endpoint;
+        error.response_preview=bodyText.slice(0,500);
         throw error;
       }
       if(response.status===429||response.status===503){
@@ -172,7 +190,12 @@ for(const company of selected){
   }catch(error){
     const diagnostics=errorDetails(error,failureStage);
     const message=diagnostics.message;
-    await attemptFinish(attemptId,"failed",0,message,{ticker:company.ticker,...diagnostics});
+    await attemptFinish(attemptId,"failed",0,message,{
+      ticker:company.ticker,
+      ...diagnostics,
+      sec_user_agent_configured:Boolean(configuredUserAgent),
+      sec_contact_configured:Boolean(secContact),
+    });
     summary.push({ticker:company.ticker,status:"failed",rows:0,error:message,diagnostics});
     console.warn("SEC companyfacts failed",company.ticker,JSON.stringify(diagnostics));
     if(error?.code==="SEC_BLOCKED"){
