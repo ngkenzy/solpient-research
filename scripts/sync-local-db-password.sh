@@ -11,8 +11,8 @@ fi
 
 COMPOSE=(docker compose -f docker-compose.local.yml --env-file .env.local-stack)
 
-echo "Starting the local PostgreSQL container..."
-"${COMPOSE[@]}" up -d db
+echo "Recreating the local PostgreSQL container from the current .env.local-stack..."
+"${COMPOSE[@]}" up -d --force-recreate db
 
 echo "Waiting for PostgreSQL..."
 for _ in {1..30}; do
