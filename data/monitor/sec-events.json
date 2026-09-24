@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-20T14:05:45Z",
+  "generated_at": "2026-09-23T22:15:00-04:00",
   "events": [
     {
       "ticker": "ADBE",
@@ -19,6 +19,28 @@
       "materiality": "review",
       "research_review_needed": true,
       "note": "Discretionary open-market sale; transaction dates are distinct from the Sep. 18 filing date. Does not itself change operating fundamentals or valuation assumptions."
+    },
+    {
+      "ticker": "ADBE",
+      "company": "Adobe Inc.",
+      "event_type": "SEC Form 10-Q",
+      "period_end": "2026-08-28",
+      "filing_date": "2026-09-22",
+      "fiscal_period": "Q3 FY2026",
+      "revenue_usd": 6760000000,
+      "revenue_yoy_pct": 13,
+      "subscription_revenue_usd": 6580000000,
+      "subscription_revenue_yoy_pct": 14,
+      "total_arr_usd": 27500000000,
+      "total_arr_yoy_pct": 11.2,
+      "net_income_usd": 1830000000,
+      "net_income_yoy_pct": 3,
+      "operating_cash_flow_nine_months_usd": 7650000000,
+      "operating_cash_flow_yoy_pct": 11,
+      "source_url": "https://www.sec.gov/edgar/search/",
+      "materiality": "review",
+      "research_review_needed": true,
+      "note": "Quarterly filing is new since the prior disclosure check. It formalizes Q3 results previously announced in the Sep. 10 earnings 8-K and adds full financial-statement, footnote, risk and MD&A detail. Review for balance-sheet, cash-flow, acquisition, margin and risk-factor changes; do not auto-publish a new valuation or thesis version."
     }
   ]
 }
