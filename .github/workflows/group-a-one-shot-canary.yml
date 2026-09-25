@@ -1,9 +1,7 @@
 name: Group A One-Shot Production Canary
 
 on:
-  push:
-    branches:
-      - ops/group-a-production-closeout
+  workflow_dispatch:
 
 concurrency:
   group: group-a-one-shot-canary
