@@ -99,6 +99,21 @@ try{
   await log("SEC worker started.");
   await run("scripts/monitor-sec.mjs");
   await run("scripts/sync-sec-monitor-state.mjs");
+
+  const priorActions=process.env.RESEARCH_MAINTENANCE_ACTIONS;
+  const priorBatchSize=process.env.RESEARCH_MAINTENANCE_BATCH_SIZE;
+  try{
+    process.env.RESEARCH_MAINTENANCE_ACTIONS="evidence_refresh";
+    process.env.RESEARCH_MAINTENANCE_BATCH_SIZE=
+      process.env.LOCAL_SEC_MAINTENANCE_BATCH_SIZE?.trim()||"5";
+    await run("scripts/process-research-maintenance.mjs");
+  }finally{
+    if(priorActions===undefined) delete process.env.RESEARCH_MAINTENANCE_ACTIONS;
+    else process.env.RESEARCH_MAINTENANCE_ACTIONS=priorActions;
+    if(priorBatchSize===undefined) delete process.env.RESEARCH_MAINTENANCE_BATCH_SIZE;
+    else process.env.RESEARCH_MAINTENANCE_BATCH_SIZE=priorBatchSize;
+  }
+
   await log("SEC worker completed successfully.");
   await fs.writeFile(
     path.join(logDir,"last-success.json"),
