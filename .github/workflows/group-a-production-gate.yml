@@ -20,6 +20,12 @@ jobs:
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+      SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
+      SUPABASE_DIRECT_URL: ${{ secrets.SUPABASE_DIRECT_URL }}
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      POSTGRES_URL: ${{ secrets.POSTGRES_URL }}
+      POSTGRES_URL_NON_POOLING: ${{ secrets.POSTGRES_URL_NON_POOLING }}
       SEC_CONTACT: "ngkenzy@users.noreply.github.com"
       SEC_USER_AGENT: "SOLPIENT Research ngkenzy@users.noreply.github.com"
 
@@ -66,46 +72,83 @@ jobs:
           GROUP_A_STATE_OUTPUT: group-a-production-pre.json
         run: node scripts/group-a-production-state.mjs
 
-      - name: Fail closed if required production credentials are unavailable
+      - name: Select read-only database inspection path
+        id: db
         shell: bash
         run: |
           set -euo pipefail
-          missing=0
-          for name in SUPABASE_URL SUPABASE_ACCESS_TOKEN SUPABASE_DB_PASSWORD; do
-            if [ -z "${!name:-}" ]; then
-              echo "::error::Missing GitHub secret: $name"
-              missing=1
+          direct=""
+          source_name=""
+          for name in SUPABASE_DB_URL SUPABASE_DATABASE_URL SUPABASE_DIRECT_URL DATABASE_URL POSTGRES_URL_NON_POOLING POSTGRES_URL; do
+            value="${!name:-}"
+            if [ -n "$value" ]; then
+              direct="$value"
+              source_name="$name"
+              break
             fi
           done
-          if [ -z "${SUPABASE_SECRET_KEY:-}" ] && [ -z "${SUPABASE_SERVICE_ROLE_KEY:-}" ]; then
-            echo "::error::Missing SUPABASE_SECRET_KEY or SUPABASE_SERVICE_ROLE_KEY"
-            missing=1
+
+          if [ -n "$direct" ]; then
+            echo "::add-mask::$direct"
+            echo "GROUP_A_DB_URL=$direct" >> "$GITHUB_ENV"
+            echo "mode=db-url" >> "$GITHUB_OUTPUT"
+            echo "Using existing direct database URL secret: $source_name"
+            exit 0
           fi
-          if [ "$missing" -ne 0 ]; then
-            exit 1
+
+          if [ -n "${SUPABASE_ACCESS_TOKEN:-}" ] && [ -n "${SUPABASE_DB_PASSWORD:-}" ]; then
+            echo "mode=linked" >> "$GITHUB_OUTPUT"
+            echo "Using Supabase CLI linked-project credentials."
+            exit 0
           fi
+
+          echo "::error::No safe remote database inspection credential path is available."
+          echo "::error::Need either a direct Postgres URL secret (SUPABASE_DB_URL, SUPABASE_DATABASE_URL, SUPABASE_DIRECT_URL, DATABASE_URL, POSTGRES_URL_NON_POOLING, or POSTGRES_URL), or both SUPABASE_ACCESS_TOKEN and SUPABASE_DB_PASSWORD."
+          exit 1
 
       - name: Set up Supabase CLI
         uses: supabase/setup-cli@v3
         with:
           version: latest
 
-      - name: Link production Supabase project
+      - name: Link production Supabase project when using linked mode
+        if: steps.db.outputs.mode == 'linked'
         shell: bash
         run: |
           set -euo pipefail
-          supabase link             --project-ref "${{ steps.project.outputs.project_ref }}"             --password "$SUPABASE_DB_PASSWORD"
+          supabase link \
+            --project-ref "${{ steps.project.outputs.project_ref }}" \
+            --password "$SUPABASE_DB_PASSWORD"
 
       - name: Inspect production migration history
         shell: bash
         run: |
           set -euo pipefail
-          NO_COLOR=1 supabase migration list --linked -p "$SUPABASE_DB_PASSWORD" | tee migration-list-before.txt
+          if [ "${{ steps.db.outputs.mode }}" = "db-url" ]; then
+            NO_COLOR=1 supabase migration list --db-url "$GROUP_A_DB_URL" | tee migration-list-before.txt
+          else
+            NO_COLOR=1 supabase migration list --linked -p "$SUPABASE_DB_PASSWORD" | tee migration-list-before.txt
+          fi
+
+      - name: Dump live public schema for partial-deployment diagnosis
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${{ steps.db.outputs.mode }}" = "db-url" ]; then
+            supabase db dump --db-url "$GROUP_A_DB_URL" --schema public -f production-public-schema.sql
+          else
+            supabase db dump --linked -p "$SUPABASE_DB_PASSWORD" --schema public -f production-public-schema.sql
+          fi
+
+      - name: Diagnose Group A migration boundary without applying changes
+        shell: bash
+        run: |
+          set -euo pipefail
           python - <<'PY'
-          import re
-          expected={"20260925090000","20260925090100","20260925090200","20260925090300"}
-          rows=[]
+          import re, json
+          expected=["20260925090000","20260925090100","20260925090200","20260925090300"]
           ansi=re.compile(r"\x1b\[[0-9;]*m")
+          rows=[]
           for raw in open("migration-list-before.txt",encoding="utf-8"):
               line=ansi.sub("",raw)
               if "|" not in line:
@@ -117,67 +160,23 @@ jobs:
               remote=parts[1] if re.fullmatch(r"\d{4,14}",parts[1]) else ""
               if local or remote:
                   rows.append((local,remote))
-          pending={l for l,r in rows if l and not r}
-          remote_only={r for l,r in rows if r and not l}
-          if pending!=expected or remote_only:
-              raise SystemExit(
-                  "Migration history is not safe for Group A push. "
-                  f"expected_pending={sorted(expected)} actual_pending={sorted(pending)} "
-                  f"remote_only={sorted(remote_only)}"
-              )
-          print("Migration history preflight passed: exactly the four Group A migrations are pending.")
+          state={
+              "group_a": {
+                  v: {
+                      "local": any(l==v for l,r in rows),
+                      "remote": any(r==v for l,r in rows),
+                  } for v in expected
+              },
+              "remote_only":[r for l,r in rows if r and not l],
+              "pending_local":[l for l,r in rows if l and not r],
+          }
+          open("group-a-migration-diagnosis.json","w",encoding="utf-8").write(json.dumps(state,indent=2)+"\n")
+          print(json.dumps(state,indent=2))
           PY
 
-      - name: Preview production migration push
-        shell: bash
-        run: |
-          set -euo pipefail
-          NO_COLOR=1 supabase db push --linked --dry-run -p "$SUPABASE_DB_PASSWORD" | tee db-push-dry-run.txt
-
-      - name: Apply Group A production migrations
-        shell: bash
-        run: |
-          set +e
-          NO_COLOR=1 supabase db push --linked -p "$SUPABASE_DB_PASSWORD" 2>&1 | tee db-push.txt
-          code=${PIPESTATUS[0]}
-          if [ "$code" -ne 0 ]; then
-            echo "::error::Production migration failed. Later migration/canary steps will not run."
-            NO_COLOR=1 supabase migration list --linked -p "$SUPABASE_DB_PASSWORD" | tee migration-list-after-failure.txt || true
-            GROUP_A_PHASE=inspect GROUP_A_STATE_OUTPUT=group-a-production-failure-state.json node scripts/group-a-production-state.mjs || true
-            exit "$code"
-          fi
-
-      - name: Verify migration history after push
-        shell: bash
-        run: |
-          set -euo pipefail
-          NO_COLOR=1 supabase migration list --linked -p "$SUPABASE_DB_PASSWORD" | tee migration-list-after.txt
-          python - <<'PY'
-          import re
-          required={"20260925090000","20260925090100","20260925090200","20260925090300"}
-          rows=[]
-          ansi=re.compile(r"\x1b\[[0-9;]*m")
-          for raw in open("migration-list-after.txt",encoding="utf-8"):
-              line=ansi.sub("",raw)
-              if "|" not in line:
-                  continue
-              parts=[p.strip().replace(chr(96),"") for p in line.split("|")]
-              if len(parts)<2:
-                  continue
-              local=parts[0] if re.fullmatch(r"\d{4,14}",parts[0]) else ""
-              remote=parts[1] if re.fullmatch(r"\d{4,14}",parts[1]) else ""
-              if local or remote:
-                  rows.append((local,remote))
-          pending={l for l,r in rows if l and not r}
-          remote_only={r for l,r in rows if r and not l}
-          applied={r for l,r in rows if l==r and r}
-          if pending or remote_only or not required.issubset(applied):
-              raise SystemExit(
-                  f"Post-push migration verification failed: pending={sorted(pending)} "
-                  f"remote_only={sorted(remote_only)} required_missing={sorted(required-applied)}"
-              )
-          print("All local and remote migration history is aligned; Group A migrations are registered.")
-          PY
+          echo "Group A production is known to contain a partial schema footprint."
+          echo "This diagnostic workflow intentionally performs NO db push."
+          exit 1
 
       - name: Confirm Group A objects and policy/rule seeds
         env:
@@ -229,6 +228,8 @@ jobs:
           path: |
             group-a-production-*.json
             migration-list-*.txt
+            group-a-migration-diagnosis.json
+            production-public-schema.sql
             db-push*.txt
             data/monitor/sec-state.json
             data/monitor/sec-events.json
