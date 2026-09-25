@@ -8,9 +8,6 @@ on:
         required: false
         default: "5"
         type: string
-  schedule:
-    # Weekday post-market lightweight clock. UTC; adjustable without schema changes.
-    - cron: "20 23 * * 1-5"
 
 concurrency:
   group: solpient-group-a-maintenance
