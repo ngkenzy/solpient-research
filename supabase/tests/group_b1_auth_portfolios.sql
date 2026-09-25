@@ -5,7 +5,8 @@ begin;
 
 insert into public.companies(id,ticker,company_name)
 values
-  ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','ADBE_B1_TEST','Adobe B1 Test')
+  ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','ADBE_B1_TEST','Adobe B1 Test'),
+  ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb','MSFT_B1_TEST','Microsoft B1 Test')
 on conflict (id) do nothing;
 
 insert into auth.users(
@@ -109,7 +110,7 @@ begin
     ) values (
       current_setting('b1.user_a_portfolio')::uuid,
       '22222222-2222-4222-8222-222222222222',
-      'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
       1
     );
     raise exception 'B1 isolation failure: user B injected a position into user A portfolio';
