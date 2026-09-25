@@ -10,66 +10,6 @@
     "cik": "0000796343"
   },
   {
-    "ticker": "ALSN",
-    "company_name": "Allison Transmission Holdings, Inc.",
-    "forms": [
-      "10-K",
-      "10-Q",
-      "8-K"
-    ],
-    "cik": "0001411207"
-  },
-  {
-    "ticker": "AOS",
-    "company_name": "A. O. Smith Corporation",
-    "forms": [
-      "10-K",
-      "10-Q",
-      "8-K"
-    ],
-    "cik": "0000091142"
-  },
-  {
-    "ticker": "BLBD",
-    "company_name": "Blue Bird Corporation",
-    "forms": [
-      "10-K",
-      "10-Q",
-      "8-K"
-    ],
-    "cik": "0001589526"
-  },
-  {
-    "ticker": "BSY",
-    "company_name": "Bentley Systems, Incorporated",
-    "forms": [
-      "10-K",
-      "10-Q",
-      "8-K"
-    ],
-    "cik": "0001031308"
-  },
-  {
-    "ticker": "CRM",
-    "company_name": "Salesforce, Inc.",
-    "forms": [
-      "10-K",
-      "10-Q",
-      "8-K"
-    ],
-    "cik": "0001108524"
-  },
-  {
-    "ticker": "DCI",
-    "company_name": "Donaldson Company, Inc.",
-    "forms": [
-      "10-K",
-      "10-Q",
-      "8-K"
-    ],
-    "cik": "0000029644"
-  },
-  {
     "ticker": "DECK",
     "company_name": "Deckers Outdoor Corporation",
     "forms": [
@@ -78,26 +18,6 @@
       "8-K"
     ],
     "cik": "0000910521"
-  },
-  {
-    "ticker": "DPZ",
-    "company_name": "Domino's Pizza, Inc.",
-    "forms": [
-      "10-K",
-      "10-Q",
-      "8-K"
-    ],
-    "cik": "0001286681"
-  },
-  {
-    "ticker": "ESQ",
-    "company_name": "Esquire Financial Holdings, Inc.",
-    "forms": [
-      "10-K",
-      "10-Q",
-      "8-K"
-    ],
-    "cik": "0001531031"
   },
   {
     "ticker": "FDS",
@@ -110,16 +30,6 @@
     "cik": "0001013237"
   },
   {
-    "ticker": "GIC",
-    "company_name": "Global Industrial Company",
-    "forms": [
-      "10-K",
-      "10-Q",
-      "8-K"
-    ],
-    "cik": "0000945114"
-  },
-  {
     "ticker": "GMED",
     "company_name": "Globus Medical, Inc.",
     "forms": [
@@ -130,44 +40,14 @@
     "cik": "0001237831"
   },
   {
-    "ticker": "GOOGL",
-    "company_name": "Alphabet Inc.",
+    "ticker": "CRM",
+    "company_name": "Salesforce, Inc.",
     "forms": [
       "10-K",
       "10-Q",
       "8-K"
     ],
-    "cik": "0001652044"
-  },
-  {
-    "ticker": "ICE",
-    "company_name": "Intercontinental Exchange, Inc.",
-    "forms": [
-      "10-K",
-      "10-Q",
-      "8-K"
-    ],
-    "cik": "0001571949"
-  },
-  {
-    "ticker": "JPM",
-    "company_name": "JPMorgan Chase & Co.",
-    "forms": [
-      "10-K",
-      "10-Q",
-      "8-K"
-    ],
-    "cik": "0000019617"
-  },
-  {
-    "ticker": "MA",
-    "company_name": "Mastercard Incorporated",
-    "forms": [
-      "10-K",
-      "10-Q",
-      "8-K"
-    ],
-    "cik": "0001141391"
+    "cik": "0001108524"
   },
   {
     "ticker": "MCK",
@@ -178,6 +58,26 @@
       "8-K"
     ],
     "cik": "0000927653"
+  },
+  {
+    "ticker": "BLBD",
+    "company_name": "Blue Bird Corporation",
+    "forms": [
+      "10-K",
+      "10-Q",
+      "8-K"
+    ],
+    "cik": "0001589526"
+  },
+  {
+    "ticker": "GOOGL",
+    "company_name": "Alphabet Inc.",
+    "forms": [
+      "10-K",
+      "10-Q",
+      "8-K"
+    ],
+    "cik": "0001652044"
   },
   {
     "ticker": "META",
@@ -200,14 +100,84 @@
     "cik": "0000789019"
   },
   {
-    "ticker": "PFE",
-    "company_name": "Pfizer Inc.",
+    "ticker": "MA",
+    "company_name": "Mastercard Incorporated",
     "forms": [
       "10-K",
       "10-Q",
       "8-K"
     ],
-    "cik": "0000078003"
+    "cik": "0001141391"
+  },
+  {
+    "ticker": "ICE",
+    "company_name": "Intercontinental Exchange, Inc.",
+    "forms": [
+      "10-K",
+      "10-Q",
+      "8-K"
+    ],
+    "cik": "0001571949"
+  },
+  {
+    "ticker": "JPM",
+    "company_name": "JPMorgan Chase & Co.",
+    "forms": [
+      "10-K",
+      "10-Q",
+      "8-K"
+    ],
+    "cik": "0000019617"
+  },
+  {
+    "ticker": "BSY",
+    "company_name": "Bentley Systems, Incorporated",
+    "forms": [
+      "10-K",
+      "10-Q",
+      "8-K"
+    ],
+    "cik": "0001031308"
+  },
+  {
+    "ticker": "DCI",
+    "company_name": "Donaldson Company, Inc.",
+    "forms": [
+      "10-K",
+      "10-Q",
+      "8-K"
+    ],
+    "cik": "0000029644"
+  },
+  {
+    "ticker": "AOS",
+    "company_name": "A. O. Smith Corporation",
+    "forms": [
+      "10-K",
+      "10-Q",
+      "8-K"
+    ],
+    "cik": "0000091142"
+  },
+  {
+    "ticker": "DPZ",
+    "company_name": "Domino's Pizza, Inc.",
+    "forms": [
+      "10-K",
+      "10-Q",
+      "8-K"
+    ],
+    "cik": "0001286681"
+  },
+  {
+    "ticker": "ALSN",
+    "company_name": "Allison Transmission Holdings, Inc.",
+    "forms": [
+      "10-K",
+      "10-Q",
+      "8-K"
+    ],
+    "cik": "0001411207"
   },
   {
     "ticker": "POWL",
@@ -228,5 +198,35 @@
       "8-K"
     ],
     "cik": "0000715787"
+  },
+  {
+    "ticker": "GIC",
+    "company_name": "Global Industrial Company",
+    "forms": [
+      "10-K",
+      "10-Q",
+      "8-K"
+    ],
+    "cik": "0000945114"
+  },
+  {
+    "ticker": "ESQ",
+    "company_name": "Esquire Financial Holdings, Inc.",
+    "forms": [
+      "10-K",
+      "10-Q",
+      "8-K"
+    ],
+    "cik": "0001531031"
+  },
+  {
+    "ticker": "PFE",
+    "company_name": "Pfizer Inc.",
+    "forms": [
+      "10-K",
+      "10-Q",
+      "8-K"
+    ],
+    "cik": "0000078003"
   }
 ]
