@@ -60,7 +60,7 @@ jobs:
           docker exec -i "${{ steps.db.outputs.container }}"             psql -v ON_ERROR_STOP=1 -U postgres -d postgres             < supabase/tests/group_a_research_foundation.sql
 
       - name: Database lint
-        run: supabase db lint --local --level warning
+        run: supabase db lint --local --level warning --fail-on error
 
       - name: Show migration status
         if: always()
