@@ -31,22 +31,27 @@ async function sleep(ms) {
 }
 
 async function secJson(url) {
-  const response = await fetch(url, {
-    headers: {
-      "User-Agent": userAgent,
-      From: secContact,
-      "Accept-Encoding": "gzip, deflate",
-      Accept: "application/json",
-    },
-  });
+  let response;
+  try {
+    response = await fetch(url, {
+      headers: {
+        "User-Agent": userAgent,
+        From: secContact,
+        "Accept-Encoding": "gzip, deflate",
+        Accept: "application/json",
+      },
+    });
 
-  if (!response.ok) {
-    throw new Error("SEC request failed " + response.status + " for " + url);
+    if (!response.ok) {
+      throw new Error("SEC request failed " + response.status + " for " + url);
+    }
+
+    successfulRequests += 1;
+    return await response.json();
+  } finally {
+    // Stay below the SEC fair-access ceiling even when a request fails.
+    await sleep(160);
   }
-
-  successfulRequests += 1;
-  await sleep(140);
-  return response.json();
 }
 
 function submissionsUrl(cik) {
@@ -161,6 +166,11 @@ for (const company of companies) {
     submissions=await fetchSubmissions(cik);
   } catch (error) {
     console.warn("SEC submissions monitor warning for " + ticker + ": " + error.message);
+  }
+
+  if(!submissions){
+    console.warn("Preserving prior monitor state for " + ticker + " because this SEC check failed.");
+    continue;
   }
 
   const corporateForms = [];
@@ -278,15 +288,22 @@ for (const company of companies) {
 for (const manager of managers) {
   const key = manager.cik;
   let filings = [];
+  let managerCheckSucceeded=false;
 
   try {
     const submissions=await fetchSubmissions(manager.cik);
     filings=recentFilingsFromSubmissions(submissions,manager.cik,"13F-HR");
+    managerCheckSucceeded=true;
   } catch (error) {
     console.warn("13F submissions monitor warning for " + manager.name + ": " + error.message);
   }
 
   const prior = state.managers[key];
+
+  if(!managerCheckSucceeded){
+    console.warn("Preserving prior 13F monitor state for " + manager.name + " because this SEC check failed.");
+    continue;
+  }
 
   if (!prior) {
     state.managers[key] = {
@@ -339,7 +356,7 @@ for (const manager of managers) {
 
   state.managers[key] = {
     name: manager.name,
-    checked_at: unseen.length > 0 ? now : prior.checked_at,
+    checked_at: now,
     seen_accessions: Array.from(
       new Set([...(prior.seen_accessions ?? []), ...filings.map((filing) => filing.accession)])
     ).slice(0, 100),
