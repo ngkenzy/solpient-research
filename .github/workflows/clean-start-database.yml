@@ -1,0 +1,71 @@
+name: SOLPIENT Clean Start Database
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: solpient-clean-start-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  clean-start:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Supabase CLI
+        uses: supabase/setup-cli@v3
+        with:
+          version: latest
+
+      - name: Start fresh local Supabase database
+        run: supabase db start
+
+      - name: Replay every migration from zero
+        run: supabase db reset --local --no-seed
+
+      - name: Locate local Postgres container
+        id: db
+        shell: bash
+        run: |
+          set -euo pipefail
+          DB_CONTAINER="$(docker ps --filter 'name=supabase_db_' --format '{{.Names}}' | head -n 1)"
+          if [ -z "$DB_CONTAINER" ]; then
+            echo "No local Supabase Postgres container found."
+            docker ps -a
+            exit 1
+          fi
+          echo "container=$DB_CONTAINER" >> "$GITHUB_OUTPUT"
+
+      - name: Historical integrity integration test
+        shell: bash
+        run: |
+          docker exec -i "${{ steps.db.outputs.container }}"             psql -v ON_ERROR_STOP=1 -U postgres -d postgres             < supabase/tests/historical_integrity.sql
+
+      - name: Evidence provenance integration test
+        shell: bash
+        run: |
+          docker exec -i "${{ steps.db.outputs.container }}"             psql -v ON_ERROR_STOP=1 -U postgres -d postgres             < supabase/tests/evidence_provenance.sql
+
+      - name: Group A research-foundation integration test
+        shell: bash
+        run: |
+          docker exec -i "${{ steps.db.outputs.container }}"             psql -v ON_ERROR_STOP=1 -U postgres -d postgres             < supabase/tests/group_a_research_foundation.sql
+
+      - name: Database lint
+        run: supabase db lint --local --level warning
+
+      - name: Show migration status
+        if: always()
+        run: supabase migration list --local || true
+
+      - name: Stop disposable local stack
+        if: always()
+        run: supabase stop --no-backup || true
