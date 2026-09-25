@@ -22,6 +22,22 @@ if(invalidActions.length){
 }
 const safeActions=requestedActions.length?requestedActions:defaultSafeActions;
 
+function formatError(error){
+  if(error instanceof Error)return error.message;
+  if(error&&typeof error==="object"){
+    const parts=[
+      error.code?String(error.code):null,
+      error.message?String(error.message):null,
+      error.details?String(error.details):null,
+      error.hint?String(error.hint):null,
+    ].filter(Boolean);
+    if(parts.length)return parts.join(" | ");
+    try{return JSON.stringify(error);}
+    catch{return String(error);}
+  }
+  return String(error);
+}
+
 function runNode(script,args=[],extraEnv={}){
   const result=spawnSync(process.execPath,[script,...args],{
     cwd:process.cwd(),
@@ -129,7 +145,7 @@ try{
         follow_on_items:Number(queued??0),
       });
     }catch(error){
-      const message=error instanceof Error?error.message:String(error);
+      const message=formatError(error);
       const {error:completeError}=await sb.rpc("complete_research_maintenance_item_v1",{
         p_queue_item_id:item.id,
         p_status:"failed",
@@ -163,7 +179,7 @@ try{
 }catch(error){
   await sb.from("automation_runs").update({
     status:"failed",
-    message:error instanceof Error?error.message:String(error),
+    message:formatError(error),
     details:{worker_id:workerId,results},
     completed_at:new Date().toISOString(),
   }).eq("id",run.id);
