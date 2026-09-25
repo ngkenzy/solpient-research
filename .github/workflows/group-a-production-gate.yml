@@ -72,6 +72,9 @@ jobs:
           GROUP_A_STATE_OUTPUT: group-a-production-pre.json
         run: node scripts/group-a-production-state.mjs
 
+      - name: Validate live Group A table column contracts
+        run: node scripts/probe-group-a-table-contracts.mjs
+
       - name: Select read-only database inspection path
         id: db
         shell: bash
