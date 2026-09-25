@@ -4,7 +4,7 @@ import process from "node:process";
 import { createClient } from "@supabase/supabase-js";
 
 const phase=(process.env.GROUP_A_PHASE??"pre").trim().toLowerCase();
-if(!["pre","post"].includes(phase)) throw new Error("GROUP_A_PHASE must be pre or post.");
+if(!["pre","post","inspect"].includes(phase)) throw new Error("GROUP_A_PHASE must be pre, post, or inspect.");
 
 const url=process.env.SUPABASE_URL?.trim();
 const secret=(process.env.SUPABASE_SECRET_KEY??process.env.SUPABASE_SERVICE_ROLE_KEY)?.trim();
