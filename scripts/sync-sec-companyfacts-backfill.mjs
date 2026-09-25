@@ -17,6 +17,22 @@ const onlyTicker=process.env.COVERAGE_TICKER?String(process.env.COVERAGE_TICKER)
 
 function sleep(ms){return new Promise(resolve=>setTimeout(resolve,ms));}
 
+function formatError(error){
+  if(error instanceof Error)return error.message;
+  if(error&&typeof error==="object"){
+    const parts=[
+      error.code?String(error.code):null,
+      error.message?String(error.message):null,
+      error.details?String(error.details):null,
+      error.hint?String(error.hint):null,
+    ].filter(Boolean);
+    if(parts.length)return parts.join(" | ");
+    try{return JSON.stringify(error);}
+    catch{return String(error);}
+  }
+  return String(error);
+}
+
 async function secJson(cik){
   const padded=String(cik).replace(/\D/g,"").padStart(10,"0");
   const endpoint="https://data.sec.gov/api/xbrl/companyfacts/CIK"+padded+".json";
@@ -114,7 +130,7 @@ for(const company of selected){
     summary.push({ticker:company.ticker,status:written>0?"success":"partial",rows:written,fiscal_years:years.length,latest_period:rows[0]?.period_end??null});
     console.log("SEC companyfacts",company.ticker,"rows="+written,"years="+years.length);
   }catch(error){
-    const message=error instanceof Error?error.message:String(error);
+    const message=formatError(error);
     await attemptFinish(attemptId,"failed",0,message,{ticker:company.ticker});
     summary.push({ticker:company.ticker,status:"failed",rows:0,error:message});
     console.warn("SEC companyfacts failed",company.ticker,message);
@@ -148,3 +164,7 @@ if(outputPath){
   await fs.writeFile(absolute,JSON.stringify(artifact,null,2)+"\n","utf8");
 }
 console.log(JSON.stringify(artifact,null,2));
+
+if(onlyTicker&&summary.some(row=>row.status==="failed")){
+  process.exitCode=1;
+}
