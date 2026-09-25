@@ -39,6 +39,17 @@ In particular, a fully applied `20260925090000_group_a_research_foundation_schem
 
 Both seed tables are currently empty.
 
+A follow-up service-role contract probe on **2026-09-25T13:48:14Z** verified that all eight live tables expose every column expected by `20260925090000_group_a_research_foundation_schema.sql`. No expected Group A column was missing.
+
+This narrows the production state materially:
+
+- the table structures themselves are consistent with the 90000 table definitions;
+- deterministic policy/rule seed rows are missing;
+- Group A function/RPC work from later migrations is unavailable;
+- direct database metadata is still required to determine whether indexes, RLS policies, append-only triggers, and migration-history records match the repository contract.
+
+Do **not** infer from column compatibility that migration 90000 is safely applied. Migration history plus database metadata remain the authority.
+
 ## Historical baseline retained before recovery
 
 Ledger counts:
