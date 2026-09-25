@@ -37,6 +37,18 @@ select 1 / case when (select count(*) from public.portfolios where user_id in (
   '22222222-2222-4222-8222-222222222222'
 ) and is_default) = 2 then 1 else 0 end as default_portfolios_created;
 
+select set_config(
+  'b1.user_a_portfolio',
+  (
+    select id::text
+    from public.portfolios
+    where user_id='11111111-1111-4111-8111-111111111111'
+      and is_default
+    limit 1
+  ),
+  true
+);
+
 set local role authenticated;
 set local "request.jwt.claim.sub" = '11111111-1111-4111-8111-111111111111';
 
@@ -89,25 +101,13 @@ select 1 / case when (select count(*) from public.profiles) = 1 then 1 else 0 en
 select 1 / case when (select count(*) from public.portfolios) = 1 then 1 else 0 end as user_b_sees_one_portfolio;
 select 1 / case when (select count(*) from public.portfolio_positions) = 0 then 1 else 0 end as user_b_cannot_read_user_a_position;
 
-do $$
-declare
-  v_user_a_portfolio uuid;
+do $
 begin
-  reset role;
-  select id into v_user_a_portfolio
-  from public.portfolios
-  where user_id='11111111-1111-4111-8111-111111111111'
-    and is_default
-  limit 1;
-
-  set local role authenticated;
-  perform set_config('request.jwt.claim.sub','22222222-2222-4222-8222-222222222222',true);
-
   begin
     insert into public.portfolio_positions(
       portfolio_id,user_id,company_id,quantity
     ) values (
-      v_user_a_portfolio,
+      current_setting('b1.user_a_portfolio')::uuid,
       '22222222-2222-4222-8222-222222222222',
       'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
       1
@@ -117,7 +117,7 @@ begin
     when foreign_key_violation then null;
   end;
 end
-$$;
+$;
 
 reset role;
 
