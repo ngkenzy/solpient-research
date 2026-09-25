@@ -1,6 +1,8 @@
 name: SOLPIENT Group A Research Maintenance
 
 on:
+  schedule:
+    - cron: "45 22 * * 1-5"
   workflow_dispatch:
     inputs:
       maintenance_batch_size:
@@ -54,4 +56,5 @@ jobs:
           SEC_USER_AGENT: "SOLPIENT Research ngkenzy@users.noreply.github.com"
           SEC_CONTACT: "ngkenzy@users.noreply.github.com"
           RESEARCH_MAINTENANCE_BATCH_SIZE: ${{ inputs.maintenance_batch_size || '5' }}
+          RESEARCH_MAINTENANCE_ACTIONS: "market_refresh,ownership_refresh"
         run: npm run process:research-maintenance
