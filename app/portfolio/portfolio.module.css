@@ -165,9 +165,9 @@
 .portfolioHeading>div:last-child strong{display:block;margin-top:5px;font-size:1.1rem}
 .tableWrap{overflow-x:auto}
 .tableHeader,.positionRow{
-  min-width:850px;
+  min-width:1060px;
   display:grid;
-  grid-template-columns:2.2fr .8fr .9fr .9fr 1fr .7fr;
+  grid-template-columns:2fr .7fr .85fr .85fr .95fr 1.35fr .65fr;
   align-items:center;
   gap:14px;
 }
@@ -206,6 +206,54 @@
   color:#fff;
   font-size:.78rem;
   font-weight:700;
+}
+.researchState{
+  display:grid;
+  gap:4px;
+  align-items:start;
+}
+.researchState small{
+  color:#7f8997;
+  font-size:.68rem;
+  line-height:1.25;
+}
+.researchBadge{
+  width:max-content;
+  display:inline-flex;
+  align-items:center;
+  border-radius:999px;
+  padding:5px 8px;
+  font-size:.68rem;
+  font-weight:700;
+  letter-spacing:.02em;
+  border:1px solid rgba(255,255,255,.12);
+  background:rgba(255,255,255,.05);
+  color:#dfe5ed;
+}
+.current{
+  border-color:rgba(71,184,129,.28);
+  background:rgba(71,184,129,.10);
+  color:#8fdeb5;
+}
+.newEvidence{
+  border-color:rgba(240,186,73,.35);
+  background:rgba(240,186,73,.11);
+  color:#f1c86e;
+}
+.reviewDue{
+  border-color:rgba(230,132,75,.34);
+  background:rgba(230,132,75,.10);
+  color:#e9a171;
+}
+.stale{
+  border-color:rgba(222,91,91,.30);
+  background:rgba(222,91,91,.10);
+  color:#ee9696;
+}
+.monitored{
+  border-color:rgba(121,137,160,.28);
+  background:rgba(121,137,160,.10);
+  color:#aab5c5;
 }
 .remove{
   border:0;
