@@ -11,6 +11,7 @@ const errorText:Record<string,string>={
   missing:"Enter your email and password.",
   signin:"Email or password was not accepted.",
   signup:"Use a valid email and a password with at least 8 characters.",
+  confirm:"We could not confirm that sign-in link. Request a new one or sign in again.",
 };
 
 export default async function LoginPage({
