@@ -81,6 +81,7 @@
     "test:research-factory:v2.1": "node scripts/test-autonomous-research-factory-v2-1.mjs",
     "test:review-attestation": "node scripts/test-review-attestation.mjs",
     "test:research-foundation": "node scripts/test-research-foundation.mjs",
+    "test:sec-companyfacts-dedupe": "node scripts/test-sec-companyfacts-dedupe.mjs",
     "sync:research-foundation": "node scripts/sync-research-foundation.mjs",
     "sync:sec-monitor-state": "node scripts/sync-sec-monitor-state.mjs",
     "process:research-maintenance": "node scripts/process-research-maintenance.mjs",
