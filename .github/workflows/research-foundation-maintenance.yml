@@ -1,0 +1,57 @@
+name: SOLPIENT Group A Research Maintenance
+
+on:
+  workflow_dispatch:
+    inputs:
+      maintenance_batch_size:
+        description: Safe automated maintenance items to process
+        required: false
+        default: "5"
+        type: string
+
+concurrency:
+  group: solpient-group-a-maintenance
+  cancel-in-progress: false
+
+jobs:
+  maintain:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Test Group A deterministic rules
+        run: npm run test:research-foundation
+
+      - name: Refresh lightweight end-of-day market observations
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          MARKET_DATA_USER_AGENT: "SOLPIENT Research/1.0"
+        run: node scripts/sync-market-data.mjs
+
+      - name: Recompute coverage and component freshness
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: npm run sync:research-foundation
+
+      - name: Process safe targeted maintenance
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SEC_USER_AGENT: "SOLPIENT Research ngkenzy@users.noreply.github.com"
+          SEC_CONTACT: "ngkenzy@users.noreply.github.com"
+          RESEARCH_MAINTENANCE_BATCH_SIZE: ${{ inputs.maintenance_batch_size || '5' }}
+        run: npm run process:research-maintenance

@@ -24,6 +24,9 @@ jobs:
         with:
           node-version: 22
 
+      - name: Install dependencies
+        run: npm install
+
       - name: Check SEC directly
         env:
           SEC_USER_AGENT: "SOLPIENT Research ngkenzy@users.noreply.github.com"
@@ -42,3 +45,10 @@ jobs:
           git add data/monitor/sec-state.json data/monitor/sec-events.json
           git commit -m "Auto-monitor SEC filings"
           git push
+
+      - name: Record authoritative SEC checks and filing events
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: npm run sync:sec-monitor-state

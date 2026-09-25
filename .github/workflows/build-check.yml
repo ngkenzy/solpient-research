@@ -38,6 +38,7 @@ jobs:
           npm run test:review-attestation
           npm run test:enrichment
           npm run test:update-planner
+          npm run test:research-foundation
           npm run test:context
           npm run test:coverage
           npm run test:composer
@@ -66,6 +67,10 @@ jobs:
           node --check scripts/build-research-repair-queue.mjs
           node --check scripts/process-research-repairs.mjs
           node --check scripts/sync-evidence-provenance.mjs
+          node --check scripts/sync-research-foundation.mjs
+          node --check scripts/sync-sec-monitor-state.mjs
+          node --check scripts/process-research-maintenance.mjs
+          node --check scripts/check-research-foundation-production.mjs
           node --check scripts/materialize-research-factory-v1.mjs
           node --check scripts/onboard-research-factory-v1.mjs
           node --check scripts/refresh-research-factory-v1.mjs

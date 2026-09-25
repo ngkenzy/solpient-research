@@ -18,6 +18,25 @@ create unique index if not exists prediction_scores_methodology_unique_idx
 alter table public.ranking_history
   alter column methodology_version set default 'ranking-v1';
 
+-- Historical reproducibility repair: the deployed environment contained the
+-- prediction-resolution run ledger, but the tracked migration chain did not
+-- create it. Keep resolver execution observable without depending on hidden state.
+create table if not exists private.prediction_resolution_runs (
+  id uuid primary key default gen_random_uuid(),
+  as_of_date date not null,
+  started_at timestamptz not null default now(),
+  finished_at timestamptz,
+  fundamental_resolved integer not null default 0,
+  relative_return_resolved integer not null default 0,
+  skipped_integer integer not null default 0,
+  status text not null default 'running'
+    check (status in ('running','succeeded','failed')),
+  error_message text
+);
+
+create index if not exists prediction_resolution_runs_date_idx
+  on private.prediction_resolution_runs(as_of_date desc, started_at desc);
+
 CREATE OR REPLACE FUNCTION private.resolve_prediction_outcomes(p_as_of_date date DEFAULT CURRENT_DATE)
  RETURNS jsonb
  LANGUAGE plpgsql
