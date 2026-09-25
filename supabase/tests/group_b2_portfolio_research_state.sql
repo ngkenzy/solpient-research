@@ -156,4 +156,33 @@ end
 $b2$;
 
 reset role;
+reset role;
+
+select 1 / case when (
+  select not p.prosecdef
+  from pg_proc p
+  join pg_namespace n on n.oid=p.pronamespace
+  where n.nspname='public'
+    and p.proname='get_my_portfolio_research_state_v1'
+    and pg_get_function_identity_arguments(p.oid)='p_as_of timestamp with time zone'
+) then 1 else 0 end
+as public_b2_rpc_is_security_invoker;
+
+select 1 / case when (
+  select p.prosecdef
+  from pg_proc p
+  join pg_namespace n on n.oid=p.pronamespace
+  where n.nspname='consumer_private'
+    and p.proname='get_my_portfolio_research_state_v1'
+    and pg_get_function_identity_arguments(p.oid)='p_as_of timestamp with time zone'
+) then 1 else 0 end
+as private_b2_helper_is_security_definer;
+
+select 1 / case when
+  has_schema_privilege('authenticated','consumer_private','USAGE')
+  and not has_schema_privilege('anon','consumer_private','USAGE')
+then 1 else 0 end
+as consumer_private_schema_access_is_scoped;
+
+
 rollback;
