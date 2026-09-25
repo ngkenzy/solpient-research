@@ -70,6 +70,16 @@ process.env.SUPABASE_SERVICE_ROLE_KEY=
 
 if(!process.env.SUPABASE_URL)throw new Error("Missing SUPABASE_URL or NEXT_PUBLIC_SUPABASE_URL in .env.local.");
 if(!process.env.SUPABASE_SERVICE_ROLE_KEY)throw new Error("Missing SUPABASE_SERVICE_ROLE_KEY or SUPABASE_SECRET_KEY in .env.local.");
+
+const expectedProjectRef=process.env.SOLPIENT_PRODUCTION_PROJECT_REF?.trim()||"hmfrlpsjszjpvzogrico";
+const actualProjectRef=new URL(process.env.SUPABASE_URL).hostname.split(".")[0];
+if(actualProjectRef!==expectedProjectRef){
+  throw new Error(
+    "Refusing production SEC worker: Supabase project ref is "+actualProjectRef+
+    ", expected "+expectedProjectRef+"."
+  );
+}
+
 if(!process.env.SEC_CONTACT&&!process.env.SEC_USER_AGENT){
   throw new Error("Missing SEC_CONTACT or SEC_USER_AGENT in .env.local.");
 }
