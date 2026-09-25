@@ -24,10 +24,10 @@ jobs:
       SEC_USER_AGENT: "SOLPIENT Research ngkenzy@users.noreply.github.com"
 
     steps:
-      - name: Check out production-closeout branch
+      - name: Check out exact production-gate commit
         uses: actions/checkout@v4
         with:
-          ref: ops/group-a-production-closeout
+          ref: ${{ github.sha }}
           fetch-depth: 0
 
       - name: Verify branch is based on production main
