@@ -1,0 +1,234 @@
+name: Group A Production Gate
+
+on:
+  push:
+    branches:
+      - ops/group-a-production-closeout
+
+concurrency:
+  group: group-a-production-gate
+  cancel-in-progress: false
+
+jobs:
+  close-group-a:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      SEC_CONTACT: "ngkenzy@users.noreply.github.com"
+      SEC_USER_AGENT: "SOLPIENT Research ngkenzy@users.noreply.github.com"
+
+    steps:
+      - name: Check out production-closeout branch
+        uses: actions/checkout@v4
+        with:
+          ref: ops/group-a-production-closeout
+          fetch-depth: 0
+
+      - name: Verify branch is based on production main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          BASE="$(git merge-base HEAD origin/main)"
+          MAIN="$(git rev-parse origin/main)"
+          if [ "$BASE" != "$MAIN" ]; then
+            echo "Closeout branch is not based on current main."
+            echo "merge-base=$BASE main=$MAIN"
+            exit 1
+          fi
+          echo "main_sha=$MAIN"
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Fail closed if required production credentials are unavailable
+        shell: bash
+        run: |
+          set -euo pipefail
+          missing=0
+          for name in SUPABASE_URL SUPABASE_ACCESS_TOKEN SUPABASE_DB_PASSWORD; do
+            if [ -z "${!name:-}" ]; then
+              echo "::error::Missing GitHub secret: $name"
+              missing=1
+            fi
+          done
+          if [ -z "${SUPABASE_SECRET_KEY:-}" ] && [ -z "${SUPABASE_SERVICE_ROLE_KEY:-}" ]; then
+            echo "::error::Missing SUPABASE_SECRET_KEY or SUPABASE_SERVICE_ROLE_KEY"
+            missing=1
+          fi
+          if [ "$missing" -ne 0 ]; then
+            exit 1
+          fi
+
+      - name: Derive linked project reference
+        id: project
+        shell: bash
+        run: |
+          set -euo pipefail
+          PROJECT_REF="$(node -e 'const u=new URL(process.env.SUPABASE_URL); const ref=u.hostname.split(".")[0]; if(!ref) process.exit(2); process.stdout.write(ref)')"
+          echo "project_ref=$PROJECT_REF" >> "$GITHUB_OUTPUT"
+
+      - name: Capture pre-migration historical state and prove Group A is absent
+        env:
+          GROUP_A_PHASE: pre
+          GROUP_A_STATE_OUTPUT: group-a-production-pre.json
+        run: node scripts/group-a-production-state.mjs
+
+      - name: Set up Supabase CLI
+        uses: supabase/setup-cli@v3
+        with:
+          version: latest
+
+      - name: Link production Supabase project
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase link             --project-ref "${{ steps.project.outputs.project_ref }}"             --password "$SUPABASE_DB_PASSWORD"
+
+      - name: Inspect production migration history
+        shell: bash
+        run: |
+          set -euo pipefail
+          NO_COLOR=1 supabase migration list --linked -p "$SUPABASE_DB_PASSWORD" | tee migration-list-before.txt
+          python - <<'PY'
+          import re
+          expected={"20260925090000","20260925090100","20260925090200","20260925090300"}
+          rows=[]
+          ansi=re.compile(r"\x1b\[[0-9;]*m")
+          for raw in open("migration-list-before.txt",encoding="utf-8"):
+              line=ansi.sub("",raw)
+              if "|" not in line:
+                  continue
+              parts=[p.strip().replace(chr(96),"") for p in line.split("|")]
+              if len(parts)<2:
+                  continue
+              local=parts[0] if re.fullmatch(r"\d{4,14}",parts[0]) else ""
+              remote=parts[1] if re.fullmatch(r"\d{4,14}",parts[1]) else ""
+              if local or remote:
+                  rows.append((local,remote))
+          pending={l for l,r in rows if l and not r}
+          remote_only={r for l,r in rows if r and not l}
+          if pending!=expected or remote_only:
+              raise SystemExit(
+                  "Migration history is not safe for Group A push. "
+                  f"expected_pending={sorted(expected)} actual_pending={sorted(pending)} "
+                  f"remote_only={sorted(remote_only)}"
+              )
+          print("Migration history preflight passed: exactly the four Group A migrations are pending.")
+          PY
+
+      - name: Preview production migration push
+        shell: bash
+        run: |
+          set -euo pipefail
+          NO_COLOR=1 supabase db push --linked --dry-run -p "$SUPABASE_DB_PASSWORD" | tee db-push-dry-run.txt
+
+      - name: Apply Group A production migrations
+        shell: bash
+        run: |
+          set +e
+          NO_COLOR=1 supabase db push --linked -p "$SUPABASE_DB_PASSWORD" 2>&1 | tee db-push.txt
+          code=${PIPESTATUS[0]}
+          if [ "$code" -ne 0 ]; then
+            echo "::error::Production migration failed. Later migration/canary steps will not run."
+            NO_COLOR=1 supabase migration list --linked -p "$SUPABASE_DB_PASSWORD" | tee migration-list-after-failure.txt || true
+            GROUP_A_PHASE=inspect GROUP_A_STATE_OUTPUT=group-a-production-failure-state.json node scripts/group-a-production-state.mjs || true
+            exit "$code"
+          fi
+
+      - name: Verify migration history after push
+        shell: bash
+        run: |
+          set -euo pipefail
+          NO_COLOR=1 supabase migration list --linked -p "$SUPABASE_DB_PASSWORD" | tee migration-list-after.txt
+          python - <<'PY'
+          import re
+          required={"20260925090000","20260925090100","20260925090200","20260925090300"}
+          rows=[]
+          ansi=re.compile(r"\x1b\[[0-9;]*m")
+          for raw in open("migration-list-after.txt",encoding="utf-8"):
+              line=ansi.sub("",raw)
+              if "|" not in line:
+                  continue
+              parts=[p.strip().replace(chr(96),"") for p in line.split("|")]
+              if len(parts)<2:
+                  continue
+              local=parts[0] if re.fullmatch(r"\d{4,14}",parts[0]) else ""
+              remote=parts[1] if re.fullmatch(r"\d{4,14}",parts[1]) else ""
+              if local or remote:
+                  rows.append((local,remote))
+          pending={l for l,r in rows if l and not r}
+          remote_only={r for l,r in rows if r and not l}
+          applied={r for l,r in rows if l==r and r}
+          if pending or remote_only or not required.issubset(applied):
+              raise SystemExit(
+                  f"Post-push migration verification failed: pending={sorted(pending)} "
+                  f"remote_only={sorted(remote_only)} required_missing={sorted(required-applied)}"
+              )
+          print("All local and remote migration history is aligned; Group A migrations are registered.")
+          PY
+
+      - name: Confirm Group A objects and policy/rule seeds
+        env:
+          GROUP_A_PHASE: post
+          GROUP_A_STATE_OUTPUT: group-a-production-post-migration.json
+        run: node scripts/group-a-production-state.mjs
+
+      - name: Run Group A Production Health
+        run: npm run check:research-foundation:production
+
+      - name: Prove migration did not mutate historical publications
+        run: node scripts/compare-group-a-production-integrity.mjs group-a-production-pre.json group-a-production-post-migration.json
+
+      - name: SEC monitor canary
+        run: node scripts/monitor-sec.mjs
+
+      - name: Persist SEC canary into authoritative Group A state
+        run: npm run sync:sec-monitor-state
+
+      - name: Run targeted Group A maintenance canary
+        env:
+          RESEARCH_MAINTENANCE_BATCH_SIZE: "5"
+          MARKET_DATA_USER_AGENT: "SOLPIENT Research/1.0"
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/sync-market-data.mjs
+          npm run sync:research-foundation
+          npm run process:research-maintenance
+
+      - name: Re-run Group A Production Health after canaries
+        run: npm run check:research-foundation:production
+
+      - name: Capture final production state
+        env:
+          GROUP_A_PHASE: post
+          GROUP_A_STATE_OUTPUT: group-a-production-post-canary.json
+        run: node scripts/group-a-production-state.mjs
+
+      - name: Historical-integrity production sanity check
+        run: node scripts/compare-group-a-production-integrity.mjs group-a-production-pre.json group-a-production-post-canary.json
+
+      - name: Upload production closeout evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: group-a-production-gate-${{ github.run_id }}
+          if-no-files-found: ignore
+          path: |
+            group-a-production-*.json
+            migration-list-*.txt
+            db-push*.txt
+            data/monitor/sec-state.json
+            data/monitor/sec-events.json
