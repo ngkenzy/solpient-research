@@ -70,6 +70,7 @@ jobs:
           node --check scripts/sync-research-foundation.mjs
           node --check scripts/sync-sec-monitor-state.mjs
           node --check scripts/process-research-maintenance.mjs
+          node --check scripts/check-research-foundation-production.mjs
           node --check scripts/materialize-research-factory-v1.mjs
           node --check scripts/onboard-research-factory-v1.mjs
           node --check scripts/refresh-research-factory-v1.mjs
