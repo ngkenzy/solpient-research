@@ -6,8 +6,7 @@
   <string>com.solpient.group-a-sec-worker</string>
   <key>ProgramArguments</key>
   <array>
-    <string>/usr/bin/env</string>
-    <string>npm</string>
+    <string>__NPM_BIN__</string>
     <string>run</string>
     <string>monitor:sec:production</string>
   </array>
@@ -28,6 +27,11 @@
   <string>__SOLPIENT_REPO__/.cache/group-a-sec-worker/launchd.stdout.log</string>
   <key>StandardErrorPath</key>
   <string>__SOLPIENT_REPO__/.cache/group-a-sec-worker/launchd.stderr.log</string>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key>
+    <string>__LAUNCHD_PATH__</string>
+  </dict>
   <key>ProcessType</key>
   <string>Background</string>
 </dict>
