@@ -50,6 +50,25 @@ select public.record_research_component_check_v1(
   now()
 );
 
+select public.record_research_component_check_v1(
+  'c1111111-1111-4111-8111-111111111111',
+  'market_data',
+  now(),
+  now(),
+  null,null,null,
+  true,
+  now()
+);
+select public.record_research_component_check_v1(
+  'c2222222-2222-4222-8222-222222222222',
+  'market_data',
+  now(),
+  now(),
+  null,null,null,
+  true,
+  now()
+);
+
 insert into public.portfolio_positions(
   portfolio_id,user_id,company_id,quantity,average_cost
 )
@@ -97,9 +116,15 @@ as user_a_reads_group_a_coverage;
 
 select 1 / case
   when public.get_my_portfolio_research_state_v1(now())
-    ->'positions'->0->'research_contract'->'freshness'->'sec_filings'->>'status'='CURRENT'
+    ->'positions'->0->'research_contract'->'freshness'->'sec_filings'->>'status'='NEW_EVIDENCE'
   then 1 else 0 end
-as user_a_reads_group_a_freshness;
+as user_a_reads_group_a_new_evidence;
+
+select 1 / case
+  when public.get_my_portfolio_research_state_v1(now())
+    ->'positions'->0->'research_contract'->'freshness'->'market_data'->>'status'='CURRENT'
+  then 1 else 0 end
+as user_a_reads_group_a_current_state;
 
 reset role;
 set local role authenticated;
