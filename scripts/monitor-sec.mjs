@@ -26,35 +26,17 @@ state.managers = state.managers ?? {};
 const now = new Date().toISOString();
 let successfulRequests = 0;
 
-async function resolveTickerCiks() {
-  try {
-    const body = await secText("https://www.sec.gov/files/company_tickers.json");
-    const parsed = JSON.parse(body);
-    return new Map(
-      Object.values(parsed).map((row) => [
-        String(row.ticker).toUpperCase(),
-        String(row.cik_str).padStart(10, "0"),
-      ])
-    );
-  } catch (error) {
-    console.warn("Unable to refresh SEC ticker/CIK map:", error.message);
-    return new Map();
-  }
-}
-
-
 async function sleep(ms) {
   await new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function secText(url) {
+async function secJson(url) {
   const response = await fetch(url, {
     headers: {
       "User-Agent": userAgent,
       From: secContact,
-      Host: "www.sec.gov",
       "Accept-Encoding": "gzip, deflate",
-      Accept: "application/atom+xml,text/xml,application/xml,text/html",
+      Accept: "application/json",
     },
   });
 
@@ -63,50 +45,57 @@ async function secText(url) {
   }
 
   successfulRequests += 1;
-  return response.text();
+  await sleep(140);
+  return response.json();
 }
 
-function textTag(block, tag) {
-  const match = block.match(
-    new RegExp("<" + tag + "[^>]*>([\\s\\S]*?)<\\/" + tag + ">", "i")
-  );
-  return match ? match[1].replace(/<[^>]+>/g, "").trim() : null;
+function submissionsUrl(cik) {
+  return "https://data.sec.gov/submissions/CIK" +
+    String(cik).replace(/\D/g, "").padStart(10, "0") +
+    ".json";
 }
 
-function parseAtom(xml, requestedForm) {
-  const entries = xml.match(/<entry>[\s\S]*?<\/entry>/gi) ?? [];
-
-  return entries
-    .map((entry) => {
-      const accession =
-        textTag(entry, "accession-number") ||
-        (entry.match(/accession-number=([0-9-]+)/i)?.[1] ?? null);
-      const filingDate = textTag(entry, "filing-date") || textTag(entry, "updated");
-      const link =
-        entry.match(/<link[^>]+href=["']([^"']+)["']/i)?.[1] ??
-        entry.match(/<filing-href>([^<]+)<\/filing-href>/i)?.[1] ??
-        null;
-      const categoryForm =
-        entry.match(/<category[^>]+term=["']([^"']+)["']/i)?.[1] ?? requestedForm;
-
-      return {
-        accession: String(accession ?? "").trim(),
-        filingDate: filingDate ? filingDate.slice(0, 10) : null,
-        sourceUrl: link,
-        form: categoryForm || requestedForm,
-      };
-    })
-    .filter((entry) => entry.accession);
+function formMatches(actualForm, requestedForm) {
+  const actual=String(actualForm??"").toUpperCase();
+  const requested=String(requestedForm??"").toUpperCase();
+  return actual===requested || actual===requested+"/A";
 }
 
-function browseUrl(cik, form) {
-  return (
-    "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=" +
-    encodeURIComponent(cik) +
-    "&type=" +
-    encodeURIComponent(form) +
-    "&owner=include&count=40&output=atom"
-  );
+function filingSourceUrl(cik, accession, primaryDocument) {
+  if(!accession || !primaryDocument) return null;
+  const cikNumber=String(Number(String(cik).replace(/\D/g,"")));
+  const accessionFolder=String(accession).replace(/-/g,"");
+  return "https://www.sec.gov/Archives/edgar/data/" +
+    cikNumber + "/" + accessionFolder + "/" + primaryDocument;
+}
+
+function recentFilingsFromSubmissions(body,cik,requestedForm) {
+  const recent=body?.filings?.recent??{};
+  const accessions=recent.accessionNumber??[];
+  const forms=recent.form??[];
+  const filingDates=recent.filingDate??[];
+  const reportDates=recent.reportDate??[];
+  const primaryDocuments=recent.primaryDocument??[];
+  const out=[];
+
+  for(let i=0;i<accessions.length;i++){
+    const form=forms[i]??null;
+    if(!formMatches(form,requestedForm)) continue;
+    const accession=String(accessions[i]??"").trim();
+    if(!accession) continue;
+    out.push({
+      accession,
+      filingDate:filingDates[i]??null,
+      reportDate:reportDates[i]??null,
+      sourceUrl:filingSourceUrl(cik,accession,primaryDocuments[i]??null),
+      form,
+    });
+  }
+  return out.slice(0,120);
+}
+
+async function fetchSubmissions(cik) {
+  return secJson(submissionsUrl(cik));
 }
 
 function classify(form) {
@@ -154,32 +143,30 @@ function classify(form) {
   };
 }
 
-async function fetchFormFilings(cik, form) {
-  const xml = await secText(browseUrl(cik, form));
-  await sleep(180);
-  return parseAtom(xml, form);
-}
 
-const tickerCiks = await resolveTickerCiks();
 const newEvents = [];
 let initializedAny = false;
 
 for (const company of companies) {
   const ticker = company.ticker.toUpperCase();
-  const cik = company.cik || tickerCiks.get(ticker);
+  const cik = company.cik;
   if (!cik) {
-    console.warn("Skipping " + ticker + ": CIK could not be resolved.");
+    console.warn("Skipping " + ticker + ": canonical CIK is missing.");
     continue;
   }
   const prior = state.companies[ticker] ?? null;
 
+  let submissions=null;
+  try {
+    submissions=await fetchSubmissions(cik);
+  } catch (error) {
+    console.warn("SEC submissions monitor warning for " + ticker + ": " + error.message);
+  }
+
   const corporateForms = [];
-  for (const form of company.forms ?? ["10-K", "10-Q", "8-K"]) {
-    try {
-      const filings = await fetchFormFilings(cik, form);
-      corporateForms.push(...filings);
-    } catch (error) {
-      console.warn("Corporate filing monitor warning for " + ticker + " " + form + ": " + error.message);
+  if(submissions){
+    for (const form of company.forms ?? ["10-K", "10-Q", "8-K"]) {
+      corporateForms.push(...recentFilingsFromSubmissions(submissions,cik,form));
     }
   }
 
@@ -189,12 +176,9 @@ for (const company of companies) {
     )
     .slice(0, 120);
 
-  let ownershipFilings = [];
-  try {
-    ownershipFilings = await fetchFormFilings(cik, "4");
-  } catch (error) {
-    console.warn("Form 4 monitor warning for " + ticker + ": " + error.message);
-  }
+  const ownershipFilings = submissions
+    ? recentFilingsFromSubmissions(submissions,cik,"4")
+    : [];
 
   if (!prior) {
     state.companies[ticker] = {
@@ -229,7 +213,7 @@ for (const company of companies) {
       form: filing.form,
       accession_number: filing.accession,
       filing_date: filing.filingDate,
-      report_date: null,
+      report_date: filing.reportDate ?? null,
       items: null,
       source_url: filing.sourceUrl,
       detected_at: now,
@@ -251,7 +235,7 @@ for (const company of companies) {
       form: "4",
       accession_number: filing.accession,
       filing_date: filing.filingDate,
-      report_date: null,
+      report_date: filing.reportDate ?? null,
       items: null,
       source_url: filing.sourceUrl,
       detected_at: now,
@@ -296,9 +280,10 @@ for (const manager of managers) {
   let filings = [];
 
   try {
-    filings = await fetchFormFilings(manager.cik, "13F-HR");
+    const submissions=await fetchSubmissions(manager.cik);
+    filings=recentFilingsFromSubmissions(submissions,manager.cik,"13F-HR");
   } catch (error) {
-    console.warn("13F monitor warning for " + manager.name + ": " + error.message);
+    console.warn("13F submissions monitor warning for " + manager.name + ": " + error.message);
   }
 
   const prior = state.managers[key];
@@ -365,7 +350,7 @@ for (const manager of managers) {
 
 if (successfulRequests === 0) {
   throw new Error(
-    "No direct SEC requests succeeded. The direct cloud provider is unavailable; use the orchestrated monitor instead."
+    "No SEC submissions API requests succeeded. Production SEC monitoring cannot be trusted."
   );
 }
 
