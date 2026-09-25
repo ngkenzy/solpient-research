@@ -11,7 +11,16 @@ const limit=Math.max(1,Math.min(50,Number(process.env.RESEARCH_MAINTENANCE_BATCH
 const workerId=process.env.GITHUB_RUN_ID
   ?`github:${process.env.GITHUB_RUN_ID}`
   :`local:${process.pid}`;
-const safeActions=["market_refresh","evidence_refresh","ownership_refresh"];
+const defaultSafeActions=["market_refresh","evidence_refresh","ownership_refresh"];
+const requestedActions=String(process.env.RESEARCH_MAINTENANCE_ACTIONS??"")
+  .split(",")
+  .map((value)=>value.trim())
+  .filter(Boolean);
+const invalidActions=requestedActions.filter((value)=>!defaultSafeActions.includes(value));
+if(invalidActions.length){
+  throw new Error("Unsupported RESEARCH_MAINTENANCE_ACTIONS: "+invalidActions.join(", "));
+}
+const safeActions=requestedActions.length?requestedActions:defaultSafeActions;
 
 function runNode(script,args=[],extraEnv={}){
   const result=spawnSync(process.execPath,[script,...args],{
