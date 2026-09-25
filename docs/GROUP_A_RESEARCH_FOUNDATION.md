@@ -203,6 +203,32 @@ A fresh environment must support:
 
 No undocumented manual database mutation is part of the process.
 
+## Production rollout gate
+
+Group A code may merge before production scheduling is enabled, but production automation must remain manual-only until the new database contract exists.
+
+Required rollout order:
+
+1. Merge the reviewed Group A code after all PR CI is green.
+2. Link the Supabase CLI to the production project using an authorized operator environment.
+3. Apply pending migrations with `supabase db push`. Existing migration-history entries are not replayed; the production rollout should apply only migration files not already registered remotely.
+4. Confirm the four Group A migrations are registered:
+   - `20260925090000_group_a_research_foundation_schema.sql`
+   - `20260925090100_group_a_freshness_coverage.sql`
+   - `20260925090200_group_a_invalidation_queue.sql`
+   - `20260925090300_group_a_contracts_observability.sql`
+5. Run the manual **SOLPIENT Group A Production Health** workflow.
+6. Require a successful canary response from:
+   - `get_research_foundation_operational_status_v1()`
+   - `get_company_research_contract_v1()`
+7. Run **SEC & Ownership Monitor** manually once and verify authoritative check state is persisted.
+8. Run **SOLPIENT Group A Research Maintenance** manually once and inspect queue/failure counts.
+9. Only after those canaries pass, add the intended weekday schedules in a separate small PR.
+
+The initial Group A merge intentionally leaves the SEC monitor and Group A maintenance workflows as `workflow_dispatch` only. This prevents code/schema deployment races and keeps production unchanged until the database migration is explicitly completed.
+
+The clean-start workflow is a permanent regression gate. It starts a disposable local Supabase stack, replays every tracked migration from zero, runs historical-integrity, provenance, and Group A database integration tests, lints the database, and destroys the local stack.
+
 ## Environment
 
 Server-side workflows require:
