@@ -2,9 +2,6 @@ name: SEC & Ownership Monitor
 
 on:
   workflow_dispatch:
-  schedule:
-    # Weekdays. GitHub cron is UTC; source cadence can be changed without schema changes.
-    - cron: "15 14,22 * * 1-5"
 
 concurrency:
   group: sec-monitor
