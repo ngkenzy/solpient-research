@@ -140,6 +140,9 @@ jobs:
             supabase db dump --linked -p "$SUPABASE_DB_PASSWORD" --schema public -f production-public-schema.sql
           fi
 
+      - name: Classify partial Group A production schema
+        run: node scripts/diagnose-group-a-production-schema.mjs production-public-schema.sql migration-list-before.txt
+
       - name: Diagnose Group A migration boundary without applying changes
         shell: bash
         run: |
@@ -229,6 +232,7 @@ jobs:
             group-a-production-*.json
             migration-list-*.txt
             group-a-migration-diagnosis.json
+            group-a-schema-diagnosis.json
             production-public-schema.sql
             db-push*.txt
             data/monitor/sec-state.json
