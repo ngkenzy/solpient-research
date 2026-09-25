@@ -2,7 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
 import { createClient } from "@supabase/supabase-js";
-import { normalizeCompanyFacts, SEC_PROVIDER } from "../lib/sec-companyfacts.mjs";
+import { dedupeFundamentalSnapshots, normalizeCompanyFacts, SEC_PROVIDER } from "../lib/sec-companyfacts.mjs";
 
 const url=process.env.SUPABASE_URL;
 const secret=process.env.SUPABASE_SECRET_KEY?.trim() || process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
@@ -95,9 +95,10 @@ for(const company of selected){
   const attemptId=await attemptStart(company);
   try{
     const {endpoint,body}=await secJson(company.cik);
-    const rows=normalizeCompanyFacts(body,{
+    const normalizedRows=normalizeCompanyFacts(body,{
       companyId:company.id,ticker:company.ticker,cik:company.cik,observedAt:new Date().toISOString()
     });
+    const {rows,duplicateRowsRemoved}=dedupeFundamentalSnapshots(normalizedRows);
     let written=0;
     for(let i=0;i<rows.length;i+=100){
       const chunk=rows.slice(i,i+100);
@@ -124,10 +125,24 @@ for(const company of selected){
       written>0?"success":"partial",
       written,
       "SEC companyfacts stored "+written+" normalized quarters.",
-      {endpoint,fiscal_years:years.length,latest_period:rows[0]?.period_end??null,latest_field_coverage:primaryFields}
+      {
+        endpoint,
+        fiscal_years:years.length,
+        latest_period:rows[0]?.period_end??null,
+        latest_field_coverage:primaryFields,
+        duplicate_rows_removed:duplicateRowsRemoved,
+      }
     );
     consecutiveBlocked=0;
-    summary.push({ticker:company.ticker,status:written>0?"success":"partial",rows:written,fiscal_years:years.length,latest_period:rows[0]?.period_end??null});
+    summary.push({
+      ticker:company.ticker,
+      status:written>0?"success":"partial",
+      rows:written,
+      normalized_rows:normalizedRows.length,
+      duplicate_rows_removed:duplicateRowsRemoved,
+      fiscal_years:years.length,
+      latest_period:rows[0]?.period_end??null
+    });
     console.log("SEC companyfacts",company.ticker,"rows="+written,"years="+years.length);
   }catch(error){
     const message=formatError(error);
