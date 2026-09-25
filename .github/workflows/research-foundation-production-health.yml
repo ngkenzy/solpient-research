@@ -1,0 +1,37 @@
+name: SOLPIENT Group A Production Health
+
+on:
+  workflow_dispatch:
+    inputs:
+      ticker:
+        description: Optional canary ticker
+        required: false
+        type: string
+
+concurrency:
+  group: solpient-group-a-production-health
+  cancel-in-progress: true
+
+jobs:
+  canary:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Verify Group A production contract
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SOLPIENT_FOUNDATION_CANARY_TICKER: ${{ inputs.ticker }}
+        run: npm run check:research-foundation:production
