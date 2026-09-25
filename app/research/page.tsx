@@ -178,6 +178,7 @@ export default async function ResearchIndex() {
         <SolpientBrand />
         <nav>
           <Link href="/research">Rankings</Link>
+          <Link href="/portfolio">Portfolio</Link>
           <Link href="/watchlist">Watchlist</Link>
           <Link href="/alerts">Alerts</Link>
           <span>Evidence-led investing</span>
