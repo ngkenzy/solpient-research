@@ -84,7 +84,9 @@
     "sync:research-foundation": "node scripts/sync-research-foundation.mjs",
     "sync:sec-monitor-state": "node scripts/sync-sec-monitor-state.mjs",
     "process:research-maintenance": "node scripts/process-research-maintenance.mjs",
-    "check:research-foundation:production": "node scripts/check-research-foundation-production.mjs"
+    "check:research-foundation:production": "node scripts/check-research-foundation-production.mjs",
+    "monitor:sec:production": "node scripts/run-group-a-sec-worker.mjs",
+    "install:sec:launchd": "zsh scripts/install-group-a-sec-launchd.sh"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.109.0",
