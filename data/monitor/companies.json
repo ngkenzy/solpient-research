@@ -10,54 +10,24 @@
     "cik": "0000796343"
   },
   {
-    "ticker": "DECK",
-    "company_name": "Deckers Outdoor Corporation",
+    "ticker": "ALSN",
+    "company_name": "Allison Transmission Holdings, Inc.",
     "forms": [
       "10-K",
       "10-Q",
       "8-K"
     ],
-    "cik": "0000910521"
+    "cik": "0001411207"
   },
   {
-    "ticker": "FDS",
-    "company_name": "FactSet Research Systems Inc.",
+    "ticker": "AOS",
+    "company_name": "A. O. Smith Corporation",
     "forms": [
       "10-K",
       "10-Q",
       "8-K"
     ],
-    "cik": "0001013237"
-  },
-  {
-    "ticker": "GMED",
-    "company_name": "Globus Medical, Inc.",
-    "forms": [
-      "10-K",
-      "10-Q",
-      "8-K"
-    ],
-    "cik": "0001237831"
-  },
-  {
-    "ticker": "CRM",
-    "company_name": "Salesforce, Inc.",
-    "forms": [
-      "10-K",
-      "10-Q",
-      "8-K"
-    ],
-    "cik": "0001108524"
-  },
-  {
-    "ticker": "MCK",
-    "company_name": "McKesson Corporation",
-    "forms": [
-      "10-K",
-      "10-Q",
-      "8-K"
-    ],
-    "cik": "0000927653"
+    "cik": "0000091142"
   },
   {
     "ticker": "BLBD",
@@ -70,6 +40,96 @@
     "cik": "0001589526"
   },
   {
+    "ticker": "BSY",
+    "company_name": "Bentley Systems, Incorporated",
+    "forms": [
+      "10-K",
+      "10-Q",
+      "8-K"
+    ],
+    "cik": "0001031308"
+  },
+  {
+    "ticker": "CRM",
+    "company_name": "Salesforce, Inc.",
+    "forms": [
+      "10-K",
+      "10-Q",
+      "8-K"
+    ],
+    "cik": "0001108524"
+  },
+  {
+    "ticker": "DCI",
+    "company_name": "Donaldson Company, Inc.",
+    "forms": [
+      "10-K",
+      "10-Q",
+      "8-K"
+    ],
+    "cik": "0000029644"
+  },
+  {
+    "ticker": "DECK",
+    "company_name": "Deckers Outdoor Corporation",
+    "forms": [
+      "10-K",
+      "10-Q",
+      "8-K"
+    ],
+    "cik": "0000910521"
+  },
+  {
+    "ticker": "DPZ",
+    "company_name": "Domino's Pizza, Inc.",
+    "forms": [
+      "10-K",
+      "10-Q",
+      "8-K"
+    ],
+    "cik": "0001286681"
+  },
+  {
+    "ticker": "ESQ",
+    "company_name": "Esquire Financial Holdings, Inc.",
+    "forms": [
+      "10-K",
+      "10-Q",
+      "8-K"
+    ],
+    "cik": "0001531031"
+  },
+  {
+    "ticker": "FDS",
+    "company_name": "FactSet Research Systems Inc.",
+    "forms": [
+      "10-K",
+      "10-Q",
+      "8-K"
+    ],
+    "cik": "0001013237"
+  },
+  {
+    "ticker": "GIC",
+    "company_name": "Global Industrial Company",
+    "forms": [
+      "10-K",
+      "10-Q",
+      "8-K"
+    ],
+    "cik": "0000945114"
+  },
+  {
+    "ticker": "GMED",
+    "company_name": "Globus Medical, Inc.",
+    "forms": [
+      "10-K",
+      "10-Q",
+      "8-K"
+    ],
+    "cik": "0001237831"
+  },
+  {
     "ticker": "GOOGL",
     "company_name": "Alphabet Inc.",
     "forms": [
@@ -78,36 +138,6 @@
       "8-K"
     ],
     "cik": "0001652044"
-  },
-  {
-    "ticker": "META",
-    "company_name": "Meta Platforms, Inc.",
-    "forms": [
-      "10-K",
-      "10-Q",
-      "8-K"
-    ],
-    "cik": "0001326801"
-  },
-  {
-    "ticker": "MSFT",
-    "company_name": "Microsoft Corporation",
-    "forms": [
-      "10-K",
-      "10-Q",
-      "8-K"
-    ],
-    "cik": "0000789019"
-  },
-  {
-    "ticker": "MA",
-    "company_name": "Mastercard Incorporated",
-    "forms": [
-      "10-K",
-      "10-Q",
-      "8-K"
-    ],
-    "cik": "0001141391"
   },
   {
     "ticker": "ICE",
@@ -130,54 +160,54 @@
     "cik": "0000019617"
   },
   {
-    "ticker": "BSY",
-    "company_name": "Bentley Systems, Incorporated",
+    "ticker": "MA",
+    "company_name": "Mastercard Incorporated",
     "forms": [
       "10-K",
       "10-Q",
       "8-K"
     ],
-    "cik": "0001031308"
+    "cik": "0001141391"
   },
   {
-    "ticker": "DCI",
-    "company_name": "Donaldson Company, Inc.",
+    "ticker": "MCK",
+    "company_name": "McKesson Corporation",
     "forms": [
       "10-K",
       "10-Q",
       "8-K"
     ],
-    "cik": "0000029644"
+    "cik": "0000927653"
   },
   {
-    "ticker": "AOS",
-    "company_name": "A. O. Smith Corporation",
+    "ticker": "META",
+    "company_name": "Meta Platforms, Inc.",
     "forms": [
       "10-K",
       "10-Q",
       "8-K"
     ],
-    "cik": "0000091142"
+    "cik": "0001326801"
   },
   {
-    "ticker": "DPZ",
-    "company_name": "Domino's Pizza, Inc.",
+    "ticker": "MSFT",
+    "company_name": "Microsoft Corporation",
     "forms": [
       "10-K",
       "10-Q",
       "8-K"
     ],
-    "cik": "0001286681"
+    "cik": "0000789019"
   },
   {
-    "ticker": "ALSN",
-    "company_name": "Allison Transmission Holdings, Inc.",
+    "ticker": "PFE",
+    "company_name": "Pfizer Inc.",
     "forms": [
       "10-K",
       "10-Q",
       "8-K"
     ],
-    "cik": "0001411207"
+    "cik": "0000078003"
   },
   {
     "ticker": "POWL",
@@ -198,25 +228,5 @@
       "8-K"
     ],
     "cik": "0000715787"
-  },
-  {
-    "ticker": "GIC",
-    "company_name": "Global Industrial Company",
-    "forms": [
-      "10-K",
-      "10-Q",
-      "8-K"
-    ],
-    "cik": "0000945114"
-  },
-  {
-    "ticker": "ESQ",
-    "company_name": "Esquire Financial Holdings, Inc.",
-    "forms": [
-      "10-K",
-      "10-Q",
-      "8-K"
-    ],
-    "cik": "0001531031"
   }
 ]
