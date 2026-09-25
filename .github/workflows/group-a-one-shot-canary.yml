@@ -18,8 +18,6 @@ jobs:
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-      SEC_CONTACT: "ngkenzy@users.noreply.github.com"
-      SEC_USER_AGENT: "SOLPIENT Research ngkenzy@users.noreply.github.com"
 
     steps:
       - uses: actions/checkout@v4
@@ -33,29 +31,16 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Production health before canary
+      - name: Production health before maintenance canary
         run: npm run check:research-foundation:production
 
-      - name: SEC monitor canary
-        run: node scripts/monitor-sec.mjs
-
-      - name: Persist SEC canary state
-        run: npm run sync:sec-monitor-state
-
-      - name: Refresh market observations
+      - name: Run one bounded market maintenance item
         env:
-          MARKET_DATA_USER_AGENT: "SOLPIENT Research/1.0"
-        run: node scripts/sync-market-data.mjs
-
-      - name: Recompute Group A foundation state
-        run: npm run sync:research-foundation
-
-      - name: Run targeted maintenance canary
-        env:
-          RESEARCH_MAINTENANCE_BATCH_SIZE: "5"
+          RESEARCH_MAINTENANCE_BATCH_SIZE: "1"
+          RESEARCH_MAINTENANCE_ACTIONS: "market_refresh"
         run: npm run process:research-maintenance
 
-      - name: Production health after canary
+      - name: Production health after maintenance canary
         run: npm run check:research-foundation:production
 
       - name: Capture final production state
@@ -70,7 +55,4 @@ jobs:
         with:
           name: group-a-one-shot-canary-${{ github.run_id }}
           if-no-files-found: ignore
-          path: |
-            group-a-production-post-canary.json
-            data/monitor/sec-state.json
-            data/monitor/sec-events.json
+          path: group-a-production-post-canary.json
