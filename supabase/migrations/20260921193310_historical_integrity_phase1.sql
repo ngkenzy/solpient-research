@@ -41,6 +41,34 @@ alter table public.prediction_snapshots
 create unique index if not exists prediction_snapshots_supersedes_once_idx
   on public.prediction_snapshots(supersedes_id) where supersedes_id is not null;
 
+-- Historical reproducibility repair: prediction resolver metadata was present in
+-- the deployed environment but was not created by the tracked migration chain.
+-- Phase 1 is where these semantics become part of immutable prediction history.
+alter table public.prediction_outcomes
+  add column if not exists resolver_kind text,
+  add column if not exists actual_metric_key text,
+  add column if not exists actual_period_type text,
+  add column if not exists target_window_days integer not null default 45,
+  add column if not exists resolver_status text not null default 'pending',
+  add column if not exists resolved_at timestamptz,
+  add column if not exists resolution_note text;
+
+update public.prediction_outcomes
+set resolver_kind = case
+      when outcome_type='relative_return' then 'relative_return'
+      else 'metric'
+    end
+where resolver_kind is null;
+
+update public.prediction_outcomes
+set actual_metric_key = metric_key
+where actual_metric_key is null
+  and outcome_type='fundamental';
+
+alter table public.prediction_outcomes
+  alter column resolver_kind set default 'metric',
+  alter column resolver_kind set not null;
+
 alter table public.realized_outcomes
   add column if not exists supersedes_id uuid references public.realized_outcomes(id) on delete restrict,
   add column if not exists correction_reason text,
