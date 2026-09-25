@@ -60,9 +60,9 @@ jobs:
           PROJECT_REF="$(node -e 'const u=new URL(process.env.SUPABASE_URL); const ref=u.hostname.split(".")[0]; if(!ref) process.exit(2); process.stdout.write(ref)')"
           echo "project_ref=$PROJECT_REF" >> "$GITHUB_OUTPUT"
 
-      - name: Capture pre-migration historical state and prove Group A is absent
+      - name: Capture read-only production state before any migration action
         env:
-          GROUP_A_PHASE: pre
+          GROUP_A_PHASE: inspect
           GROUP_A_STATE_OUTPUT: group-a-production-pre.json
         run: node scripts/group-a-production-state.mjs
 
