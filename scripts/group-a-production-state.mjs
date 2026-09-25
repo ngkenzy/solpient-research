@@ -133,9 +133,11 @@ if(adbe){
     ];
     const children={};
     for(const [table,columns] of childSpecs){
-      const {data,error}=await sb.from(table).select(columns).eq("research_run_id",run.id).order("id",{ascending:true});
+      const {data,error}=await sb.from(table).select(columns).eq("research_run_id",run.id);
       if(error) throw new Error(`${table} snapshot failed: ${error.message}`);
-      children[table]=data??[];
+      children[table]=(data??[])
+        .map(stable)
+        .sort((a,b)=>JSON.stringify(a).localeCompare(JSON.stringify(b)));
     }
     adbeSnapshot={
       company:adbe,
