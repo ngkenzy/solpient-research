@@ -7,7 +7,7 @@ const phase=(process.env.GROUP_A_PHASE??"pre").trim().toLowerCase();
 if(!["pre","post","inspect"].includes(phase)) throw new Error("GROUP_A_PHASE must be pre, post, or inspect.");
 
 const url=process.env.SUPABASE_URL?.trim();
-const secret=(process.env.SUPABASE_SECRET_KEY??process.env.SUPABASE_SERVICE_ROLE_KEY)?.trim();
+const secret=process.env.SUPABASE_SECRET_KEY?.trim() || process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
 if(!url||!secret) throw new Error("Missing SUPABASE_URL and server secret.");
 
 const sb=createClient(url,secret,{auth:{persistSession:false,autoRefreshToken:false}});
