@@ -199,7 +199,8 @@ end $$;
 
 create or replace function public.claim_research_maintenance_batch_v1(
   p_limit integer default 20,
-  p_worker_id text default null
+  p_worker_id text default null,
+  p_actions text[] default null
 )
 returns setof public.research_maintenance_queue
 language plpgsql
@@ -217,6 +218,8 @@ begin
     select *
     from public.research_maintenance_queue q
     where q.status in ('queued','failed')
+      and q.attempt_count<3
+      and (p_actions is null or q.required_action=any(p_actions))
     order by q.priority desc,q.detected_at asc,q.id
     for update skip locked
     limit p_limit
@@ -314,11 +317,11 @@ end $$;
 
 revoke all on function public.enqueue_due_research_maintenance_v1(uuid,timestamptz)
   from public,anon,authenticated;
-revoke all on function public.claim_research_maintenance_batch_v1(integer,text)
+revoke all on function public.claim_research_maintenance_batch_v1(integer,text,text[])
   from public,anon,authenticated;
 revoke all on function public.complete_research_maintenance_item_v1(uuid,text,uuid,text,jsonb)
   from public,anon,authenticated;
 
 grant execute on function public.enqueue_due_research_maintenance_v1(uuid,timestamptz) to service_role;
-grant execute on function public.claim_research_maintenance_batch_v1(integer,text) to service_role;
+grant execute on function public.claim_research_maintenance_batch_v1(integer,text,text[]) to service_role;
 grant execute on function public.complete_research_maintenance_item_v1(uuid,text,uuid,text,jsonb) to service_role;
