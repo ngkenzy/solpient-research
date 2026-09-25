@@ -79,7 +79,10 @@
     "factory:research:assign-industry": "node scripts/assign-research-factory-industry-v2-1.mjs",
     "factory:research:auto-valuation": "node scripts/build-autonomous-valuation-pack-v2-1.mjs",
     "test:research-factory:v2.1": "node scripts/test-autonomous-research-factory-v2-1.mjs",
-    "test:review-attestation": "node scripts/test-review-attestation.mjs"
+    "test:review-attestation": "node scripts/test-review-attestation.mjs",
+    "test:research-foundation": "node scripts/test-research-foundation.mjs",
+    "sync:research-foundation": "node scripts/sync-research-foundation.mjs",
+    "sync:sec-monitor-state": "node scripts/sync-sec-monitor-state.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.109.0",
