@@ -46,7 +46,7 @@ for(const [tickerRaw,monitorState] of Object.entries(state.companies??{})){
     .filter((event)=>event.filing_date&&event.accession_number)
     .map((event)=>({
       company_id:company.id,
-      provider:"sec-direct-monitor",
+      provider:"sec-submissions-monitor",
       form_type:String(event.form).toUpperCase(),
       filed_at:event.filing_date,
       accepted_at:null,

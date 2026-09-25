@@ -4,7 +4,7 @@ import process from "node:process";
 import { createClient } from "@supabase/supabase-js";
 
 const url=process.env.SUPABASE_URL;
-const secret=process.env.SUPABASE_SECRET_KEY??process.env.SUPABASE_SERVICE_ROLE_KEY;
+const secret=process.env.SUPABASE_SECRET_KEY?.trim() || process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
 if(!url||!secret)throw new Error("Missing SUPABASE_URL and server secret.");
 const sb=createClient(url,secret,{auth:{persistSession:false,autoRefreshToken:false}});
 const userAgent=process.env.MARKET_DATA_USER_AGENT??"SOLPIENT Research/1.0";

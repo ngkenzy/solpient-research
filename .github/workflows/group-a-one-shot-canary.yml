@@ -1,0 +1,56 @@
+name: Group A One-Shot Production Canary
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: group-a-one-shot-canary
+  cancel-in-progress: false
+
+jobs:
+  canary:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ops/group-a-production-closeout
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Production health before maintenance canary
+        run: npm run check:research-foundation:production
+
+      - name: Run one bounded market maintenance item
+        env:
+          RESEARCH_MAINTENANCE_BATCH_SIZE: "1"
+          RESEARCH_MAINTENANCE_ACTIONS: "market_refresh"
+        run: npm run process:research-maintenance
+
+      - name: Production health after maintenance canary
+        run: npm run check:research-foundation:production
+
+      - name: Capture final production state
+        env:
+          GROUP_A_PHASE: post
+          GROUP_A_STATE_OUTPUT: group-a-production-post-canary.json
+        run: node scripts/group-a-production-state.mjs
+
+      - name: Upload canary evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: group-a-one-shot-canary-${{ github.run_id }}
+          if-no-files-found: ignore
+          path: group-a-production-post-canary.json
