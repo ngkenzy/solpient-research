@@ -668,6 +668,15 @@ begin
     select (pg_catalog.jsonb_populate_record(null::public.prediction_outcomes,
       elem||pg_catalog.jsonb_build_object(
         'id',gen_random_uuid(),'prediction_snapshot_id',v_snapshot_id,'created_at',v_locked_at,
+        'resolver_kind',coalesce(
+          nullif(elem->>'resolver_kind',''),
+          case when elem->>'outcome_type'='relative_return' then 'relative_return' else 'metric' end
+        ),
+        'actual_metric_key',coalesce(
+          nullif(elem->>'actual_metric_key',''),
+          case when elem->>'outcome_type'='fundamental' then nullif(elem->>'metric_key','') else null end
+        ),
+        'actual_period_type',nullif(elem->>'actual_period_type',''),
         'target_window_days',coalesce(nullif(elem->>'target_window_days','')::integer,45),
         'resolver_status',coalesce(nullif(elem->>'resolver_status',''),'pending')
       ))).*
