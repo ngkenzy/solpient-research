@@ -75,6 +75,11 @@ jobs:
       - name: Validate live Group A table column contracts
         run: node scripts/probe-group-a-table-contracts.mjs
 
+      - name: Capture live PostgREST OpenAPI contract
+        env:
+          GROUP_A_OPENAPI_OUTPUT: group-a-postgrest-openapi.json
+        run: node scripts/probe-group-a-postgrest-openapi.mjs
+
       - name: Select read-only database inspection path
         id: db
         shell: bash
@@ -233,6 +238,7 @@ jobs:
           if-no-files-found: ignore
           path: |
             group-a-production-*.json
+            group-a-postgrest-openapi.json
             migration-list-*.txt
             group-a-migration-diagnosis.json
             group-a-schema-diagnosis.json
