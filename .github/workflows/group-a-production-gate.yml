@@ -52,6 +52,20 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Derive linked project reference
+        id: project
+        shell: bash
+        run: |
+          set -euo pipefail
+          PROJECT_REF="$(node -e 'const u=new URL(process.env.SUPABASE_URL); const ref=u.hostname.split(".")[0]; if(!ref) process.exit(2); process.stdout.write(ref)')"
+          echo "project_ref=$PROJECT_REF" >> "$GITHUB_OUTPUT"
+
+      - name: Capture pre-migration historical state and prove Group A is absent
+        env:
+          GROUP_A_PHASE: pre
+          GROUP_A_STATE_OUTPUT: group-a-production-pre.json
+        run: node scripts/group-a-production-state.mjs
+
       - name: Fail closed if required production credentials are unavailable
         shell: bash
         run: |
@@ -70,20 +84,6 @@ jobs:
           if [ "$missing" -ne 0 ]; then
             exit 1
           fi
-
-      - name: Derive linked project reference
-        id: project
-        shell: bash
-        run: |
-          set -euo pipefail
-          PROJECT_REF="$(node -e 'const u=new URL(process.env.SUPABASE_URL); const ref=u.hostname.split(".")[0]; if(!ref) process.exit(2); process.stdout.write(ref)')"
-          echo "project_ref=$PROJECT_REF" >> "$GITHUB_OUTPUT"
-
-      - name: Capture pre-migration historical state and prove Group A is absent
-        env:
-          GROUP_A_PHASE: pre
-          GROUP_A_STATE_OUTPUT: group-a-production-pre.json
-        run: node scripts/group-a-production-state.mjs
 
       - name: Set up Supabase CLI
         uses: supabase/setup-cli@v3
