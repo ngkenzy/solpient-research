@@ -1,0 +1,25 @@
+name: SEC Egress Canary
+
+on:
+  push:
+    branches:
+      - ops/group-a-production-closeout
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Invoke Supabase SEC egress canary
+        shell: bash
+        run: |
+          set -euo pipefail
+          response="$(curl -sS --fail-with-body             https://hmfrlpsjszjpvzogrico.supabase.co/functions/v1/sec-egress-canary)"
+          echo "$response"
+          node -e '
+            const x=JSON.parse(process.argv[1]);
+            if(!x.ok || x.status!==200 || x.entity_name!=="ADOBE INC.") {
+              console.error("SEC egress canary failed",x);
+              process.exit(1);
+            }
+            console.log("SEC egress canary passed:",x.entity_name,x.recent_filings);
+          ' "$response"
