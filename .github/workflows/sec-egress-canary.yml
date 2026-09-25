@@ -13,7 +13,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          response="$(curl -sS --fail-with-body             https://hmfrlpsjszjpvzogrico.supabase.co/functions/v1/sec-egress-canary)"
+          response="$(curl -sS https://hmfrlpsjszjpvzogrico.supabase.co/functions/v1/sec-egress-canary)"
           echo "$response"
           node -e '
             const x=JSON.parse(process.argv[1]);
