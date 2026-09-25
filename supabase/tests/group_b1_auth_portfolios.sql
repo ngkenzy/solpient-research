@@ -101,7 +101,7 @@ select 1 / case when (select count(*) from public.profiles) = 1 then 1 else 0 en
 select 1 / case when (select count(*) from public.portfolios) = 1 then 1 else 0 end as user_b_sees_one_portfolio;
 select 1 / case when (select count(*) from public.portfolio_positions) = 0 then 1 else 0 end as user_b_cannot_read_user_a_position;
 
-do $
+do $b1$
 begin
   begin
     insert into public.portfolio_positions(
@@ -117,7 +117,7 @@ begin
     when foreign_key_violation then null;
   end;
 end
-$;
+$b1$;
 
 reset role;
 
