@@ -10,10 +10,96 @@
   --accent-soft: rgba(215, 181, 109, 0.12);
 }
 
+/* ---- Shared Solpient theme tokens (ported from solpient-money app) ----
+   Light is the default mode. Dark applies when <html data-theme="dark">.
+   Values are the money app's exact tokens (see theme recon notes);
+   --muted/--line intentionally override the legacy dark-first values above
+   so both modes share one token vocabulary. */
+:root {
+  color-scheme: light;
+  --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --canvas: #f4f7fb;
+  --surface: #ffffff;
+  --surface-muted: #edf4fd;
+  --ink: #0d2446;
+  --muted: #61728c;
+  --line: #dfe6ef;
+  --blue: #2878df;
+  --navy: #0a4b9f;
+  --on-accent: #ffffff;
+  --focus: #2878df;
+  --sky: #74ace8;
+  --green: #42ad7a;
+  --red: #d9585c;
+  --amber: #d9932c;
+  --teal: #2a9d8f;
+  --purple: #7c5cd6;
+  --orange: #ec941c;
+  --slate: #99a5b3;
+  --stone: #c9d2dc;
+  --radius: 10px;
+  --radius-pill: 999px;
+  --shadow: 0 4px 16px color-mix(in srgb, var(--blue) 6%, transparent);
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+  --canvas: #0b111c;
+  --surface: #131c2a;
+  --surface-muted: #182437;
+  --ink: #e9eff7;
+  --muted: #9cacc1;
+  --line: #223047;
+  --blue: #5b9cf0;
+  --navy: #6ea8e8;
+  --on-accent: #eef4fd;
+  --focus: #5b9cf0;
+  --sky: #8fc0f5;
+  --green: #5cc993;
+  --red: #e57e83;
+  --amber: #e8a93f;
+  --teal: #4cc3b4;
+  --purple: #9d83ec;
+  --orange: #f2a63b;
+  --slate: #8b98a8;
+  --stone: #2a3546;
+  --shadow: 0 4px 16px color-mix(in srgb, var(--blue) 6%, transparent);
+}
+
+/* Shared focus ring (mirrors solpient-money :focus-visible treatment) */
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 4px;
+}
+
+/* Theme toggle pill (mirrors solpient-money .theme-toggle) */
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.theme-toggle:hover {
+  color: var(--ink);
+  border-color: var(--muted);
+}
+.theme-toggle svg {
+  display: block;
+}
+
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
-html, body { margin: 0; min-height: 100%; background: var(--bg); color: var(--text); }
-body { font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+html, body { margin: 0; min-height: 100%; background: var(--canvas); color: var(--ink); }
+body { font-family: var(--font-sans); }
 a { color: inherit; text-decoration: none; }
 main { width: min(1120px, calc(100% - 40px)); margin: 0 auto; padding: 64px 0 88px; }
 

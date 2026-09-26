@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { SolpientBrand } from "@/components/SolpientBrand";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import styles from "./ConsumerHeader.module.css";
 
 type ActiveSection="what-matters"|"portfolio"|"research";
@@ -46,6 +47,7 @@ export function ConsumerHeader({
           </Link>
         ):null}
         {action}
+        <ThemeToggle />
       </div>
     </header>
   );
