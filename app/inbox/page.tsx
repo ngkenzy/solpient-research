@@ -65,9 +65,16 @@ export default async function InboxPage({
     daily_digest_enabled:false,
   };
 
-  const unread=alerts.filter((row:any)=>row.state==="unread").length;
-  const important=alerts.filter((row:any)=>Number(row.score)>=70&&row.state!=="dismissed").length;
-  const visible=alerts.filter((row:any)=>row.state!=="dismissed");
+  const inAppEnabled=Boolean(preferences.in_app_enabled);
+  const unread=inAppEnabled
+    ? alerts.filter((row:any)=>row.state==="unread").length
+    : 0;
+  const important=inAppEnabled
+    ? alerts.filter((row:any)=>Number(row.score)>=70&&row.state!=="dismissed").length
+    : 0;
+  const visible=inAppEnabled
+    ? alerts.filter((row:any)=>row.state!=="dismissed")
+    : [];
 
   const error=query.error
     ? query.error==="refresh"
@@ -107,7 +114,7 @@ export default async function InboxPage({
               <span>SYNC FROM WHAT MATTERS</span>
               <strong>Materialize the latest thesis alerts</strong>
             </div>
-            <button type="submit">Refresh alerts</button>
+            <button type="submit" disabled={!inAppEnabled}>Refresh alerts</button>
           </form>
 
           <form action={saveAlertPreferencesAction} className={styles.preferences}>
@@ -191,8 +198,12 @@ export default async function InboxPage({
             );
           }):(
             <div className={styles.empty}>
-              <strong>No thesis alerts yet.</strong>
-              <span>Refresh alerts after What Matters has material changes for your positions.</span>
+              <strong>{inAppEnabled?"No thesis alerts yet.":"In-app alerts are disabled."}</strong>
+              <span>
+                {inAppEnabled
+                  ?"Refresh alerts after What Matters has material changes for your positions."
+                  :"Daily digest generation can still run if that preference is enabled."}
+              </span>
             </div>
           )}
         </section>
