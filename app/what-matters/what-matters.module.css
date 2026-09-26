@@ -15,3 +15,17 @@
 .empty{display:grid;gap:8px;padding:30px;border:1px dashed rgba(255,255,255,.12);border-radius:16px;color:#8e99a7}.empty strong{color:#fff}.empty a{color:#fff}
 .errorPage{min-height:100vh;padding:50px;background:#0b1016;color:#fff}.errorPage a{color:#fff}
 @media(max-width:700px){.header nav{gap:12px;font-size:.8rem}.main{padding-top:22px}.hero{padding:24px}.card footer,.warning{align-items:flex-start;flex-direction:column}}
+
+.formError{margin:16px 0;padding:12px 14px;border:1px solid rgba(255,90,90,.24);background:rgba(255,90,90,.1);border-radius:12px}
+.feedback{display:flex;justify-content:space-between;gap:16px;align-items:center;padding:14px 0;border-top:1px solid rgba(255,255,255,.06)}
+.feedback>span{font-size:.82rem;color:#8e98a7}.feedback>div{display:flex;flex-wrap:wrap;gap:8px}
+.feedback button{border:1px solid rgba(255,255,255,.1);background:#101720;color:#d5dbe4;border-radius:9px;padding:7px 10px;cursor:pointer}
+.feedback button:hover{border-color:rgba(255,255,255,.28);color:#fff}
+.missed{margin-top:22px;padding:22px;border:1px solid rgba(255,255,255,.08);border-radius:18px;background:#111720}
+.missed h2{margin:5px 0 8px}.missed p{margin:0;color:#9ca6b4}
+.missed form{display:grid;grid-template-columns:1fr 2fr .8fr;gap:10px;margin-top:18px}
+.missed textarea{grid-column:1/-1;min-height:90px;resize:vertical}
+.missed select,.missed input,.missed textarea{border:1px solid rgba(255,255,255,.11);border-radius:10px;background:#0d131b;color:#fff;padding:10px}
+.missed button{grid-column:1/-1;justify-self:start;border:0;border-radius:10px;padding:10px 14px;background:#f5f7fa;color:#11161d;font-weight:700;cursor:pointer}
+.missed button:disabled{opacity:.45;cursor:not-allowed}
+@media(max-width:760px){.feedback{align-items:flex-start;flex-direction:column}.missed form{grid-template-columns:1fr}}
