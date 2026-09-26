@@ -84,7 +84,7 @@ select 1 / case when (
 as b12_records_add_update_remove;
 
 select 1 / case when (
-  select array_agg(event_type order by changed_at,id)
+  select array_agg(event_type order by change_sequence)
   from public.position_thesis_factor_history
   where position_id='c1255555-5555-4555-8555-555555555555'
 )=array['factor_added','factor_updated','factor_removed']::text[]
