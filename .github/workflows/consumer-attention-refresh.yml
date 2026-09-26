@@ -1,0 +1,44 @@
+name: SOLPIENT Consumer Attention Refresh
+
+on:
+  schedule:
+    - cron: "17 */4 * * *"
+  workflow_dispatch:
+    inputs:
+      batch_size:
+        description: Maximum portfolio users to refresh
+        required: false
+        default: "200"
+        type: string
+
+concurrency:
+  group: solpient-consumer-attention-refresh
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Validate worker syntax
+        run: node --check scripts/refresh-consumer-attention.mjs
+
+      - name: Refresh private consumer attention state
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          CONSUMER_ATTENTION_BATCH_SIZE: ${{ inputs.batch_size || '200' }}
+          CONSUMER_ATTENTION_SINCE_DAYS: "30"
+        run: node scripts/refresh-consumer-attention.mjs
