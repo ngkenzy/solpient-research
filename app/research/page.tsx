@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getSupabase } from "@/lib/supabase";
-import { SolpientBrand } from "@/components/SolpientBrand";
+import { ConsumerHeader } from "@/components/ConsumerHeader";
 import { decisionRankingMap, loadLatestDecisionRanking, readinessDisplay } from "@/lib/decision-ranking-read-model";
 
 export const dynamic = "force-dynamic";
@@ -174,17 +174,7 @@ export default async function ResearchIndex() {
 
   return (
     <>
-      <header className="siteHeader">
-        <SolpientBrand />
-        <nav>
-          <Link href="/research">Rankings</Link>
-          <Link href="/portfolio">Portfolio</Link>
-          <Link href="/research/request">Request research</Link>
-          <Link href="/watchlist">Watchlist</Link>
-          <Link href="/alerts">Alerts</Link>
-          <span>Evidence-led investing</span>
-        </nav>
-      </header>
+      <ConsumerHeader active="research" subtitle="Research"/>
 
       <main className="rankingShell">
         <Link className="backLink" href="/">← SOLPIENT Research</Link>
