@@ -84,6 +84,11 @@ jobs:
         run: |
           docker exec -i "${{ steps.db.outputs.container }}" psql -v ON_ERROR_STOP=1 -U postgres -d postgres < supabase/tests/group_b5_what_matters.sql
 
+      - name: V1 portfolio Own/Follow and position weights test
+        shell: bash
+        run: |
+          docker exec -i "${{ steps.db.outputs.container }}" psql -v ON_ERROR_STOP=1 -U postgres -d postgres < supabase/tests/v1_portfolio_own_follow.sql
+
       - name: Group B6 feedback isolation test
         shell: bash
         run: |
