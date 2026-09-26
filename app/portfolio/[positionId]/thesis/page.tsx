@@ -51,7 +51,11 @@ export default async function ThesisPage({
 
   return(
     <div className={styles.page}>
-      <ConsumerHeader active="portfolio" subtitle="Thesis"/>
+      <ConsumerHeader
+        active="portfolio"
+        subtitle="Thesis"
+        action={<Link href={"/portfolio/"+positionId+"/thesis/audit"}>Audit trail</Link>}
+      />
 
       <main className={styles.main}>
         <Link href="/portfolio" className={styles.back}>← Back to Portfolio</Link>
