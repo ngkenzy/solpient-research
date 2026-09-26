@@ -9,6 +9,15 @@ values
   ('c2222222-2222-4222-8222-222222222222','B2B_TEST','B2 Company B')
 on conflict (id) do nothing;
 
+-- Minimal market-data evidence base so the fixtures are monitorable.
+-- Zero-evidence companies are UNSUPPORTED per the PRD section 12 coverage
+-- taxonomy; the MONITORED assertions below need at least one evidence source.
+insert into public.market_snapshots(company_id,symbol,observed_at,trading_date,price,provider)
+values
+  ('c1111111-1111-4111-8111-111111111111','B2A_TEST',now(),now()::date,100,'group-b2-test-fixture'),
+  ('c2222222-2222-4222-8222-222222222222','B2B_TEST',now(),now()::date,200,'group-b2-test-fixture')
+on conflict (symbol,trading_date,provider) do nothing;
+
 insert into auth.users(
   id,aud,role,email,raw_app_meta_data,raw_user_meta_data,
   created_at,updated_at,is_sso_user,is_anonymous

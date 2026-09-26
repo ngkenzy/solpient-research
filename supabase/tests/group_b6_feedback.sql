@@ -58,7 +58,7 @@ insert into public.what_matters_feedback(
   'b6555555-5555-4555-8555-555555555555',
   'b6555555-5555-4555-8555-555555555555:event-1',
   'event-1',
-  'useful',
+  'yes',
   'This was relevant.'
 );
 
@@ -87,7 +87,7 @@ begin
       'b6666666-6666-4666-8666-666666666666',
       'forbidden',
       'event-x',
-      'useful'
+      'yes'
     );
     raise exception 'B6 isolation failure: user A wrote user B feedback';
   exception when insufficient_privilege then null;
