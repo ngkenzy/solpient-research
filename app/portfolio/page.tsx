@@ -335,6 +335,7 @@ export default async function PortfolioPage({
                             </span>
                             <small>{state.detail}</small>
                             {cutoff?<small>Data through {cutoff}</small>:null}
+                            <Link href={"/portfolio/"+row.id+"/thesis"}>Personalize thesis →</Link>
                           </div>
                           <form action={deletePositionAction}>
                             <input type="hidden" name="position_id" value={row.id} />
