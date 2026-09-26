@@ -60,6 +60,9 @@ for(const [tickerRaw,monitorState] of Object.entries(state.companies??{})){
         severity:event.severity??null,
         queue:event.queue??null,
         monitor_event_id:event.id??null,
+        // 8-K item codes from SEC submissions metadata (e.g. ["5.02","8.01"]);
+        // consumed by the V1 event ingestion detector.
+        items:event.items??null,
       },
     }));
 

@@ -81,6 +81,9 @@ function recentFilingsFromSubmissions(body,cik,requestedForm) {
   const filingDates=recent.filingDate??[];
   const reportDates=recent.reportDate??[];
   const primaryDocuments=recent.primaryDocument??[];
+  // SEC submissions JSON carries the 8-K item codes per filing (e.g. "5.02,8.01").
+  // Normalize to an array of item codes; null when the filing has none.
+  const rawItems=recent.items??[];
   const out=[];
 
   for(let i=0;i<accessions.length;i++){
@@ -88,12 +91,14 @@ function recentFilingsFromSubmissions(body,cik,requestedForm) {
     if(!formMatches(form,requestedForm)) continue;
     const accession=String(accessions[i]??"").trim();
     if(!accession) continue;
+    const items=String(rawItems[i]??"").split(",").map((s)=>s.trim()).filter(Boolean);
     out.push({
       accession,
       filingDate:filingDates[i]??null,
       reportDate:reportDates[i]??null,
       sourceUrl:filingSourceUrl(cik,accession,primaryDocuments[i]??null),
       form,
+      items:items.length?items:null,
     });
   }
   return out.slice(0,120);
@@ -224,7 +229,7 @@ for (const company of companies) {
       accession_number: filing.accession,
       filing_date: filing.filingDate,
       report_date: filing.reportDate ?? null,
-      items: null,
+      items: filing.items ?? null,
       source_url: filing.sourceUrl,
       detected_at: now,
       status: "new",
