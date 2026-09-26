@@ -31,6 +31,61 @@ function quantity(value:number) {
   return new Intl.NumberFormat("en-US",{maximumFractionDigits:4}).format(value);
 }
 
+function pct(share:number) {
+  return (share*100).toFixed(1)+"%";
+}
+
+// ---- V1: effective position weights (mirrors group-b-user-materiality-v2) ----
+// Per portfolio: basis = manual market_value ?? live price value ?? cost basis
+// for owned positions; manual target weight overrides the derived share;
+// missing dollars everywhere -> equal weighting among owned names.
+// Follow positions carry no weight (share null).
+function weightShares(
+  rows:any[],
+  companyById:Map<string,any>,
+  marketByTicker:Map<string,any>
+){
+  const owned=rows.filter((row:any)=>row.relationship!=="follow");
+  const bases=new Map<string,number>();
+  const livePrices=new Map<string,number>();
+  for(const row of owned){
+    const company=companyById.get(row.company_id);
+    const qty=n(row.quantity);
+    const price=n(marketByTicker.get(company?.ticker)?.price);
+    livePrices.set(row.id,price);
+    const manual=row.market_value==null?null:n(row.market_value);
+    const live=price>0?qty*price:null;
+    const cost=row.average_cost==null?null:qty*n(row.average_cost);
+    bases.set(row.id,manual??live??cost??0);
+  }
+  const total=[...bases.values()].reduce((a,b)=>a+b,0);
+  const raws=new Map<string,number>();
+  for(const row of owned){
+    const manualPct=row.weight==null?null:n(row.weight)/100;
+    const dollarShare=total>0?(bases.get(row.id)??0)/total:1/Math.max(owned.length,1);
+    raws.set(row.id,manualPct??dollarShare);
+  }
+  const rawTotal=[...raws.values()].reduce((a,b)=>a+b,0);
+  const fallbackEqual=rawTotal===0;
+  const out=new Map<string,{share:number|null;basis:string}>();
+  for(const row of rows){
+    if(row.relationship==="follow"){
+      out.set(row.id,{share:null,basis:"follow"});
+      continue;
+    }
+    const share=fallbackEqual?1/Math.max(owned.length,1):(raws.get(row.id)??0)/rawTotal;
+    let basis="equal share";
+    if(row.weight!=null) basis="target";
+    else if(!fallbackEqual){
+      if(row.market_value!=null) basis="market value";
+      else if((livePrices.get(row.id)??0)>0) basis="live price";
+      else if(row.average_cost!=null) basis="cost basis";
+    }
+    out.set(row.id,{share,basis});
+  }
+  return out;
+}
+
 // ---- V1 quick wins: per-company freshness block (PRD section 13) ----
 // This page reads research state ONLY through the get_my_portfolio_research_state_v1
 // RPC, whose `freshness` payload is keyed by component_key and exposes per component:
@@ -118,7 +173,6 @@ function researchState(contract:any) {
     : null;
 
   const version=currentResearch?.version ? "v"+currentResearch.version : null;
-  const detail=[coverageLabel,version].filter(Boolean).join(" · ");
 
   const freshnessRows=[
     {label:"Last evidence check",value:relAgo(freshnessAt(contract,"market_data","last_checked_at"))},
@@ -139,9 +193,11 @@ function researchState(contract:any) {
     label,
     tone,
     attention,
-    detail,
+    coverageLabel,
+    version,
     coverageNote,
     freshnessRows,
+    lastCheckedAt:freshnessAt(contract,"market_data","last_checked_at"),
     dataCutoffAt:currentResearch?.data_cutoff_at ?? null,
     newEvidence,
     reviewDue,
@@ -198,7 +254,7 @@ export default async function PortfolioPage({
   const positionsR=portfolioIds.length
     ? await supabase
         .from("portfolio_positions")
-        .select("id,portfolio_id,company_id,quantity,average_cost,opened_at,notes,created_at")
+        .select("id,portfolio_id,company_id,quantity,average_cost,opened_at,notes,created_at,relationship,market_value,weight")
         .in("portfolio_id",portfolioIds)
         .order("created_at",{ascending:true})
     : {data:[] as any[]};
@@ -249,7 +305,8 @@ export default async function PortfolioPage({
     const qty=n(row.quantity);
     const price=n(marketByTicker.get(company?.ticker)?.price);
     const avg=row.average_cost==null?null:n(row.average_cost);
-    totalMarketValue+=qty*price;
+    const value=row.market_value==null?qty*price:n(row.market_value);
+    totalMarketValue+=value;
     if(avg!=null) totalCostBasis+=qty*avg;
     if(researchState(researchByPosition.get(row.id)).attention) attentionCount+=1;
   }
@@ -294,7 +351,7 @@ export default async function PortfolioPage({
           <form action={upsertPositionAction} className={styles.positionForm}>
             <div>
               <span className={styles.sectionLabel}>ADD OR UPDATE POSITION</span>
-              <strong>Track a company you own</strong>
+              <strong>Track a company you own or follow</strong>
             </div>
             <label>
               <span>Portfolio</span>
@@ -323,6 +380,21 @@ export default async function PortfolioPage({
               <span>Average cost</span>
               <input name="average_cost" type="number" min="0" step="0.01" placeholder="250.00" />
             </label>
+            <label>
+              <span>Relationship</span>
+              <select name="relationship" defaultValue="own">
+                <option value="own">Own</option>
+                <option value="follow">Follow</option>
+              </select>
+            </label>
+            <label>
+              <span>Market value ($)</span>
+              <input name="market_value" type="number" min="0" step="0.01" placeholder="Optional" />
+            </label>
+            <label>
+              <span>Target weight (%)</span>
+              <input name="weight" type="number" min="0" max="100" step="0.01" placeholder="Optional" />
+            </label>
             <button type="submit" disabled={!portfolios.length}>Save position</button>
           </form>
 
@@ -342,8 +414,11 @@ export default async function PortfolioPage({
             let portfolioValue=0;
             for(const row of rows){
               const company=companyById.get(row.company_id);
-              portfolioValue+=n(row.quantity)*n(marketByTicker.get(company?.ticker)?.price);
+              const qty=n(row.quantity);
+              const price=n(marketByTicker.get(company?.ticker)?.price);
+              portfolioValue+=row.market_value==null?qty*price:n(row.market_value);
             }
+            const weights=weightShares(rows,companyById,marketByTicker);
 
             return(
               <article className={styles.portfolioCard} key={portfolio.id}>
@@ -362,11 +437,11 @@ export default async function PortfolioPage({
                   <div className={styles.tableWrap}>
                     <div className={styles.tableHeader}>
                       <span>Company</span>
-                      <span>Shares</span>
-                      <span>Avg. cost</span>
-                      <span>Price</span>
-                      <span>Market value</span>
-                      <span>Research state</span>
+                      <span>Position</span>
+                      <span>Weight</span>
+                      <span>Coverage</span>
+                      <span>Thesis health</span>
+                      <span>Last checked</span>
                       <span></span>
                     </div>
                     {rows.map((row:any)=>{
@@ -374,36 +449,59 @@ export default async function PortfolioPage({
                       const market=marketByTicker.get(company?.ticker);
                       const qty=n(row.quantity);
                       const price=market?.price==null?null:n(market.price);
-                      const value=price==null?null:qty*price;
+                      const manualValue=row.market_value==null?null:n(row.market_value);
+                      const value=manualValue??(price==null?null:qty*price);
+                      const avg=row.average_cost==null?null:n(row.average_cost);
                       const state=researchState(researchByPosition.get(row.id));
                       const cutoff=shortDate(state.dataCutoffAt);
+                      const weight=weights.get(row.id)??{share:null,basis:"—"};
+                      const isFollow=row.relationship==="follow";
                       return(
                         <div className={styles.positionRow} key={row.id}>
-                          <Link href={"/research/"+company?.ticker} className={styles.companyCell}>
-                            <span className={styles.monogram}>{String(company?.ticker??"?").slice(0,2)}</span>
-                            <span>
-                              <strong>{company?.ticker??"Unknown"}</strong>
-                              <small>{company?.company_name??"Company"}</small>
+                          <div>
+                            <Link href={"/research/"+company?.ticker} className={styles.companyCell}>
+                              <span className={styles.monogram}>{String(company?.ticker??"?").slice(0,2)}</span>
+                              <span>
+                                <strong>{company?.ticker??"Unknown"}</strong>
+                                <small>{company?.company_name??"Company"}</small>
+                              </span>
+                            </Link>
+                            <span className={`${styles.relBadge} ${isFollow?styles.followTone:""}`}>
+                              {isFollow?"Follow":"Own"}
                             </span>
-                          </Link>
-                          <span>{quantity(qty)}</span>
-                          <span>{row.average_cost==null?"—":money(n(row.average_cost))}</span>
-                          <span>{price==null?"—":money(price)}</span>
-                          <strong>{value==null?"—":money(value)}</strong>
+                          </div>
+                          <div className={styles.positionCell}>
+                            <span>{quantity(qty)} sh</span>
+                            <strong>{value==null?"—":money(value)}</strong>
+                            {avg!=null?<small>avg {money(avg)}</small>:null}
+                          </div>
+                          <div className={styles.weightCell} title={"basis: "+weight.basis}>
+                            <strong>{weight.share==null?"—":pct(weight.share)}</strong>
+                            <small>{weight.basis}</small>
+                          </div>
+                          <div className={styles.coverageCell}>
+                            <strong>{state.coverageLabel}</strong>
+                            {state.version?<small>{state.version}</small>:null}
+                            {state.coverageNote?<small>{state.coverageNote}</small>:null}
+                          </div>
                           <div className={styles.researchState}>
                             <span className={`${styles.researchBadge} ${styles[state.tone]??""}`} title={state.coverageNote??undefined}>
                               {state.label}
                             </span>
-                            <small>{state.detail}</small>
-                            {state.coverageNote?<small>{state.coverageNote}</small>:null}
-                            {cutoff?<small>Data through {cutoff}</small>:null}
-                            <div style={{display:"grid",gap:2}}>
-                              {state.freshnessRows.map((row:any)=>(
-                                <small key={row.label}>{row.label}: {row.value}</small>
-                              ))}
-                            </div>
                             <Link href={"/portfolio/"+row.id+"/thesis"}>Personalize thesis →</Link>
                             <Link href={"/portfolio/"+row.id+"/attention"}>Attention settings →</Link>
+                          </div>
+                          <div className={styles.checkedCell}>
+                            <span>{relAgo(state.lastCheckedAt)}</span>
+                            {cutoff?<small>Data through {cutoff}</small>:null}
+                            <details>
+                              <summary>Freshness</summary>
+                              <div style={{display:"grid",gap:2}}>
+                                {state.freshnessRows.map((frow:any)=>(
+                                  <small key={frow.label}>{frow.label}: {frow.value}</small>
+                                ))}
+                              </div>
+                            </details>
                           </div>
                           <form action={deletePositionAction}>
                             <input type="hidden" name="position_id" value={row.id} />

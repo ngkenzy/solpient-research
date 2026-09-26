@@ -111,7 +111,7 @@
 }
 .positionForm{
   display:grid;
-  grid-template-columns:1.35fr 1fr 1.4fr .7fr .8fr auto;
+  grid-template-columns:1.35fr 1fr 1.4fr .8fr .7fr .8fr .9fr .8fr auto;
   gap:12px;
   align-items:end;
 }
@@ -165,9 +165,9 @@
 .portfolioHeading>div:last-child strong{display:block;margin-top:5px;font-size:1.1rem}
 .tableWrap{overflow-x:auto}
 .tableHeader,.positionRow{
-  min-width:1060px;
+  min-width:1100px;
   display:grid;
-  grid-template-columns:2fr .7fr .85fr .85fr .95fr 1.35fr .65fr;
+  grid-template-columns:2.1fr 1fr .62fr 1fr 1.25fr .95fr .5fr;
   align-items:center;
   gap:14px;
 }
@@ -212,6 +212,34 @@
   gap:4px;
   align-items:start;
 }
+.relBadge{
+  display:inline-flex;
+  margin-top:8px;
+  border-radius:999px;
+  padding:3px 8px;
+  font-size:.62rem;
+  font-weight:700;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+  border:1px solid rgba(71,184,129,.28);
+  background:rgba(71,184,129,.10);
+  color:#8fdeb5;
+}
+.followTone{
+  border-color:rgba(240,186,73,.35);
+  background:rgba(240,186,73,.11);
+  color:#f1c86e;
+}
+.positionCell{display:grid;gap:2px}
+.positionCell small{color:#7f8997;font-size:.72rem}
+.weightCell{display:grid;gap:2px}
+.weightCell small{color:#7f8997;font-size:.68rem}
+.coverageCell{display:grid;gap:2px}
+.coverageCell small{color:#7f8997;font-size:.68rem;line-height:1.25}
+.checkedCell{display:grid;gap:4px;font-size:.85rem}
+.checkedCell small{color:#7f8997;font-size:.68rem}
+.checkedCell details{font-size:.72rem;color:#7f8997}
+.checkedCell summary{cursor:pointer}
 .researchState small{
   color:#7f8997;
   font-size:.68rem;

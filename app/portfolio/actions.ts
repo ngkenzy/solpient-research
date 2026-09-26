@@ -28,6 +28,17 @@ function nonNegativeNumber(value:string) {
   return Number.isFinite(n)&&n>=0?n:null;
 }
 
+function optionalWeightPercent(value:string) {
+  if(!value) return null;
+  const n=Number(value);
+  if(!Number.isFinite(n)||n<0||n>100) return undefined;
+  return n;
+}
+
+function relationshipField(value:string) {
+  return value==="follow"?"follow":"own";
+}
+
 export async function createPortfolioAction(formData:FormData) {
   const name=textField(formData,"name");
   if(!name||name.length>120) redirect("/portfolio?error=portfolio");
@@ -50,8 +61,12 @@ export async function upsertPositionAction(formData:FormData) {
   const ticker=textField(formData,"ticker").toUpperCase();
   const quantity=positiveNumber(textField(formData,"quantity"));
   const averageCost=nonNegativeNumber(textField(formData,"average_cost"));
+  const relationship=relationshipField(textField(formData,"relationship"));
+  const marketValue=nonNegativeNumber(textField(formData,"market_value"));
+  const weightPct=optionalWeightPercent(textField(formData,"weight"));
 
   if(!portfolioId||!ticker||quantity===null) redirect("/portfolio?error=position");
+  if(weightPct===undefined) redirect("/portfolio?error=position");
 
   const {supabase,userId}=await requireUser();
 
@@ -77,12 +92,15 @@ export async function upsertPositionAction(formData:FormData) {
     company_id:company.id,
     quantity,
     average_cost:averageCost,
+    relationship,
+    market_value:marketValue,
+    weight:weightPct,
   },{
     onConflict:"portfolio_id,company_id",
   });
 
   if(error) redirect("/portfolio?error=position");
-  await track("position_added",{ticker});
+  await track("position_added",{ticker,relationship});
   revalidatePath("/portfolio");
 }
 

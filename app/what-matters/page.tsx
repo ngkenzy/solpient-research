@@ -143,6 +143,7 @@ export default async function WhatMattersPage({
                   <span>Company materiality: <b>{event.company_materiality?.score??"—"}</b></span>
                   <span>Decision effect: <b>{String(event.decision_effect??"monitor").replaceAll("_"," ")}</b></span>
                   <span>Occurred: <b>{when(event.occurred_at)}</b></span>
+                  <span>Position: <b>{String(position.relationship??"own")}{position.weight_share!=null?" · "+(Number(position.weight_share)*100).toFixed(1)+"%":""}</b></span>
                 </div>
 
                 {user.personalized?(
