@@ -53,7 +53,7 @@ returns trigger
 language plpgsql
 security definer
 set search_path=''
-as $
+as $b12_guard$
 begin
   if tg_op='DELETE'
      and not exists (
@@ -66,7 +66,7 @@ begin
 
   raise exception 'Thesis audit rows are append-only; create a new history record instead.';
 end
-$;
+$b12_guard$;
 
 revoke all on function private.guard_position_thesis_factor_history_v1()
   from public,anon,authenticated;
