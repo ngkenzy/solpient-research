@@ -40,7 +40,7 @@ insert into public.research_runs(
 ) values (
   'f1666666-6666-4666-8666-666666666666',
   'f1611111-1111-4111-8111-111111111111',
-  1,'published','B16BENCH'
+  1,'draft','B16BENCH'
 );
 
 insert into public.position_decision_journal(
