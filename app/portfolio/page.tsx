@@ -199,9 +199,9 @@ export default async function PortfolioPage({
           <SolpientBrand subtitle="Portfolio" />
         </Link>
         <nav>
-          <Link href="/research">Research</Link>
+          <Link href="/what-matters">What Matters</Link>
           <Link href="/portfolio" className={styles.active}>Portfolio</Link>
-          <Link href="/alerts">Alerts</Link>
+          <Link href="/research">Research</Link>
         </nav>
         <form action={signOutAction}>
           <button className={styles.signOut} type="submit">Sign out</button>
