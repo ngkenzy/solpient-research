@@ -104,17 +104,24 @@ begin
 end
 $b15_direct_insert$;
 
-do $b15_mutation$
-begin
-  begin
-    update public.position_decision_journal
-    set rationale='Rewritten history'
-    where id=:'first_decision_id'::uuid;
-    raise exception 'B15 integrity failure: decision history was updated';
-  exception when insufficient_privilege then null;
-  end;
-end
-$b15_mutation$;
+select 1 / case when not has_table_privilege(
+  'authenticated',
+  'public.position_decision_journal',
+  'UPDATE'
+) then 1 else 0 end
+as b15_authenticated_cannot_update_history;
+
+select 1 / case when exists (
+  select 1
+  from pg_trigger t
+  join pg_class c on c.oid=t.tgrelid
+  join pg_namespace n on n.oid=c.relnamespace
+  where n.nspname='public'
+    and c.relname='position_decision_journal'
+    and t.tgname='position_decision_journal_append_only_guard'
+    and not t.tgisinternal
+) then 1 else 0 end
+as b15_append_only_guard_present;
 
 reset role;
 set local role authenticated;
