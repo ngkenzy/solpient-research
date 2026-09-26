@@ -36,10 +36,6 @@ create table if not exists public.decision_outcome_snapshots (
   methodology_version text not null default 'group-b-decision-outcome-v1',
   captured_at timestamptz not null default now(),
   created_at timestamptz not null default now(),
-  constraint decision_outcome_position_owner_fkey
-    foreign key (position_id,user_id)
-    references public.portfolio_positions(id,user_id)
-    on delete restrict,
   constraint decision_outcome_observation_after_anchor
     check (observed_trading_date>=decision_price_trading_date),
   constraint decision_outcome_unique_version
