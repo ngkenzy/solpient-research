@@ -5,6 +5,7 @@
 
 create table if not exists public.position_thesis_factor_history (
   id uuid primary key default gen_random_uuid(),
+  change_sequence bigint generated always as identity unique,
   user_id uuid not null references auth.users(id) on delete cascade,
   position_id uuid not null,
   company_id uuid null references public.companies(id) on delete set null,
@@ -23,12 +24,12 @@ create table if not exists public.position_thesis_factor_history (
   personal_breaker_after text null,
   enabled_before boolean null,
   enabled_after boolean null,
-  changed_at timestamptz not null default now(),
+  changed_at timestamptz not null default clock_timestamp(),
   metadata jsonb not null default '{}'::jsonb
 );
 
 create index if not exists position_thesis_factor_history_user_position_idx
-  on public.position_thesis_factor_history(user_id,position_id,changed_at desc,id);
+  on public.position_thesis_factor_history(user_id,position_id,changed_at desc,change_sequence desc);
 
 create index if not exists position_thesis_factor_history_company_idx
   on public.position_thesis_factor_history(company_id,changed_at desc)
@@ -118,7 +119,7 @@ begin
     case when tg_op in ('INSERT','UPDATE') then new.personal_breaker_condition else null end,
     case when tg_op in ('UPDATE','DELETE') then old.enabled else null end,
     case when tg_op in ('INSERT','UPDATE') then new.enabled else null end,
-    now(),
+    clock_timestamp(),
     jsonb_build_object(
       'history_version','group-b-thesis-factor-history-v1',
       'recorded_from_trigger',true
@@ -297,6 +298,7 @@ begin
         'factor_id',h.factor_id,
         'canonical_thesis_variable_id',h.canonical_thesis_variable_id,
         'factor_key',h.factor_key,
+        'change_sequence',h.change_sequence,
         'importance_before',h.importance_before,
         'importance_after',h.importance_after,
         'personal_expectation_before',h.personal_expectation_before,
