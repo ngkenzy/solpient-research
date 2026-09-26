@@ -94,6 +94,11 @@ jobs:
         run: |
           docker exec -i "${{ steps.db.outputs.container }}" psql -v ON_ERROR_STOP=1 -U postgres -d postgres < supabase/tests/group_b7_research_demand.sql
 
+      - name: Group B consumer grant-hardening test
+        shell: bash
+        run: |
+          docker exec -i "${{ steps.db.outputs.container }}" psql -v ON_ERROR_STOP=1 -U postgres -d postgres < supabase/tests/group_b_consumer_grants.sql
+
       - name: Database lint
         run: supabase db lint --local --level warning --fail-on error
 
