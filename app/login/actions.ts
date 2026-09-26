@@ -38,11 +38,11 @@ export async function signUpAction(formData:FormData) {
     password,
     options:{
       data:{display_name:displayName||null},
-      ...(callbackOrigin ? {emailRedirectTo:callbackOrigin+"/auth/callback?next=/portfolio"} : {}),
+      ...(callbackOrigin ? {emailRedirectTo:callbackOrigin+"/auth/callback?next=/onboarding"} : {}),
     },
   });
 
   if(error) redirect("/login?mode=signup&error=signup");
-  if(data.session) redirect("/portfolio");
+  if(data.session) redirect("/onboarding");
   redirect("/login?message=check-email");
 }
