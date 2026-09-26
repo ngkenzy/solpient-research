@@ -71,13 +71,13 @@ insert into public.company_change_events(
 ) values
 (
   'e1411111-1111-4111-8111-111111111111',
-  'b14-a-material','fundamental','operating_margin','B14 A margin changed',
+  'b14-a-material','financial','operating_margin','B14 A margin changed',
   25,20,-5,-20,'negative','high','review_thesis','A changed materially.',
   'b14_test','b14-a','https://example.com/b14-a',current_date
 ),
 (
   'e1422222-2222-4222-8222-222222222222',
-  'b14-b-material','fundamental','operating_margin','B14 B margin changed',
+  'b14-b-material','financial','operating_margin','B14 B margin changed',
   25,20,-5,-20,'negative','high','review_thesis','B changed materially.',
   'b14_test','b14-b','https://example.com/b14-b',current_date
 );
