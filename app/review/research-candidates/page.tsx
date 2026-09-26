@@ -14,6 +14,15 @@ const money=(v:unknown)=>v!==null&&v!==undefined&&Number.isFinite(Number(v))
   :"—";
 const label=(v:string)=>String(v??"").replaceAll("_"," ").replace(/\b\w/g,c=>c.toUpperCase());
 
+type DemandSummary={
+  company_id:string;
+  request_count:number|string;
+  high_priority_count:number|string;
+  average_priority:number|string|null;
+  latest_requested_at:string|null;
+  latest_question:string|null;
+};
+
 export default async function ResearchCandidatesPage(){
   await requireReviewAccess();
   const supabase=getAdminSupabase();
@@ -38,6 +47,14 @@ export default async function ResearchCandidatesPage(){
     if(error)throw error;
     items=data??[];
   }
+
+  const {data:demandRows,error:demandError}=await supabase
+    .rpc("get_research_demand_summary_v1");
+  if(demandError)throw demandError;
+
+  const demandByCompany=new Map<string,DemandSummary>(
+    ((demandRows??[]) as DemandSummary[]).map((row)=>[row.company_id,row])
+  );
 
   const counts={
     decision_ready:items.filter(x=>x.stage==="decision_ready").length,
@@ -100,6 +117,7 @@ export default async function ResearchCandidatesPage(){
           {items.map((item:any)=>{
             const output=item.pipeline_output??{};
             const next=(item.next_actions??[])[0];
+            const demand=item.company_id?demandByCompany.get(item.company_id):null;
             return <div className={styles.panel} key={item.id}>
               <div className={styles.panelHeader}>
                 <div>
@@ -115,6 +133,11 @@ export default async function ResearchCandidatesPage(){
                 <div className={styles.opsCard}><span>V3 confidence</span><strong>{pct(item.valuation_confidence)}</strong><small>{item.valuation_preflight_complete?"input preflight complete":"input pack incomplete"}</small></div>
                 <div className={styles.opsCard}><span>Base 5Y CAGR</span><strong>{pct(item.base_5y_cagr)}</strong><small>V3 horizon-specific return model</small></div>
                 <div className={styles.opsCard}><span>Evidence confidence</span><strong>{pct(item.evidence_confidence)}</strong><small>Readiness V1</small></div>
+                <div className={styles.opsCard}>
+                  <span>User demand</span>
+                  <strong>{demand?.request_count??0}</strong>
+                  <small>{demand?String(demand.high_priority_count??0)+" high priority · avg "+num(demand.average_priority):"no active requests"}</small>
+                </div>
               </div>
 
               <section className={styles.preparePanel}>
@@ -124,6 +147,16 @@ export default async function ResearchCandidatesPage(){
                   <p>{next?.reason??"—"}</p>
                 </div>
               </section>
+
+              {demand?.latest_question?(
+                <section className={styles.preparePanel}>
+                  <div>
+                    <span className={styles.kicker}>AGGREGATE USER DEMAND</span>
+                    <h2>{demand.request_count} active request{Number(demand.request_count)===1?"":"s"}</h2>
+                    <p>{demand.latest_question}</p>
+                  </div>
+                </section>
+              ):null}
 
               <div className={styles.gapList}>
                 {(item.next_actions??[]).slice(1,8).map((a:any,i:number)=><div key={i}>
