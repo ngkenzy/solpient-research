@@ -49,7 +49,7 @@ insert into public.company_change_events(
 ) values (
   'd1311111-1111-4111-8111-111111111111',
   'b13-material-event',
-  'fundamental',
+  'financial',
   'operating_margin',
   'Operating margin changed',
   25,20,-5,-20,
