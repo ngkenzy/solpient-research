@@ -49,7 +49,7 @@ create or replace function private.guard_position_decision_journal_v1()
 returns trigger
 language plpgsql
 set search_path=''
-as $
+as $b15_guard$
 begin
   if tg_op in ('UPDATE','DELETE')
      and current_user not in ('postgres','supabase_admin','supabase_auth_admin') then
@@ -61,7 +61,7 @@ begin
   end if;
   return new;
 end
-$;
+$b15_guard$;
 
 revoke all on function private.guard_position_decision_journal_v1()
   from public,anon,authenticated,service_role;
