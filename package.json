@@ -87,7 +87,8 @@
     "process:research-maintenance": "node scripts/process-research-maintenance.mjs",
     "check:research-foundation:production": "node scripts/check-research-foundation-production.mjs",
     "monitor:sec:production": "node scripts/run-group-a-sec-worker.mjs",
-    "install:sec:launchd": "zsh scripts/install-group-a-sec-launchd.sh"
+    "install:sec:launchd": "zsh scripts/install-group-a-sec-launchd.sh",
+    "refresh:consumer-attention": "node scripts/refresh-consumer-attention.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.117.2",
