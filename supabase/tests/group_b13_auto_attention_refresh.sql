@@ -37,7 +37,7 @@ insert into public.user_alert_preferences(
 ) values (
   'd1333333-3333-4333-8333-333333333333',
   'important',
-  true,
+  false,
   true
 );
 
@@ -65,6 +65,14 @@ insert into public.company_change_events(
 
 set local role authenticated;
 set local "request.jwt.claim.sub"='d1333333-3333-4333-8333-333333333333';
+
+select 1 / case when (
+  public.refresh_my_thesis_alerts_v1(
+    current_date-1,
+    20
+  )->>'status'
+)='disabled' then 1 else 0 end
+as b13_manual_in_app_refresh_respects_disabled_preference;
 
 do $b13_auth_denied$
 begin
