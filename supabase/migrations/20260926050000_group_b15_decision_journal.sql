@@ -45,11 +45,32 @@ on public.position_decision_journal for select
 to authenticated
 using ((select auth.uid())=user_id);
 
+create or replace function private.guard_position_decision_journal_v1()
+returns trigger
+language plpgsql
+set search_path=''
+as $
+begin
+  if tg_op in ('UPDATE','DELETE')
+     and current_user not in ('postgres','supabase_admin','supabase_auth_admin') then
+    raise exception 'Decision journal rows are append-only; record a new superseding decision instead.';
+  end if;
+
+  if tg_op='DELETE' then
+    return old;
+  end if;
+  return new;
+end
+$;
+
+revoke all on function private.guard_position_decision_journal_v1()
+  from public,anon,authenticated,service_role;
+
 drop trigger if exists position_decision_journal_append_only_guard
   on public.position_decision_journal;
 create trigger position_decision_journal_append_only_guard
 before update or delete on public.position_decision_journal
-for each statement execute function private.guard_append_only_history();
+for each row execute function private.guard_position_decision_journal_v1();
 
 create or replace function consumer_private.record_my_position_decision_v1(
   p_position_id uuid,
