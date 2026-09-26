@@ -48,11 +48,34 @@ on public.position_thesis_factor_history for select
 to authenticated
 using ((select auth.uid())=user_id);
 
+create or replace function private.guard_position_thesis_factor_history_v1()
+returns trigger
+language plpgsql
+security definer
+set search_path=''
+as $
+begin
+  if tg_op='DELETE'
+     and not exists (
+       select 1
+       from auth.users u
+       where u.id=old.user_id
+     ) then
+    return old;
+  end if;
+
+  raise exception 'Thesis audit rows are append-only; create a new history record instead.';
+end
+$;
+
+revoke all on function private.guard_position_thesis_factor_history_v1()
+  from public,anon,authenticated;
+
 drop trigger if exists position_thesis_factor_history_append_only_guard
   on public.position_thesis_factor_history;
 create trigger position_thesis_factor_history_append_only_guard
 before update or delete on public.position_thesis_factor_history
-for each row execute function private.guard_append_only_history();
+for each row execute function private.guard_position_thesis_factor_history_v1();
 
 create or replace function private.record_position_thesis_factor_history_v1()
 returns trigger
