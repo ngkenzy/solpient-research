@@ -89,6 +89,11 @@ jobs:
         run: |
           docker exec -i "${{ steps.db.outputs.container }}" psql -v ON_ERROR_STOP=1 -U postgres -d postgres < supabase/tests/v1_portfolio_own_follow.sql
 
+      - name: V1 event ingestion test
+        shell: bash
+        run: |
+          docker exec -i "${{ steps.db.outputs.container }}" psql -v ON_ERROR_STOP=1 -U postgres -d postgres < supabase/tests/v1_event_ingestion.sql
+
       - name: Group B6 feedback isolation test
         shell: bash
         run: |

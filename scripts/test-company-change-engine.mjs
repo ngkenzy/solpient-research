@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import {buildCompanyChangeEvents,summarizeDecisionImpact} from "../lib/company-change-engine.mjs";
+import {EVENT_CATEGORIES,TAXONOMY_VERSION} from "../lib/event-detectors.mjs";
 
 const common={companyId:"c",currentSnapshotId:"s2",previousSnapshotId:"s1",researchRunId:"r2",occurredAt:"2026-09-21"};
 const previous={
@@ -30,8 +31,8 @@ const events=buildCompanyChangeEvents({...common,current,previous});
 assert.ok(events.some(e=>e.metric_key==="valuation.discount_to_fair_value"&&e.decision_impact==="improving"));
 assert.ok(events.some(e=>e.metric_key==="consensus.eps_next_fy"&&e.decision_impact==="improving"));
 assert.ok(events.some(e=>e.metric_key==="financial.debt_to_equity"&&e.decision_impact==="improving"));
-assert.ok(events.some(e=>e.category==="thesis"&&e.materiality==="high"));
-assert.ok(events.some(e=>e.category==="filing"&&e.decision_impact==="monitor"));
+assert.ok(events.some(e=>e.category==="research"&&e.materiality==="high"));
+assert.ok(events.some(e=>e.category==="research"&&e.decision_impact==="monitor"));
 assert.ok(events.some(e=>e.metric_key==="research_version"));
 const summary=summarizeDecisionImpact(events);
 assert.equal(summary.trend,"improving");
@@ -40,3 +41,7 @@ assert.ok(summary.total>=8);
 const quiet=buildCompanyChangeEvents({...common,current:previous,previous});
 assert.equal(quiet.length,0);
 console.log("Company Change Engine tests passed:",events.length,"events.");
+
+assert.ok(events.every(e=>EVENT_CATEGORIES.includes(e.category)),"taxonomy category");
+assert.ok(events.every(e=>e.event_taxonomy===TAXONOMY_VERSION),"taxonomy version");
+console.log("Taxonomy assertions passed.");

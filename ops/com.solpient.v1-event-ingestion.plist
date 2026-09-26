@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.solpient.v1-event-ingestion</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>__NPM_BIN__</string>
+    <string>run</string>
+    <string>events:ingest:scheduled</string>
+  </array>
+  <key>WorkingDirectory</key>
+  <string>__SOLPIENT_REPO__</string>
+  <key>StartCalendarInterval</key>
+  <array>
+    <dict>
+      <key>Hour</key><integer>9</integer>
+      <key>Minute</key><integer>0</integer>
+    </dict>
+    <dict>
+      <key>Hour</key><integer>18</integer>
+      <key>Minute</key><integer>0</integer>
+    </dict>
+  </array>
+  <key>StandardOutPath</key>
+  <string>__SOLPIENT_REPO__/.cache/v1-event-ingestion/launchd.stdout.log</string>
+  <key>StandardErrorPath</key>
+  <string>__SOLPIENT_REPO__/.cache/v1-event-ingestion/launchd.stderr.log</string>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key>
+    <string>__LAUNCHD_PATH__</string>
+  </dict>
+  <key>ProcessType</key>
+  <string>Background</string>
+</dict>
+</plist>

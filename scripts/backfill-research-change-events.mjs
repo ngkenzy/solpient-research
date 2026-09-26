@@ -1,5 +1,6 @@
 import process from "node:process";
 import { createClient } from "@supabase/supabase-js";
+import {mapLegacyCategory,TAXONOMY_VERSION} from "../lib/event-detectors.mjs";
 import { buildResearchChanges } from "../lib/research-changes.mjs";
 
 const url=process.env.SUPABASE_URL;
@@ -85,8 +86,9 @@ for(const company of companies??[]){
       previous_snapshot_id:null,
       research_run_id:currentRun.id,
       event_key:"researchdiff:"+currentRun.id+":"+change.metric_key+":"+change.change_type,
-      category:change.category,
+      category:mapLegacyCategory(change.category),
       metric_key:change.metric_key,
+      event_taxonomy:TAXONOMY_VERSION,
       label:change.label,
       old_value:change.old_value??null,
       new_value:change.new_value??null,
