@@ -70,14 +70,16 @@ as e1_taxonomy_keys_match_prd_s15;
 -- A normalized fact the guidance event will bear on.
 insert into public.normalized_facts(
   id,company_id,fact_key,metric_key,known_at,
-  normalization_methodology_version,source_confidence_class,selection_reason
+  normalization_methodology_version,source_confidence_class,selection_reason,
+  value_numeric,conflict_state
 ) values (
   'e1f11111-1111-4111-8111-111111111111',
   'e1a11111-1111-4111-8111-111111111111',
   'e1-guidance-revenue-fy',
   'guidance_revenue_fy',
   now(),
-  'test-v1','company_direct','E1 fixture fact'
+  'test-v1','company_direct','E1 fixture fact',
+  950,'verified'
 );
 
 -- Classified guidance-cut event (what the detector would write).
