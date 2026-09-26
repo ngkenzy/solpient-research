@@ -164,6 +164,16 @@ $b12_append_only$;
 
 reset role;
 
+delete from auth.users
+where id='c1233333-3333-4333-8333-333333333333';
+
+select 1 / case when (
+  select count(*)
+  from public.position_thesis_factor_history
+  where user_id='c1233333-3333-4333-8333-333333333333'
+)=0 then 1 else 0 end
+as b12_account_delete_cascades_history;
+
 select 1 / case when (
   select c.relrowsecurity
   from pg_class c
