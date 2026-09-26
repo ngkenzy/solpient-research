@@ -10,7 +10,7 @@ export function ConsumerHeader({
   subtitle,
   action,
 }:{
-  active:ActiveSection;
+  active?:ActiveSection;
   subtitle?:string;
   action?:ReactNode;
 }){
