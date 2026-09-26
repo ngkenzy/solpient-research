@@ -2,7 +2,7 @@ import Link from "next/link";
 import { getSupabase } from "@/lib/supabase";
 import { CapitalActivity, type CapitalActivityItem } from "@/components/CapitalActivity";
 import styles from "./home.module.css";
-import { SolpientBrand } from "@/components/SolpientBrand";
+import { ConsumerHeader } from "@/components/ConsumerHeader";
 import { decisionRankingMap, loadLatestDecisionRanking, readinessDisplay } from "@/lib/decision-ranking-read-model";
 
 export const dynamic = "force-dynamic";
@@ -364,35 +364,15 @@ export default async function Home() {
 
   return (
     <div className={styles.commandPage}>
-      <header className={styles.topbar}>
-        <SolpientBrand className={styles.wordmark} subtitle="Research" priority />
-
-        <nav className={styles.nav}>
-          <Link className={styles.activeNav} href="/">Home</Link>
-          <Link href="/research">Research</Link>
-          <Link href="/portfolio">Portfolio</Link>
-          <Link href="/research-health">Research Health</Link>
-          <Link href="/money">Money</Link>
-          <Link href="/watchlist">Watchlist</Link>
-          <a href="#predictions">Predictions</a>
-          <Link href="/alerts">Alerts</Link>
-        </nav>
-
-        <div className={styles.headerTools}>
-          <Link href="/research" className={styles.searchBox}>
-            <span>⌕</span> Search companies…
-          </Link>
-          <span className={styles.avatar}>S</span>
-        </div>
-      </header>
+      <ConsumerHeader subtitle="Research"/>
 
       <main className={styles.commandMain}>
         <section className={styles.hero}>
           <div className={styles.heroArt} aria-hidden="true"><i /><b /></div>
           <div className={styles.heroCopy}>
-            <span className={styles.kicker}>SOLPIENT DAILY INTELLIGENCE</span>
-            <h1>Your Morning Research Briefing</h1>
-            <p>Actionable changes from fundamental research, filings, valuation, and disclosed capital activity—not market noise.</p>
+            <span className={styles.kicker}>SOLPIENT INVESTMENT INTELLIGENCE</span>
+            <h1>Know what changed—and why it matters.</h1>
+            <p>Follow published research, material company changes, valuation, and evidence without turning the product into market noise.</p>
             <div className={styles.heroMeta}>
               <span><b>▥</b> {companies.length} companies tracked</span>
               <span><b>◷</b> Last intelligence update: {displayDateTime(latestAutomation?.completed_at)}</span>
