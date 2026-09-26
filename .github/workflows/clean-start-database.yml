@@ -69,6 +69,11 @@ jobs:
         run: |
           docker exec -i "${{ steps.db.outputs.container }}" psql -v ON_ERROR_STOP=1 -U postgres -d postgres < supabase/tests/group_b2_portfolio_research_state.sql
 
+      - name: Group B3 thesis personalization isolation test
+        shell: bash
+        run: |
+          docker exec -i "${{ steps.db.outputs.container }}" psql -v ON_ERROR_STOP=1 -U postgres -d postgres < supabase/tests/group_b3_thesis_personalization.sql
+
       - name: Database lint
         run: supabase db lint --local --level warning --fail-on error
 
