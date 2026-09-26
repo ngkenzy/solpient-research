@@ -124,6 +124,21 @@ select 1 / case when exists (
 as b15_append_only_guard_present;
 
 reset role;
+set local role service_role;
+
+do $b15_service_mutation$
+begin
+  begin
+    update public.position_decision_journal
+    set rationale='Service-role rewrite'
+    where user_id='f1533333-3333-4333-8333-333333333333';
+    raise exception 'B15 integrity failure: service role rewrote journal history';
+  exception when raise_exception then null;
+  end;
+end
+$b15_service_mutation$;
+
+reset role;
 set local role authenticated;
 set local "request.jwt.claim.sub"='f1544444-4444-4444-8444-444444444444';
 
@@ -131,5 +146,17 @@ select 1 / case when (
   select count(*) from public.position_decision_journal
 )=0 then 1 else 0 end
 as b15_other_user_cannot_read_decisions;
+
+reset role;
+
+delete from auth.users
+where id='f1533333-3333-4333-8333-333333333333';
+
+select 1 / case when (
+  select count(*)
+  from public.position_decision_journal
+  where user_id='f1533333-3333-4333-8333-333333333333'
+)=0 then 1 else 0 end
+as b15_account_delete_cascades_journal;
 
 rollback;
