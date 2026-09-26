@@ -86,6 +86,13 @@ export async function upsertPositionAction(formData:FormData) {
 
   if(companyError||!company) redirect("/portfolio?error=ticker");
 
+  // Monitored-name cap: only enforced when this company is not already monitored.
+  const {data:profile}=await supabase.from("profiles").select("monitored_name_cap").eq("user_id",userId).maybeSingle();
+  const {data:monitored}=await supabase.from("portfolio_positions").select("company_id").eq("user_id",userId);
+  const monitoredNameCap=Number(profile?.monitored_name_cap)||12;
+  const monitoredIds=(monitored??[]).map((row:any)=>String(row.company_id));
+  if(!monitoredIds.includes(String(company.id))&&new Set(monitoredIds).size>=monitoredNameCap) redirect("/portfolio?error=cap");
+
   const {error}=await supabase.from("portfolio_positions").upsert({
     portfolio_id:portfolio.id,
     user_id:userId,
@@ -99,7 +106,10 @@ export async function upsertPositionAction(formData:FormData) {
     onConflict:"portfolio_id,company_id",
   });
 
-  if(error) redirect("/portfolio?error=position");
+  if(error){
+    if(String(error.message??"").includes("monitored_name_limit_exceeded")) redirect("/portfolio?error=cap");
+    redirect("/portfolio?error=position");
+  }
   await track("position_added",{ticker,relationship});
   revalidatePath("/portfolio");
 }

@@ -54,6 +54,12 @@
   color:#8791a0;
   margin-bottom:10px;
 }
+.slotUsage{
+  display:block;
+  margin-top:8px;
+  font-size:.78rem;
+  color:#8791a0;
+}
 .hero h1{
   margin:0;
   max-width:760px;

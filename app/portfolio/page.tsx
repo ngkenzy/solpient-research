@@ -235,7 +235,7 @@ export default async function PortfolioPage({
   if(!userId) redirect("/login");
 
   const [profileR,portfoliosR,companiesR]=await Promise.all([
-    supabase.from("profiles").select("display_name").eq("user_id",userId).maybeSingle(),
+    supabase.from("profiles").select("display_name,monitored_name_cap").eq("user_id",userId).maybeSingle(),
     supabase
       .from("portfolios")
       .select("id,name,is_default,base_currency,created_at")
@@ -312,7 +312,11 @@ export default async function PortfolioPage({
   }
 
   const displayName=profileR.data?.display_name?.trim()||"Investor";
-  const error=params.error?errors[params.error]:"";
+  const monitoredNameCap=Number(profileR.data?.monitored_name_cap)||12;
+  const monitoredNames=new Set(positions.map((row:any)=>row.company_id)).size;
+  const error=params.error==="cap"
+    ? "Monitored-name limit reached ("+monitoredNames+" of "+monitoredNameCap+"). Remove a monitored name before adding another."
+    : params.error?errors[params.error]:"";
 
   return(
     <div className={styles.page}>
@@ -352,6 +356,7 @@ export default async function PortfolioPage({
             <div>
               <span className={styles.sectionLabel}>ADD OR UPDATE POSITION</span>
               <strong>Track a company you own or follow</strong>
+              <small className={styles.slotUsage}>Monitored names: {monitoredNames} of {monitoredNameCap} — adding a new company uses one slot; updating a tracked company does not.</small>
             </div>
             <label>
               <span>Portfolio</span>
