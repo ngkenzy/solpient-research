@@ -6,7 +6,11 @@ create schema if not exists consumer_private;
 -- The authenticated role needs USAGE to reach the public wrappers' private
 -- callees (same model as the consumer RPC hardening migration); execute on
 -- individual functions is granted per-function below.
-grant usage on schema consumer_private to anon,authenticated,service_role;
+-- (anon intentionally excluded: the consumer security contract, asserted by
+-- supabase/tests/group_b2_portfolio_research_state.sql, requires that anon
+-- hold no USAGE on consumer_private; all private callees are service_role-
+-- only with public SECURITY DEFINER wrappers.)
+grant usage on schema consumer_private to authenticated,service_role;
 --
 -- The materiality engine previously only diffed research snapshots, so six of
 -- the PRD §15 event categories (guidance, management, regulatory, competition,
