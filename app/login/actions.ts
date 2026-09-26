@@ -3,6 +3,7 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { createConsumerServerClient } from "@/lib/supabase/server-client";
+import { track } from "@/lib/analytics";
 
 function field(formData:FormData,name:string) {
   return String(formData.get(name)??"").trim();
@@ -50,6 +51,7 @@ export async function signUpAction(formData:FormData) {
   });
 
   if(error) redirect("/login?mode=signup&error=signup");
+  await track("account_created");
   if(data.session) redirect("/onboarding");
   redirect("/login?message=check-email");
 }

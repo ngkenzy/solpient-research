@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createConsumerServerClient } from "@/lib/supabase/server-client";
+import { track } from "@/lib/analytics";
 
 function field(formData:FormData,name:string){
   return String(formData.get(name)??"").trim();
@@ -21,10 +22,15 @@ export async function submitWhatMattersFeedbackAction(formData:FormData){
   const itemId=field(formData,"item_id");
   const eventId=field(formData,"event_id");
   const feedbackType=field(formData,"feedback_type");
+  const noReason=field(formData,"no_reason");
   const note=field(formData,"note");
-  const allowed=new Set(["useful","not_useful","too_late","wrong_reason"]);
+  const allowedType=new Set(["yes","no"]);
+  const allowedReason=new Set([
+    "not_material","doesnt_affect_thesis","already_knew","wrong_interpretation","other",
+  ]);
+  const reason=feedbackType==="no"&&allowedReason.has(noReason)?noReason:null;
 
-  if(!positionId||!itemId||!eventId||!allowed.has(feedbackType)){
+  if(!positionId||!itemId||!eventId||!allowedType.has(feedbackType)){
     redirect("/what-matters?error=feedback");
   }
 
@@ -46,12 +52,18 @@ export async function submitWhatMattersFeedbackAction(formData:FormData){
       item_id:itemId,
       event_id:eventId,
       feedback_type:feedbackType,
+      no_reason:reason,
       note:note||null,
     },{
       onConflict:"user_id,item_id",
     });
 
   if(error) redirect("/what-matters?error=feedback");
+
+  await track(
+    feedbackType==="yes"?"material_item_positive_feedback":"material_item_negative_feedback",
+    {item_id:itemId,no_reason:reason},
+  );
 
   revalidatePath("/what-matters");
 }
@@ -87,6 +99,8 @@ export async function reportMissedEventAction(formData:FormData){
     });
 
   if(error) redirect("/what-matters?error=missed");
+
+  await track("missed_event_reported",{position_id:positionId});
 
   revalidatePath("/what-matters");
 }

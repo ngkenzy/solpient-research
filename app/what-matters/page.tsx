@@ -4,6 +4,7 @@ import { SolpientBrand } from "@/components/SolpientBrand";
 import { ConsumerHeader } from "@/components/ConsumerHeader";
 import { createConsumerServerClient } from "@/lib/supabase/server-client";
 import { reportMissedEventAction, submitWhatMattersFeedbackAction } from "./actions";
+import { track } from "@/lib/analytics";
 import styles from "./what-matters.module.css";
 
 export const dynamic="force-dynamic";
@@ -16,6 +17,15 @@ function when(value:string|null|undefined){
   return d.toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric",timeZone:"UTC"});
 }
 
+// Materiality levels from get_my_what_matters_v1 (user_materiality.level).
+// Only thesis_priority/important are surfaced as feed cards; monitor and
+// background are collapsed as reviewed-but-not-material.
+const MATERIAL_LEVELS=new Set(["thesis_priority","important"]);
+
+function feedItemLevel(item:any){
+  return String(item.user_materiality?.level??"monitor");
+}
+
 export default async function WhatMattersPage({
   searchParams,
 }:{searchParams:Promise<{error?:string}>}){
@@ -25,9 +35,12 @@ export default async function WhatMattersPage({
   const userId=claims?.claims?.sub?String(claims.claims.sub):null;
   if(!userId) redirect("/login");
 
+  // V1 quick wins: record a page open for engagement metrics.
+  await track("what_matters_opened");
+
   const [{data,error},feedbackR,positionsR]=await Promise.all([
     supabase.rpc("get_my_what_matters_v1"),
-    supabase.from("what_matters_feedback").select("item_id,feedback_type,note"),
+    supabase.from("what_matters_feedback").select("item_id,feedback_type,no_reason,note"),
     supabase.from("portfolio_positions")
       .select("id,company_id")
       .order("created_at",{ascending:true}),
@@ -45,6 +58,9 @@ export default async function WhatMattersPage({
 
   const contract=(data as any)??{};
   const items=contract.items??[];
+  const materialItems=items.filter((item:any)=>MATERIAL_LEVELS.has(feedItemLevel(item)));
+  const reviewedItems=items.filter((item:any)=>!MATERIAL_LEVELS.has(feedItemLevel(item)));
+  const reviewedCount=items.length;
   const stale=contract.source_status==="stale"||contract.source_status==="unavailable";
   const feedbackByItem=new Map(
     (feedbackR.data??[]).map((row:any)=>[row.item_id,row])
@@ -97,7 +113,7 @@ export default async function WhatMattersPage({
         ):null}
 
         <section className={styles.feed}>
-          {items.length?items.map((item:any)=>{
+          {materialItems.length?materialItems.map((item:any)=>{
             const position=item.position??{};
             const event=item.event??{};
             const user=item.user_materiality??{};
@@ -146,13 +162,34 @@ export default async function WhatMattersPage({
                   <input type="hidden" name="position_id" value={position.id}/>
                   <input type="hidden" name="item_id" value={item.item_id}/>
                   <input type="hidden" name="event_id" value={eventId}/>
-                  <span>{existingFeedback?"Your feedback: "+String(existingFeedback.feedback_type).replaceAll("_"," "):"Was this useful?"}</span>
+                  <span>
+                    {existingFeedback
+                      ? existingFeedback.feedback_type==="yes"
+                        ? "You marked this useful."
+                        : existingFeedback.no_reason
+                          ? "You marked this not useful ("+String(existingFeedback.no_reason).replaceAll("_"," ")+")."
+                          : "You marked this not useful."
+                      : "Was this useful?"}
+                  </span>
+                  {!existingFeedback?(
                   <div>
-                    <button name="feedback_type" value="useful" type="submit">Useful</button>
-                    <button name="feedback_type" value="not_useful" type="submit">Not useful</button>
-                    <button name="feedback_type" value="too_late" type="submit">Too late</button>
-                    <button name="feedback_type" value="wrong_reason" type="submit">Wrong reason</button>
+                    <div>
+                      <button name="feedback_type" value="yes" type="submit">Yes</button>
+                      <button name="feedback_type" value="no" type="submit">No</button>
+                    </div>
+                    <label>
+                      <span>If no, why not?</span>
+                      <select name="no_reason" defaultValue="">
+                        <option value="">Choose a reason (optional)</option>
+                        <option value="not_material">Not material</option>
+                        <option value="doesnt_affect_thesis">Doesn't affect thesis</option>
+                        <option value="already_knew">Already knew</option>
+                        <option value="wrong_interpretation">Wrong interpretation</option>
+                        <option value="other">Other</option>
+                      </select>
+                    </label>
                   </div>
+                  ):null}
                 </form>
 
                 <footer>
@@ -166,11 +203,33 @@ export default async function WhatMattersPage({
             );
           }):(
             <div className={styles.empty}>
-              <strong>Nothing is in your What Matters feed yet.</strong>
-              <span>Add positions and personalize thesis factors to make company changes more relevant to you.</span>
+              <strong>Nothing material changed.</strong>
+              {reviewedCount?(
+                <span>Solpient reviewed {reviewedCount} event{reviewedCount===1?"":"s"} across your portfolio in this window.</span>
+              ):(
+                <span>Solpient reviewed your portfolio. Add positions and personalize thesis factors to make company changes more relevant to you.</span>
+              )}
               <Link href="/portfolio">Open Portfolio →</Link>
             </div>
           )}
+          {reviewedItems.length?(
+            <details className={styles.reviewed}>
+              <summary>{reviewedItems.length} other event{reviewedItems.length===1?" was":"s were"} reviewed</summary>
+              <ul className={styles.reviewedList}>
+                {reviewedItems.map((item:any)=>{
+                  const position=item.position??{};
+                  const event=item.event??{};
+                  return(
+                    <li className={styles.reviewedItem} key={item.item_id}>
+                      <strong>{position.ticker??"—"}</strong>
+                      <span>{event.label??"Monitored event"}</span>
+                      <em>{feedItemLevel(item).replaceAll("_"," ")}</em>
+                    </li>
+                  );
+                })}
+              </ul>
+            </details>
+          ):null}
         </section>
 
         <section className={styles.missed}>
