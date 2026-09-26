@@ -35,15 +35,25 @@ function pct(value:number|null|undefined){
   return (n>0?"+":"")+n.toFixed(1)+"%";
 }
 
+function addMonthsClamped(source:Date,months:number){
+  const day=source.getUTCDate();
+  const d=new Date(source);
+  d.setUTCDate(1);
+  d.setUTCMonth(d.getUTCMonth()+months);
+  const lastDay=new Date(Date.UTC(d.getUTCFullYear(),d.getUTCMonth()+1,0)).getUTCDate();
+  d.setUTCDate(Math.min(day,lastDay));
+  return d;
+}
+
 function horizonTarget(decidedAt:string,key:string){
-  const d=new Date(decidedAt);
-  if(key==="1d")d.setUTCDate(d.getUTCDate()+1);
-  if(key==="1w")d.setUTCDate(d.getUTCDate()+7);
-  if(key==="1m")d.setUTCMonth(d.getUTCMonth()+1);
-  if(key==="3m")d.setUTCMonth(d.getUTCMonth()+3);
-  if(key==="6m")d.setUTCMonth(d.getUTCMonth()+6);
-  if(key==="1y")d.setUTCFullYear(d.getUTCFullYear()+1);
-  return d.toISOString().slice(0,10);
+  const source=new Date(decidedAt);
+  if(key==="1d"){source.setUTCDate(source.getUTCDate()+1);return source.toISOString().slice(0,10);}
+  if(key==="1w"){source.setUTCDate(source.getUTCDate()+7);return source.toISOString().slice(0,10);}
+  if(key==="1m")return addMonthsClamped(source,1).toISOString().slice(0,10);
+  if(key==="3m")return addMonthsClamped(source,3).toISOString().slice(0,10);
+  if(key==="6m")return addMonthsClamped(source,6).toISOString().slice(0,10);
+  if(key==="1y")return addMonthsClamped(source,12).toISOString().slice(0,10);
+  return source.toISOString().slice(0,10);
 }
 
 export default async function DecisionOutcomePage({
@@ -72,8 +82,6 @@ export default async function DecisionOutcomePage({
   if(!decision)redirect("/portfolio/"+positionId+"/journal");
 
   const since=decision.decided_at;
-  const sinceDate=String(since).slice(0,10);
-
   const [companyR,outcomesR,companyChangesR,researchChangesR,factorHistoryR,alertsR]=await Promise.all([
     supabase.from("companies")
       .select("ticker,company_name")
