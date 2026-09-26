@@ -87,8 +87,8 @@ export default async function WhatMattersPage({
 
         {stale?(
           <div className={styles.warning}>
-            <strong>Source engines are stale.</strong>
-            <span>These items are valid historical signals, but the Company Change / Decision Trigger engines have not been refreshed recently.</span>
+            <strong>Some source updates are stale.</strong>
+            <span>These items remain valid historical signals, but the underlying research-event feeds have not refreshed recently.</span>
           </div>
         ):null}
 
