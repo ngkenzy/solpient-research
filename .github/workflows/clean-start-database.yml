@@ -119,6 +119,11 @@ jobs:
         run: |
           docker exec -i "${{ steps.db.outputs.container }}" psql -v ON_ERROR_STOP=1 -U postgres -d postgres < supabase/tests/group_b13_auto_attention_refresh.sql
 
+      - name: Group B14 position attention integration test
+        shell: bash
+        run: |
+          docker exec -i "${{ steps.db.outputs.container }}" psql -v ON_ERROR_STOP=1 -U postgres -d postgres < supabase/tests/group_b14_position_attention.sql
+
       - name: Database lint
         run: supabase db lint --local --level warning --fail-on error
 
