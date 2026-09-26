@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { SolpientBrand } from "@/components/SolpientBrand";
+import { ConsumerHeader } from "@/components/ConsumerHeader";
 import { createConsumerServerClient } from "@/lib/supabase/server-client";
 import {
   createPortfolioAction,
@@ -194,19 +194,15 @@ export default async function PortfolioPage({
 
   return(
     <div className={styles.page}>
-      <header className={styles.header}>
-        <Link href="/" className={styles.brand}>
-          <SolpientBrand subtitle="Portfolio" />
-        </Link>
-        <nav>
-          <Link href="/what-matters">What Matters</Link>
-          <Link href="/portfolio" className={styles.active}>Portfolio</Link>
-          <Link href="/research">Research</Link>
-        </nav>
-        <form action={signOutAction}>
-          <button className={styles.signOut} type="submit">Sign out</button>
-        </form>
-      </header>
+      <ConsumerHeader
+        active="portfolio"
+        subtitle="Portfolio"
+        action={
+          <form action={signOutAction}>
+            <button className={styles.signOut} type="submit">Sign out</button>
+          </form>
+        }
+      />
 
       <main className={styles.main}>
         <section className={styles.hero}>
@@ -214,7 +210,7 @@ export default async function PortfolioPage({
             <span className={styles.kicker}>YOUR PORTFOLIO</span>
             <h1>{displayName}, know what changed in what you own.</h1>
             <p>
-              B2 connects every holding to Group A's authoritative research state. You can now see which positions are current, stale, under review, or have new evidence before thesis personalization arrives.
+              Each holding is linked to Solpient's latest published research and evidence state. See which positions are current, stale, under review, or have new evidence—and jump directly into your thesis.
             </p>
           </div>
           <div className={styles.heroStats}>

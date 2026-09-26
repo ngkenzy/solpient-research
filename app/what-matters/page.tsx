@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { SolpientBrand } from "@/components/SolpientBrand";
+import { ConsumerHeader } from "@/components/ConsumerHeader";
 import { createConsumerServerClient } from "@/lib/supabase/server-client";
 import { reportMissedEventAction, submitWhatMattersFeedbackAction } from "./actions";
 import styles from "./what-matters.module.css";
@@ -66,14 +67,7 @@ export default async function WhatMattersPage({
 
   return(
     <div className={styles.page}>
-      <header className={styles.header}>
-        <Link href="/" className={styles.brand}><SolpientBrand subtitle="What Matters"/></Link>
-        <nav>
-          <Link className={styles.active} href="/what-matters">What Matters</Link>
-          <Link href="/portfolio">Portfolio</Link>
-          <Link href="/research">Research</Link>
-        </nav>
-      </header>
+      <ConsumerHeader active="what-matters" subtitle="What Matters"/>
 
       <main className={styles.main}>
         <section className={styles.hero}>
@@ -93,8 +87,8 @@ export default async function WhatMattersPage({
 
         {stale?(
           <div className={styles.warning}>
-            <strong>Source engines are stale.</strong>
-            <span>These items are valid historical signals, but the Company Change / Decision Trigger engines have not been refreshed recently.</span>
+            <strong>Some source updates are stale.</strong>
+            <span>These items remain valid historical signals, but the underlying research-event feeds have not refreshed recently.</span>
           </div>
         ):null}
 

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { SolpientBrand } from "@/components/SolpientBrand";
+import { ConsumerHeader } from "@/components/ConsumerHeader";
 import { createConsumerServerClient } from "@/lib/supabase/server-client";
 import { deleteResearchDemandAction, saveResearchDemandAction } from "./actions";
 import styles from "./request.module.css";
@@ -43,14 +43,7 @@ export default async function ResearchRequestPage({
 
   return(
     <div className={styles.page}>
-      <header className={styles.header}>
-        <Link href="/" className={styles.brand}><SolpientBrand subtitle="Research Demand"/></Link>
-        <nav>
-          <Link href="/research">Research</Link>
-          <Link href="/what-matters">What Matters</Link>
-          <Link href="/portfolio">Portfolio</Link>
-        </nav>
-      </header>
+      <ConsumerHeader active="research" subtitle="Research Demand"/>
 
       <main className={styles.main}>
         <section className={styles.hero}>

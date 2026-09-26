@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createConsumerServerClient } from "@/lib/supabase/server-client";
-import { SolpientBrand } from "@/components/SolpientBrand";
+import { ConsumerHeader } from "@/components/ConsumerHeader";
 import { addCustomFactorAction, deleteThesisFactorAction, saveCanonicalFactorAction } from "./actions";
 import styles from "./thesis.module.css";
 
@@ -51,10 +51,7 @@ export default async function ThesisPage({
 
   return(
     <div className={styles.page}>
-      <header className={styles.header}>
-        <Link href="/"><SolpientBrand subtitle="Thesis" /></Link>
-        <Link href="/portfolio">Portfolio</Link>
-      </header>
+      <ConsumerHeader active="portfolio" subtitle="Thesis"/>
 
       <main className={styles.main}>
         <Link href="/portfolio" className={styles.back}>← Back to Portfolio</Link>

@@ -10,7 +10,7 @@ import { CompanyChangePanel } from "@/components/CompanyChangePanel";
 import { DecisionTriggerPanel } from "@/components/DecisionTriggerPanel";
 import { ResearchControls } from "@/components/ResearchControls";
 import { PredictionHistory } from "@/components/PredictionHistory";
-import { SolpientBrand } from "@/components/SolpientBrand";
+import { ConsumerHeader } from "@/components/ConsumerHeader";
 import { ResearchStandardV1 } from "@/components/ResearchStandardV1";
 import { ResearchStandardV2 } from "@/components/ResearchStandardV2";
 
@@ -320,15 +320,7 @@ export default async function CompanyResearch({
 
   return (
     <>
-      <header className="siteHeader">
-        <SolpientBrand />
-        <nav>
-          <Link href="/research">Rankings</Link>
-          <Link href="/watchlist">Watchlist</Link>
-          <Link href="/alerts">Alerts</Link>
-          <span>Evidence-led investing</span>
-        </nav>
-      </header>
+      <ConsumerHeader active="research" subtitle="Research"/>
 
       <main className="researchShell">
         <div className="researchTopbar">

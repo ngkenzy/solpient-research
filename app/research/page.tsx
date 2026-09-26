@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getSupabase } from "@/lib/supabase";
-import { SolpientBrand } from "@/components/SolpientBrand";
+import { ConsumerHeader } from "@/components/ConsumerHeader";
 import { decisionRankingMap, loadLatestDecisionRanking, readinessDisplay } from "@/lib/decision-ranking-read-model";
 
 export const dynamic = "force-dynamic";
@@ -174,17 +174,7 @@ export default async function ResearchIndex() {
 
   return (
     <>
-      <header className="siteHeader">
-        <SolpientBrand />
-        <nav>
-          <Link href="/research">Rankings</Link>
-          <Link href="/portfolio">Portfolio</Link>
-          <Link href="/research/request">Request research</Link>
-          <Link href="/watchlist">Watchlist</Link>
-          <Link href="/alerts">Alerts</Link>
-          <span>Evidence-led investing</span>
-        </nav>
-      </header>
+      <ConsumerHeader active="research" subtitle="Research"/>
 
       <main className="rankingShell">
         <Link className="backLink" href="/">← SOLPIENT Research</Link>
@@ -195,16 +185,16 @@ export default async function ResearchIndex() {
             <h1>Company research, ranked.</h1>
             <p>
               {phase3Ranking.available
-                ? "Phase 3 separates business quality, investment opportunity, and evidence confidence. Readiness gates the ranking before decision score."
-                : "The strongest latest research rises to the top. Legacy ranking remains active until the Phase 3 decision-ranking snapshot is available."}
+                ? "Solpient separates business quality, investment opportunity, and evidence confidence. Research readiness determines whether a company is complete enough for decision-grade comparison."
+                : "The strongest published research rises to the top using the best available valuation and evidence context."}
             </p>
           </div>
 
           <div className="rankingHeroStats">
             {phase3Ranking.available ? (
               <>
-                <div><span>Decision Ready</span><strong>{decisionReadyCount}</strong></div>
-                <div><span>Research Ready</span><strong>{researchReadyCount}</strong></div>
+                <div><span>Decision-grade</span><strong>{decisionReadyCount}</strong></div>
+                <div><span>Research-ready</span><strong>{researchReadyCount}</strong></div>
                 <div><span>Building</span><strong>{buildingCount}</strong></div>
                 <div><span>Published</span><strong>{ranked.length}/{companies?.length ?? 0}</strong></div>
               </>
@@ -228,7 +218,7 @@ export default async function ResearchIndex() {
             <span>
               {phase3Ranking.available
                 ? "Business Quality measures the company. Investment Opportunity measures the stock at today's price. Evidence Confidence determines whether the work is Building, Research Ready, or Decision Ready."
-                : "Legacy score measures research quality across business quality, growth, valuation, financial strength, moat, and thesis integrity."}
+                : "Research score measures the strength of the published work across business quality, growth, valuation, financial strength, moat, and thesis integrity."}
             </span>
           </div>
           <div>
