@@ -1,0 +1,15 @@
+.page{min-height:100vh;background:#0c1016;color:#f5f7fa}
+.main{width:min(1080px,calc(100% - 32px));margin:0 auto;padding:36px 0 90px}
+.hero{display:grid;grid-template-columns:1.4fr .6fr;gap:28px;align-items:end;padding:30px;border:1px solid rgba(255,255,255,.08);border-radius:22px;background:#111720}
+.hero>div:first-child>span,.stepBody>span,.progressBox>span{font-size:.68rem;letter-spacing:.14em;color:#7f8997}
+.hero h1{margin:8px 0 12px;font-size:clamp(2.3rem,5vw,4.4rem);line-height:.98}.hero p{max-width:720px;margin:0;color:#aab2bd;line-height:1.6}
+.progressBox{padding:18px;border:1px solid rgba(255,255,255,.08);border-radius:15px}.progressBox strong{display:block;font-size:2rem;margin:6px 0 10px}.progressBox>div{height:7px;border-radius:99px;background:rgba(255,255,255,.07);overflow:hidden}.progressBox i{display:block;height:100%;background:#dfe4ec;border-radius:99px}
+.error{margin-top:16px;padding:12px 14px;border:1px solid rgba(255,90,90,.25);background:rgba(255,90,90,.1);border-radius:12px}
+.steps{display:grid;gap:14px;margin-top:18px}.steps article{display:grid;grid-template-columns:52px 1fr;gap:18px;padding:22px;border:1px solid rgba(255,255,255,.08);border-radius:18px;background:#111720}.steps .done{border-color:rgba(88,200,150,.28)}.steps .locked{opacity:.55}
+.stepNumber{width:42px;height:42px;display:grid;place-items:center;border-radius:12px;background:rgba(255,255,255,.07);font-weight:800}.done .stepNumber{background:rgba(88,200,150,.16);color:#8ce0b5}
+.stepBody h2{margin:5px 0 8px}.stepBody p{margin:0 0 14px;color:#aab2bd;line-height:1.55}
+.positionForm{display:grid;grid-template-columns:1.5fr .7fr .8fr auto;gap:10px;align-items:end}.positionForm label{display:grid;gap:6px}.positionForm label span{font-size:.72rem;color:#87919f}.positionForm select,.positionForm input{width:100%;box-sizing:border-box;border:1px solid rgba(255,255,255,.11);border-radius:10px;background:#0d131b;color:#fff;padding:10px}.positionForm button,.finish{border:0;border-radius:10px;padding:11px 14px;background:#f5f7fa;color:#11161d;font-weight:700;cursor:pointer}
+.positionList{display:grid;gap:8px}.positionList div{display:flex;justify-content:space-between;gap:14px;padding:10px 12px;border-radius:10px;background:rgba(255,255,255,.025)}.positionList span{color:#8f99a7}
+.primaryLink{color:#fff;text-decoration:none;font-weight:700}.muted{color:#77818f}
+.skip{text-align:center;margin-top:18px}.skip button{border:0;background:transparent;color:#7f8997;cursor:pointer}.skip button:hover{color:#fff}
+@media(max-width:800px){.hero{grid-template-columns:1fr}.positionForm{grid-template-columns:1fr}.steps article{grid-template-columns:42px 1fr}}

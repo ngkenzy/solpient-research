@@ -15,10 +15,17 @@ export async function signInAction(formData:FormData) {
   if(!email||!password) redirect("/login?error=missing");
 
   const supabase=await createConsumerServerClient();
-  const {error}=await supabase.auth.signInWithPassword({email,password});
+  const {data,error}=await supabase.auth.signInWithPassword({email,password});
 
-  if(error) redirect("/login?error=signin");
-  redirect("/portfolio");
+  if(error||!data.user) redirect("/login?error=signin");
+
+  const {data:profile}=await supabase
+    .from("profiles")
+    .select("onboarding_completed")
+    .eq("user_id",data.user.id)
+    .maybeSingle();
+
+  redirect(profile?.onboarding_completed?"/portfolio":"/onboarding");
 }
 
 export async function signUpAction(formData:FormData) {
@@ -38,11 +45,11 @@ export async function signUpAction(formData:FormData) {
     password,
     options:{
       data:{display_name:displayName||null},
-      ...(callbackOrigin ? {emailRedirectTo:callbackOrigin+"/auth/callback?next=/portfolio"} : {}),
+      ...(callbackOrigin ? {emailRedirectTo:callbackOrigin+"/auth/callback?next=/onboarding"} : {}),
     },
   });
 
   if(error) redirect("/login?mode=signup&error=signup");
-  if(data.session) redirect("/portfolio");
+  if(data.session) redirect("/onboarding");
   redirect("/login?message=check-email");
 }
