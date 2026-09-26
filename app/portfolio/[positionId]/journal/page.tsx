@@ -148,6 +148,7 @@ export default async function DecisionJournalPage({
                   <footer>
                     <span>{factorCount} personal thesis factor{factorCount===1?"":"s"} captured</span>
                     {decision.supersedes_decision_id?<span>Correction of prior entry</span>:null}
+                    <Link href={"/portfolio/"+positionId+"/journal/"+decision.id}>View outcome attribution →</Link>
                   </footer>
                 </div>
               </article>

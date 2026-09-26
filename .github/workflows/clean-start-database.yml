@@ -129,6 +129,11 @@ jobs:
         run: |
           docker exec -i "${{ steps.db.outputs.container }}" psql -v ON_ERROR_STOP=1 -U postgres -d postgres < supabase/tests/group_b15_decision_journal.sql
 
+      - name: Group B16 decision-outcome attribution test
+        shell: bash
+        run: |
+          docker exec -i "${{ steps.db.outputs.container }}" psql -v ON_ERROR_STOP=1 -U postgres -d postgres < supabase/tests/group_b16_decision_outcomes.sql
+
       - name: Database lint
         run: supabase db lint --local --level warning --fail-on error
 

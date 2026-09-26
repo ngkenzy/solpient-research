@@ -1,0 +1,23 @@
+.page{min-height:100vh;background:#0c1016;color:#f5f7fa}
+.main{width:min(1080px,calc(100% - 32px));margin:0 auto;padding:36px 0 80px}
+.back{display:inline-block;margin-bottom:20px;color:#9ba5b3;text-decoration:none}
+.hero,.decision,.section,.note{border:1px solid rgba(255,255,255,.08);background:#111720;border-radius:20px}
+.hero{display:flex;justify-content:space-between;gap:24px;align-items:end;padding:28px}
+.hero span,.decision>span,.heading span,.horizonCard>span,.list small{font-size:.68rem;letter-spacing:.13em;color:#7f8997}
+.hero h1{margin:8px 0 8px;font-size:clamp(2rem,4vw,3.4rem)}
+.hero p,.heading p{margin:0;color:#98a3b0}
+.badge{padding:8px 11px;border:1px solid rgba(255,255,255,.12);border-radius:999px;color:#cfd5dd;font-size:.78rem}
+.decision,.section,.note{margin-top:18px;padding:22px}
+.decision p{font-size:1.08rem;line-height:1.65;color:#d3d8df}.decision footer{color:#8d97a4;font-size:.8rem}.decision footer strong{color:#f5f7fa}
+.heading{display:flex;align-items:end;justify-content:space-between;gap:20px}.heading h2{margin:5px 0 0;font-size:1.35rem}.heading strong{font-size:1.3rem}
+.horizonGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:18px}
+.horizonCard{min-height:150px;padding:16px;border-radius:14px;border:1px solid rgba(255,255,255,.07);background:#0e141d;display:flex;flex-direction:column;gap:10px}
+.horizonCard>strong{font-size:1.9rem}.pending{font-size:1.1rem!important;color:#8993a0}
+.horizonCard dl{display:grid;gap:6px;margin:0}.horizonCard dl div{display:flex;justify-content:space-between;gap:12px}.horizonCard dt,.horizonCard dd,.horizonCard small{font-size:.78rem;color:#8f99a7}.horizonCard dd{margin:0;color:#c9d0d9}
+.method{margin-top:14px;padding:12px 14px;border-radius:12px;background:#0d131b;color:#8f99a7;font-size:.8rem;line-height:1.5}
+.list{display:grid;gap:10px;margin-top:16px}.list article{display:flex;justify-content:space-between;gap:22px;padding:15px;border:1px solid rgba(255,255,255,.07);border-radius:12px;background:#0e141d}
+.list h3{margin:5px 0 5px;font-size:1rem}.list p{margin:0;color:#a9b2bf;line-height:1.5}.list time{white-space:nowrap;color:#7f8997;font-size:.75rem}
+.empty{padding:18px 0;color:#8e98a7}
+.note strong{font-size:1rem}.note p{margin:7px 0 0;color:#9da7b4;line-height:1.6}
+@media(max-width:760px){.hero,.heading,.list article{align-items:flex-start;flex-direction:column}.horizonGrid{grid-template-columns:1fr 1fr}.list time{white-space:normal}}
+@media(max-width:520px){.horizonGrid{grid-template-columns:1fr}}
