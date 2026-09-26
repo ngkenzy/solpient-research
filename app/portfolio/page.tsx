@@ -344,7 +344,8 @@ export default async function PortfolioPage({
                 ):(
                   <div className={styles.empty}>
                     <strong>No positions yet.</strong>
-                    <span>Add the first company above. ADBE is a good test of the full research link.</span>
+                    <span>Add a company above, or use the guided setup to connect your first holding to its thesis.</span>
+                    <Link href="/onboarding">Start guided setup →</Link>
                   </div>
                 )}
               </article>
