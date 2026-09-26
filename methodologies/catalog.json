@@ -1618,8 +1618,8 @@
       "methodology_key": "personal_ranking",
       "version": "personal-ranking-v1",
       "name": "Personal Ranking V1",
-      "category": "consumer_ranking",
-      "risk_class": "medium",
+      "category": "ranking",
+      "risk_class": "moderate",
       "purpose": "Rank material company changes for one user across their own private owned/watch universe. Never a market-wide or public leaderboard.",
       "owner": "Solpient",
       "source_files": [

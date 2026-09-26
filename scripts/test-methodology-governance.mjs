@@ -15,7 +15,7 @@ import {
 const catalog=JSON.parse(fs.readFileSync(new URL("../methodologies/catalog.json",import.meta.url),"utf8"));
 const validation=validateCatalog(catalog.methodologies);
 assert.equal(validation.valid,true,validation.errors.join("\n"));
-assert.equal(validation.manifests.length,24);
+assert.equal(validation.manifests.length,25);
 assert.ok(validation.manifests.some(m=>m.version==="decision-ranking-v1"));
 assert.ok(validation.manifests.some(m=>m.version==="context-v2-provenance"));
 assert.ok(validation.manifests.some(m=>m.version==="evidence-provenance-v1"));
@@ -36,6 +36,7 @@ assert.ok(validation.manifests.some(m=>m.version==="solpient-universe-screen-v2.
 assert.ok(validation.manifests.some(m=>m.version==="solpient-universe-screen-v2.2"));
 assert.ok(validation.manifests.some(m=>m.version==="solpient-universe-screen-v2.3"));
 assert.ok(validation.manifests.some(m=>m.version==="solpient-valuation-methodology-v3"));
+assert.ok(validation.manifests.some(m=>m.version==="personal-ranking-v1"));
 
 const decision=validation.manifests.find(m=>m.version==="decision-ranking-v1");
 const decisionCheck=validateManifest(decision);
