@@ -91,6 +91,7 @@ $$;
 
 revoke all on function consumer_private.refresh_consumer_attention_batch_v1(date,date,integer)
   from public,anon,authenticated;
+grant usage on schema consumer_private to service_role;
 grant execute on function consumer_private.refresh_consumer_attention_batch_v1(date,date,integer)
   to service_role;
 
