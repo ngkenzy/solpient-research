@@ -1,0 +1,12 @@
+.page{min-height:100vh;background:#0c1016;color:#f5f7fa}
+.main{width:min(860px,calc(100% - 32px));margin:0 auto;padding:36px 0 80px}
+.back{display:inline-block;margin-bottom:20px;color:#9ba5b3;text-decoration:none}
+.hero,.panel{border:1px solid rgba(255,255,255,.08);background:#111720;border-radius:20px}
+.hero{padding:28px}.hero>span{font-size:.68rem;letter-spacing:.15em;color:#7f8997}.hero h1{margin:8px 0 10px;font-size:clamp(2rem,5vw,3.6rem)}.hero p{margin:0;max-width:700px;color:#a9b2bf;line-height:1.6}
+.error{margin-top:16px;padding:12px 14px;border:1px solid rgba(255,90,90,.24);background:rgba(255,90,90,.1);border-radius:12px}
+.panel{margin-top:18px;padding:24px}
+.form{display:grid;gap:20px}.form>label{display:grid;gap:8px}.form>label>span{font-size:.78rem;color:#aeb6c2}.form select{width:100%;box-sizing:border-box;border:1px solid rgba(255,255,255,.12);border-radius:10px;background:#0d131b;color:#fff;padding:11px}
+.form small{color:#7f8997;line-height:1.45}
+.toggle{grid-template-columns:auto 1fr;align-items:start}.toggle input{margin-top:4px}.toggle span{display:grid;gap:4px}.toggle strong{color:#fff}
+.form button{justify-self:start;border:0;border-radius:10px;padding:11px 15px;background:#f6f7f9;color:#11161d;font-weight:700;cursor:pointer}
+.links{display:flex;gap:16px;flex-wrap:wrap;margin-top:18px}.links a{color:#dfe5ed;text-decoration:none}
