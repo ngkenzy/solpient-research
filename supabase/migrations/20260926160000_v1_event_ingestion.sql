@@ -1,5 +1,13 @@
 -- V1 Event Ingestion — PRD Build 4 (the big rock).
 --
+-- 0. The consumer_private schema is created by an earlier consumer migration;
+--    created idempotently here so this file is robust on its own.
+create schema if not exists consumer_private;
+-- The authenticated role needs USAGE to reach the public wrappers' private
+-- callees (same model as the consumer RPC hardening migration); execute on
+-- individual functions is granted per-function below.
+grant usage on schema consumer_private to anon,authenticated,service_role;
+--
 -- The materiality engine previously only diffed research snapshots, so six of
 -- the PRD §15 event categories (guidance, management, regulatory, competition,
 -- capital allocation, business) could never fire. This migration adds the
@@ -346,36 +354,9 @@ using ((select auth.uid())=user_id);
 
 -- ---------------------------------------------------------------------------
 -- 7. Stage A engine: deterministic assessment of one classified event.
+--    (Private implementation first; the public wrapper in 7b below must come
+--    after it because LANGUAGE sql bodies resolve names at CREATE time.)
 -- ---------------------------------------------------------------------------
---
--- Public service-role-only wrapper for the Stage A assessment.
---
--- PostgREST only exposes the public schema, so a server worker (service role)
--- cannot call consumer_private functions through the REST/RPC surface. This
--- thin wrapper exists so scripts/ingest-company-events.mjs can trigger the
--- deterministic Stage A assessment after inserting events. It is revoked from
--- every role except service_role: there is no authenticated path.
-
-create or replace function public.assess_company_event_materiality_v1(
-  p_company_change_event_id uuid
-)
-returns void
-language sql
-security invoker
-set search_path=consumer_private,public,pg_temp
-as $$
-  select consumer_private.assess_company_event_materiality_v1(p_company_change_event_id);
-$$;
-
-revoke all on function public.assess_company_event_materiality_v1(uuid)
-  from public,anon,authenticated;
-grant execute on function public.assess_company_event_materiality_v1(uuid)
-  to service_role;
-
-comment on function public.assess_company_event_materiality_v1(uuid) is
-  'SOLPIENT V1 event ingestion (service-role only). Server worker entry point for the '
-  'deterministic Stage A company-level materiality assessment '
-  '(methodology group-b-event-materiality-v1). Revoked from anon/authenticated.';
 
 create or replace function consumer_private.assess_company_event_materiality_v1(
   p_event_id uuid
@@ -471,6 +452,40 @@ grant execute on function consumer_private.assess_company_event_materiality_v1(u
 
 comment on function consumer_private.assess_company_event_materiality_v1(uuid) is
   'Stage A: deterministic company-materiality assessment of one classified event (group-b-event-materiality-v1). Emits explicit not_material rows; no LLM in the path.';
+
+-- ---------------------------------------------------------------------------
+-- 7b. Public service-role-only wrapper for the Stage A assessment.
+-- ---------------------------------------------------------------------------
+--
+-- PostgREST only exposes the public schema, so a server worker (service role)
+-- cannot call consumer_private functions through the REST/RPC surface. This
+-- thin wrapper exists so scripts/ingest-company-events.mjs can trigger the
+-- deterministic Stage A assessment after inserting events. It is revoked from
+-- every role except service_role: there is no authenticated path.
+--
+-- NOTE: this must be created AFTER consumer_private.assess_company_event_materiality_v1
+-- above: LANGUAGE sql function bodies resolve called functions at CREATE time.
+
+create or replace function public.assess_company_event_materiality_v1(
+  p_company_change_event_id uuid
+)
+returns void
+language sql
+security invoker
+set search_path=consumer_private,public,pg_temp
+as $$
+  select consumer_private.assess_company_event_materiality_v1(p_company_change_event_id);
+$$;
+
+revoke all on function public.assess_company_event_materiality_v1(uuid)
+  from public,anon,authenticated;
+grant execute on function public.assess_company_event_materiality_v1(uuid)
+  to service_role;
+
+comment on function public.assess_company_event_materiality_v1(uuid) is
+  'SOLPIENT V1 event ingestion (service-role only). Server worker entry point for the '
+  'deterministic Stage A company-level materiality assessment '
+  '(methodology group-b-event-materiality-v1). Revoked from anon/authenticated.';
 
 -- Pipeline entrypoint: assess every unassessed event since p_since.
 create or replace function consumer_private.assess_company_events_since_v1(
@@ -765,7 +780,7 @@ create or replace function public.refresh_my_materiality_assessments_v1(
 )
 returns jsonb
 language sql
-stable
+volatile
 security invoker
 set search_path=''
 as $$

@@ -273,6 +273,14 @@ $e1_knowledge_ordering$;
 
 select 1 as e1_knowledge_before_disclosure_enforced;
 
+-- The authenticated Stage B refresh performs writes: it must be VOLATILE.
+select 1 / case when (
+  select p.provolatile='v'
+  from pg_proc p join pg_namespace n on n.oid=p.pronamespace
+  where n.nspname='public' and p.proname='refresh_my_materiality_assessments_v1'
+)=true then 1 else 0 end
+as e1_refresh_my_is_volatile;
+
 -- Service-role-only Stage A wrapper: denied for authenticated, usable for the worker.
 reset role;
 set local role authenticated;
