@@ -116,8 +116,19 @@ async function resolveAffectedFact(companyId, category) {
   return null;
 }
 
+async function attachEvent(eventId) {
+  if (dryRun) return;
+  const { error } = await sb.rpc("attach_event_affected_company_v1", {
+    p_event_id: eventId,
+  });
+  if (error) throw error;
+}
+
 async function assessEvent(eventId) {
   if (dryRun) return;
+  // Attachment first: supplier/competitor/regulatory events are filed under the
+  // owned company whose thesis they affect before materiality is assessed.
+  await attachEvent(eventId);
   const { error } = await sb.rpc("assess_company_event_materiality_v1", {
     p_company_change_event_id: eventId,
   });

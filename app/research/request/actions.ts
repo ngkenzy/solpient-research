@@ -39,6 +39,11 @@ export async function saveResearchDemandAction(formData:FormData){
 
   if(companyError||!company) redirect("/research/request?error=company");
 
+  if(requestType==="deep_dive"){
+    const {data:quota,error:quotaError}=await supabase.rpc("get_my_research_request_quota_v1");
+    if(!quotaError&&quota&&Number(quota.used)>=Number(quota.quota)) redirect("/research/request?error=quota");
+  }
+
   const {error}=await supabase
     .from("research_demand_requests")
     .upsert({
@@ -53,7 +58,10 @@ export async function saveResearchDemandAction(formData:FormData){
       onConflict:"user_id,company_id",
     });
 
-  if(error) redirect("/research/request?error=save");
+  if(error){
+    if(String(error.message??"").includes("deep_dive_quota_exceeded")) redirect("/research/request?error=quota");
+    redirect("/research/request?error=save");
+  }
 
   await track("research_requested",{company_id:companyId,request_type:requestType});
 

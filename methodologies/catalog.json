@@ -1613,6 +1613,60 @@
         "historical_interpretation": true
       },
       "legacy_bootstrap": false
+    },
+    {
+      "methodology_key": "personal_ranking",
+      "version": "personal-ranking-v1",
+      "name": "Personal Ranking V1",
+      "category": "ranking",
+      "risk_class": "moderate",
+      "purpose": "Rank material company changes for one user across their own private owned/watch universe. Never a market-wide or public leaderboard.",
+      "owner": "Solpient",
+      "source_files": [
+        "supabase/migrations/20260926170000_v1_personal_ranking.sql",
+        "app/what-matters/page.tsx"
+      ],
+      "input_contract": {
+        "positions": "portfolio_positions where user_id = caller, relationship in (own, follow)",
+        "materiality": "user_materiality_assessments (Stage A/B user materiality, group-b-user-materiality-v2)",
+        "pinned_factors": "position_thesis_factors with pinned=true",
+        "attached_events": "company_change_events with affected_company_id set by attach_event_affected_company_v1"
+      },
+      "output_contract": {
+        "personal_score": "0-100 deterministic score",
+        "owned_boost": "1.25 for own, 0.75 for follow/watch",
+        "pinned_factor_boost": "(importance - 3) * 5 per pinned factor"
+      },
+      "weights": {
+        "weight_factor": "position weight_share if present, else 1.0",
+        "owned_boost": 1.25,
+        "watch_boost": 0.75
+      },
+      "thresholds": {
+        "monitor_level": "personal_score < 60 is monitor-level, below the decisive threshold"
+      },
+      "assumptions": {
+        "privacy": "all reads scoped to auth.uid(); no cross-user or public reads",
+        "attachment_priority": "supplier, then competitor, then customer, then regulator; explicit affected_company_id never overwritten"
+      },
+      "dependencies": [
+        "group-b-user-materiality-v2"
+      ],
+      "known_limitations": [
+        "Scores are deterministic and rank only the caller's monitored universe; they are not comparable across users.",
+        "Watch items default to 0.75 weight unless pinned factors are set."
+      ],
+      "change_summary": "Initial private personal ranking over own/follow positions with owned boost and event attachment.",
+      "predecessor_version": null,
+      "impacts": {
+        "database": true,
+        "public_ui": false,
+        "publication": false,
+        "ranking": true,
+        "capital_decision": false,
+        "historical_interpretation": false
+      },
+      "legacy_bootstrap": false
     }
   ]
 }

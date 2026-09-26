@@ -6,6 +6,11 @@
 .hero{padding:28px}.hero>span,.heading span{font-size:.68rem;letter-spacing:.15em;color:#7f8997}.hero h1{font-size:clamp(2.2rem,5vw,4rem);margin:8px 0 10px}.hero p{max-width:760px;color:#a9b2bf;line-height:1.6}
 .error{margin-top:16px;padding:12px 14px;border:1px solid rgba(255,90,90,.25);background:rgba(255,90,90,.1);border-radius:12px}
 .panel,.requests{margin-top:18px;padding:22px}
+.quotaCard{margin-top:18px;padding:18px 22px;border:1px solid rgba(255,255,255,.08);background:#101822;border-radius:20px}
+.quotaCard>div{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.quotaCard strong{font-size:1.1rem}
+.quotaCard p{margin:8px 0 0;color:#a9b2bf;line-height:1.55;max-width:760px}
+.cardLabel{font-size:.68rem;letter-spacing:.15em;color:#7f8997}
 .form{display:grid;grid-template-columns:1.3fr 1fr .8fr;gap:12px}.form label{display:grid;gap:7px}.form label span{font-size:.74rem;color:#8f99a7}
 .form select,.form textarea{width:100%;box-sizing:border-box;border:1px solid rgba(255,255,255,.11);border-radius:10px;background:#0d131b;color:#fff;padding:10px}.form textarea{min-height:90px;resize:vertical}.wide{grid-column:1/-1}.form button{grid-column:1/-1;justify-self:start;border:0;border-radius:10px;padding:11px 15px;background:#f6f7f9;color:#11161d;font-weight:700;cursor:pointer}
 .heading{display:flex;justify-content:space-between;align-items:end}.heading h2{margin:5px 0 0}

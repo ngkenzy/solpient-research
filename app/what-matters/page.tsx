@@ -39,7 +39,7 @@ export default async function WhatMattersPage({
   await track("what_matters_opened");
 
   const [{data,error},feedbackR,positionsR]=await Promise.all([
-    supabase.rpc("get_my_what_matters_v1"),
+    supabase.rpc("get_my_personal_ranking_v1"),
     supabase.from("what_matters_feedback").select("item_id,feedback_type,no_reason,note"),
     supabase.from("portfolio_positions")
       .select("id,company_id")
@@ -94,12 +94,13 @@ export default async function WhatMattersPage({
           <span className={styles.kicker}>YOUR THESIS, FILTERED BY CHANGE</span>
           <h1>What matters in what you own.</h1>
           <p>
-            Company-level changes are ranked against the thesis factors you chose for each position. This is research triage, not a trading recommendation.
+            Ranked for your owned and watched companies only — never a market-wide leaderboard. Company-level changes are scored against the thesis factors you chose for each position. This is research triage, not a trading recommendation.
           </p>
           <div className={styles.stats}>
             <div><span>Items</span><strong>{contract.item_count??0}</strong></div>
             <div><span>Source status</span><strong>{String(contract.source_status??"unknown").replaceAll("_"," ")}</strong></div>
             <div><span>Window</span><strong>Since {contract.since??"—"}</strong></div>
+            <div><span>Universe</span><strong>{contract.universe?((contract.universe.owned_names??0)+" owned · "+(contract.universe.watch_names??0)+" watched"):"—"}</strong></div>
           </div>
         </section>
 
@@ -143,8 +144,15 @@ export default async function WhatMattersPage({
                   <span>Company materiality: <b>{event.company_materiality?.score??"—"}</b></span>
                   <span>Decision effect: <b>{String(event.decision_effect??"monitor").replaceAll("_"," ")}</b></span>
                   <span>Occurred: <b>{when(event.occurred_at)}</b></span>
-                  <span>Position: <b>{String(position.relationship??"own")}{position.weight_share!=null?" · "+(Number(position.weight_share)*100).toFixed(1)+"%":""}</b></span>
+                  <span>Position: <b>{String(position.relationship??"own")}{position.weight_share!=null?" · "+(Number(position.weight_share)*100).toFixed(1)+"%":""}{position.owned_boost!=null?" · boost ×"+Number(position.owned_boost).toFixed(2):""}</b></span>
                 </div>
+
+                {event.attached_via?(
+                  <div className={styles.match}>
+                    <strong>Filed under {position.ticker}</strong>
+                    <span>This event concerns {String(event.attached_via.relationship??"a related company")} {event.attached_via.event_company_ticker} — {event.attached_via.event_company_name} — and is ranked here because it affects your {position.ticker} thesis.</span>
+                  </div>
+                ):null}
 
                 {user.personalized?(
                   <div className={styles.match}>
