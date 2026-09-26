@@ -10,5 +10,6 @@ export const config={
     "/login",
     "/auth/:path*",
     "/portfolio/:path*",
+    "/what-matters/:path*",
   ],
 };

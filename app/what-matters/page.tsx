@@ -1,0 +1,134 @@
+import Link from "next/link";
+import { redirect } from "next/navigation";
+import { SolpientBrand } from "@/components/SolpientBrand";
+import { createConsumerServerClient } from "@/lib/supabase/server-client";
+import styles from "./what-matters.module.css";
+
+export const dynamic="force-dynamic";
+export const revalidate=0;
+
+function when(value:string|null|undefined){
+  if(!value) return "—";
+  const d=new Date(value);
+  if(Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric",timeZone:"UTC"});
+}
+
+export default async function WhatMattersPage(){
+  const supabase=await createConsumerServerClient();
+  const {data:claims}=await supabase.auth.getClaims();
+  if(!claims?.claims?.sub) redirect("/login");
+
+  const {data,error}=await supabase.rpc("get_my_what_matters_v1");
+  if(error){
+    return(
+      <main className={styles.errorPage}>
+        <SolpientBrand subtitle="What Matters"/>
+        <h1>What Matters is unavailable.</h1>
+        <p>{error.message}</p>
+        <Link href="/portfolio">Back to Portfolio</Link>
+      </main>
+    );
+  }
+
+  const contract=(data as any)??{};
+  const items=contract.items??[];
+  const stale=contract.source_status==="stale"||contract.source_status==="unavailable";
+
+  return(
+    <div className={styles.page}>
+      <header className={styles.header}>
+        <Link href="/" className={styles.brand}><SolpientBrand subtitle="What Matters"/></Link>
+        <nav>
+          <Link className={styles.active} href="/what-matters">What Matters</Link>
+          <Link href="/portfolio">Portfolio</Link>
+          <Link href="/research">Research</Link>
+        </nav>
+      </header>
+
+      <main className={styles.main}>
+        <section className={styles.hero}>
+          <span className={styles.kicker}>YOUR THESIS, FILTERED BY CHANGE</span>
+          <h1>What matters in what you own.</h1>
+          <p>
+            Company-level changes are ranked against the thesis factors you chose for each position. This is research triage, not a trading recommendation.
+          </p>
+          <div className={styles.stats}>
+            <div><span>Items</span><strong>{contract.item_count??0}</strong></div>
+            <div><span>Source status</span><strong>{String(contract.source_status??"unknown").replaceAll("_"," ")}</strong></div>
+            <div><span>Window</span><strong>Since {contract.since??"—"}</strong></div>
+          </div>
+        </section>
+
+        {stale?(
+          <div className={styles.warning}>
+            <strong>Source engines are stale.</strong>
+            <span>These items are valid historical signals, but the Company Change / Decision Trigger engines have not been refreshed recently.</span>
+          </div>
+        ):null}
+
+        <section className={styles.feed}>
+          {items.length?items.map((item:any)=>{
+            const position=item.position??{};
+            const event=item.event??{};
+            const user=item.user_materiality??{};
+            const source=item.source_freshness??{};
+            return(
+              <article className={styles.card} key={item.item_id}>
+                <div className={styles.topline}>
+                  <Link href={"/research/"+position.ticker} className={styles.company}>
+                    <strong>{position.ticker}</strong>
+                    <span>{position.company_name}</span>
+                  </Link>
+                  <div className={styles.score}>
+                    <span>{String(user.level??"monitor").replaceAll("_"," ")}</span>
+                    <strong>{user.score??0}</strong>
+                  </div>
+                </div>
+
+                <div className={styles.event}>
+                  <span className={styles.eventType}>{String(event.source_kind??"event").replaceAll("_"," ")}</span>
+                  <h2>{event.label??"Material change"}</h2>
+                  <p>{event.summary??"No summary available."}</p>
+                </div>
+
+                <div className={styles.meta}>
+                  <span>Company materiality: <b>{event.company_materiality?.score??"—"}</b></span>
+                  <span>Decision effect: <b>{String(event.decision_effect??"monitor").replaceAll("_"," ")}</b></span>
+                  <span>Occurred: <b>{when(event.occurred_at)}</b></span>
+                </div>
+
+                {user.personalized?(
+                  <div className={styles.match}>
+                    <strong>Matches your thesis: {user.matched_factor_label}</strong>
+                    <span>Importance {user.importance}/5 · {user.reason}</span>
+                    {user.personal_expectation?<p><b>Your expectation:</b> {user.personal_expectation}</p>:null}
+                    {user.personal_breaker_condition?<p><b>Your breaker:</b> {user.personal_breaker_condition}</p>:null}
+                  </div>
+                ):(
+                  <div className={styles.unmatched}>
+                    <span>{user.reason}</span>
+                  </div>
+                )}
+
+                <footer>
+                  <span>Source {source.status??"unknown"} · as of {when(source.source_as_of)}</span>
+                  <div>
+                    <Link href={"/portfolio/"+position.id+"/thesis"}>Edit thesis</Link>
+                    <Link href={"/research/"+position.ticker}>Open research</Link>
+                  </div>
+                </footer>
+              </article>
+            );
+          }):(
+            <div className={styles.empty}>
+              <strong>Nothing is in your What Matters feed yet.</strong>
+              <span>Add positions and personalize thesis factors to make company changes more relevant to you.</span>
+              <Link href="/portfolio">Open Portfolio →</Link>
+            </div>
+          )}
+        </section>
+      </main>
+    </div>
+  );
+}
