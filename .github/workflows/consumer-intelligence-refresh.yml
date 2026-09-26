@@ -1,0 +1,42 @@
+name: SOLPIENT Consumer Intelligence Refresh
+
+on:
+  schedule:
+    - cron: "17 */2 * * *"
+  workflow_dispatch:
+    inputs:
+      batch_size:
+        description: Users processed per database batch
+        required: false
+        default: "200"
+        type: string
+
+concurrency:
+  group: solpient-consumer-intelligence-refresh
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Refresh private consumer intelligence
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          CONSUMER_REFRESH_BATCH_SIZE: ${{ inputs.batch_size || '200' }}
+          CONSUMER_REFRESH_MAX_PAGES: "20"
+          SOLPIENT_PRODUCTION_PROJECT_REF: "hmfrlpsjszjpvzogrico"
+        run: npm run refresh:consumer-intelligence
