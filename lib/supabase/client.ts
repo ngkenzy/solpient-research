@@ -1,13 +1,18 @@
 import { createBrowserClient } from "@supabase/ssr";
+import { resolveAuthEndpoint } from "../auth-endpoints.mjs";
 
-function publicConfig() {
-  const url=process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key=process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if(!url||!key) throw new Error("Supabase public configuration is missing.");
-  return{url,key};
+/**
+ * Hybrid auth-vs-data split: resolves the cloud-only auth endpoint.
+ * resolveAuthEndpoint() can never return the local PostgREST bridge
+ * (it has no /auth/v1), so consumer auth always targets Supabase cloud.
+ */
+function authEndpoint() {
+  const endpoint = resolveAuthEndpoint(process.env);
+  if (!endpoint) throw new Error("Supabase auth configuration is missing.");
+  return endpoint;
 }
 
 export function createConsumerBrowserClient() {
-  const {url,key}=publicConfig();
-  return createBrowserClient(url,key);
+  const { url, key } = authEndpoint();
+  return createBrowserClient(url, key);
 }
