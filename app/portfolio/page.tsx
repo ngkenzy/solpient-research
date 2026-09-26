@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { SolpientBrand } from "@/components/SolpientBrand";
+import { ConsumerHeader } from "@/components/ConsumerHeader";
 import { createConsumerServerClient } from "@/lib/supabase/server-client";
 import {
   createPortfolioAction,
@@ -194,19 +194,15 @@ export default async function PortfolioPage({
 
   return(
     <div className={styles.page}>
-      <header className={styles.header}>
-        <Link href="/" className={styles.brand}>
-          <SolpientBrand subtitle="Portfolio" />
-        </Link>
-        <nav>
-          <Link href="/what-matters">What Matters</Link>
-          <Link href="/portfolio" className={styles.active}>Portfolio</Link>
-          <Link href="/research">Research</Link>
-        </nav>
-        <form action={signOutAction}>
-          <button className={styles.signOut} type="submit">Sign out</button>
-        </form>
-      </header>
+      <ConsumerHeader
+        active="portfolio"
+        subtitle="Portfolio"
+        action={
+          <form action={signOutAction}>
+            <button className={styles.signOut} type="submit">Sign out</button>
+          </form>
+        }
+      />
 
       <main className={styles.main}>
         <section className={styles.hero}>
