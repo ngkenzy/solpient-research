@@ -14,6 +14,15 @@ const money=(v:unknown)=>v!==null&&v!==undefined&&Number.isFinite(Number(v))
   :"—";
 const label=(v:string)=>String(v??"").replaceAll("_"," ").replace(/\b\w/g,c=>c.toUpperCase());
 
+type DemandSummary={
+  company_id:string;
+  request_count:number|string;
+  high_priority_count:number|string;
+  average_priority:number|string|null;
+  latest_requested_at:string|null;
+  latest_question:string|null;
+};
+
 export default async function ResearchCandidatesPage(){
   await requireReviewAccess();
   const supabase=getAdminSupabase();
@@ -43,8 +52,8 @@ export default async function ResearchCandidatesPage(){
     .rpc("get_research_demand_summary_v1");
   if(demandError)throw demandError;
 
-  const demandByCompany=new Map(
-    (demandRows??[]).map((row:any)=>[row.company_id,row])
+  const demandByCompany=new Map<string,DemandSummary>(
+    ((demandRows??[]) as DemandSummary[]).map((row)=>[row.company_id,row])
   );
 
   const counts={
