@@ -67,7 +67,11 @@ export default async function WhatMattersPage({
 
   return(
     <div className={styles.page}>
-      <ConsumerHeader active="what-matters" subtitle="What Matters"/>
+      <ConsumerHeader
+        active="what-matters"
+        subtitle="What Matters"
+        action={<Link href="/inbox">Alerts</Link>}
+      />
 
       <main className={styles.main}>
         <section className={styles.hero}>
