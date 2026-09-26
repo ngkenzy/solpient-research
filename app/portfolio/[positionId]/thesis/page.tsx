@@ -54,7 +54,12 @@ export default async function ThesisPage({
       <ConsumerHeader
         active="portfolio"
         subtitle="Thesis"
-        action={<Link href={"/portfolio/"+positionId+"/thesis/audit"}>Audit trail</Link>}
+        action={
+          <>
+            <Link href={"/portfolio/"+positionId+"/journal"}>Decision journal</Link>
+            <Link href={"/portfolio/"+positionId+"/thesis/audit"}>Audit trail</Link>
+          </>
+        }
       />
 
       <main className={styles.main}>
