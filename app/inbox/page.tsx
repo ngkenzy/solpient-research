@@ -77,7 +77,11 @@ export default async function InboxPage({
 
   return(
     <div className={styles.page}>
-      <ConsumerHeader active="what-matters" subtitle="Alerts"/>
+      <ConsumerHeader
+        active="what-matters"
+        subtitle="Alerts"
+        action={<Link href="/digest">Daily Digest</Link>}
+      />
 
       <main className={styles.main}>
         <section className={styles.hero}>
