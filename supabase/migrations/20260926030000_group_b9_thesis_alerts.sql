@@ -59,7 +59,7 @@ for each row execute function private.set_consumer_updated_at_v1();
 alter table public.user_alert_preferences enable row level security;
 alter table public.thesis_alerts enable row level security;
 
-revoke all on public.user_alert_preferences from public,anon;
+revoke all on public.user_alert_preferences from public,anon,authenticated;
 revoke all on public.thesis_alerts from public,anon,authenticated;
 
 grant select,insert,update,delete on public.user_alert_preferences to authenticated;
