@@ -210,7 +210,7 @@ export default async function PortfolioPage({
             <span className={styles.kicker}>YOUR PORTFOLIO</span>
             <h1>{displayName}, know what changed in what you own.</h1>
             <p>
-              B2 connects every holding to Group A's authoritative research state. You can now see which positions are current, stale, under review, or have new evidence before thesis personalization arrives.
+              Each holding is linked to Solpient's latest published research and evidence state. See which positions are current, stale, under review, or have new evidence—and jump directly into your thesis.
             </p>
           </div>
           <div className={styles.heroStats}>
