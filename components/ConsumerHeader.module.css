@@ -78,3 +78,18 @@
   .actions{justify-self:end}
   .request{display:none}
 }
+
+.actions>a,.actions button{
+  color:#d9dfe7;
+  text-decoration:none;
+  font-size:.8rem;
+  padding:9px 12px;
+  border:1px solid rgba(255,255,255,.1);
+  border-radius:10px;
+  background:transparent;
+  cursor:pointer;
+}
+.actions>a:hover,.actions button:hover{
+  color:#fff;
+  border-color:rgba(255,255,255,.24);
+}
