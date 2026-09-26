@@ -1,0 +1,43 @@
+name: SOLPIENT Decision Outcome Refresh
+
+on:
+  schedule:
+    - cron: "47 */4 * * *"
+  workflow_dispatch:
+    inputs:
+      batch_size:
+        description: Maximum due decision horizons to materialize
+        required: false
+        default: "500"
+        type: string
+
+concurrency:
+  group: solpient-decision-outcome-refresh
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Validate worker syntax
+        run: node --check scripts/refresh-decision-outcomes.mjs
+
+      - name: Materialize due decision outcomes
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          DECISION_OUTCOME_BATCH_SIZE: ${{ inputs.batch_size || '500' }}
+        run: node scripts/refresh-decision-outcomes.mjs

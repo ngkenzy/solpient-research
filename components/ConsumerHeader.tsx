@@ -16,9 +16,7 @@ export function ConsumerHeader({
 }){
   return(
     <header className={styles.header}>
-      <Link href="/" className={styles.brand}>
-        <SolpientBrand subtitle={subtitle}/>
-      </Link>
+      <SolpientBrand className={styles.brand} subtitle={subtitle}/>
 
       <nav className={styles.nav} aria-label="Primary">
         <Link
