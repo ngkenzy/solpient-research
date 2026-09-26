@@ -1,0 +1,107 @@
+-- Group B / B2 security hardening.
+-- Keep the API-visible RPC SECURITY INVOKER and move the privileged Group A read
+-- into a dedicated schema that is not exposed by PostgREST.
+
+create schema if not exists consumer_private;
+
+revoke all on schema consumer_private from public,anon;
+grant usage on schema consumer_private to authenticated;
+
+create or replace function consumer_private.get_my_portfolio_research_state_v1(
+  p_as_of timestamptz default now()
+)
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path=''
+as $$
+declare
+  v_user_id uuid;
+  v_positions jsonb;
+begin
+  v_user_id:=auth.uid();
+
+  if v_user_id is null then
+    raise exception 'Authentication required.'
+      using errcode='42501';
+  end if;
+
+  select coalesce(
+    jsonb_agg(
+      jsonb_build_object(
+        'position_id',x.position_id,
+        'portfolio_id',x.portfolio_id,
+        'portfolio_name',x.portfolio_name,
+        'company_id',x.company_id,
+        'ticker',x.ticker,
+        'company_name',x.company_name,
+        'quantity',x.quantity,
+        'average_cost',x.average_cost,
+        'opened_at',x.opened_at,
+        'research_contract',x.research_contract
+      )
+      order by x.portfolio_name,x.ticker,x.position_id
+    ),
+    '[]'::jsonb
+  )
+  into v_positions
+  from (
+    select
+      pp.id as position_id,
+      pp.portfolio_id,
+      p.name as portfolio_name,
+      pp.company_id,
+      c.ticker,
+      c.company_name,
+      pp.quantity,
+      pp.average_cost,
+      pp.opened_at,
+      public.get_company_research_contract_v1(pp.company_id,p_as_of) as research_contract
+    from public.portfolio_positions pp
+    join public.portfolios p
+      on p.id=pp.portfolio_id
+     and p.user_id=pp.user_id
+    join public.companies c
+      on c.id=pp.company_id
+    where pp.user_id=v_user_id
+  ) x;
+
+  return jsonb_build_object(
+    'contract_version','group-b-portfolio-research-state-v1',
+    'as_of',p_as_of,
+    'positions',v_positions
+  );
+end
+$$;
+
+revoke all on function consumer_private.get_my_portfolio_research_state_v1(timestamptz)
+  from public,anon;
+grant execute on function consumer_private.get_my_portfolio_research_state_v1(timestamptz)
+  to authenticated;
+
+create or replace function public.get_my_portfolio_research_state_v1(
+  p_as_of timestamptz default now()
+)
+returns jsonb
+language sql
+stable
+security invoker
+set search_path=''
+as $$
+  select consumer_private.get_my_portfolio_research_state_v1(p_as_of);
+$$;
+
+revoke all on function public.get_my_portfolio_research_state_v1(timestamptz)
+  from public,anon;
+grant execute on function public.get_my_portfolio_research_state_v1(timestamptz)
+  to authenticated;
+
+comment on schema consumer_private is
+  'Non-exposed helpers for authenticated consumer contracts. Do not add this schema to PostgREST exposed schemas.';
+
+comment on function consumer_private.get_my_portfolio_research_state_v1(timestamptz) is
+  'Privileged B2 helper. Ownership is derived only from auth.uid(); schema is intentionally not API-exposed.';
+
+comment on function public.get_my_portfolio_research_state_v1(timestamptz) is
+  'API-visible SECURITY INVOKER wrapper for the user-scoped B2 portfolio research contract.';

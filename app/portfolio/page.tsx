@@ -31,6 +31,71 @@ function quantity(value:number) {
   return new Intl.NumberFormat("en-US",{maximumFractionDigits:4}).format(value);
 }
 
+function researchState(contract:any) {
+  const coverage=contract?.coverage?.coverage_level ?? "MONITORED";
+  const currentResearch=contract?.current_research ?? null;
+  const freshness=Object.values(contract?.freshness ?? {}) as any[];
+  const statuses=freshness.map((item:any)=>String(item?.status??""));
+
+  const count=(status:string)=>statuses.filter((value)=>value===status).length;
+  const newEvidence=count("NEW_EVIDENCE");
+  const reviewDue=count("REVIEW_DUE");
+  const stale=count("STALE");
+
+  let label="Current";
+  let tone="current";
+  let attention=false;
+
+  if(newEvidence>0){
+    label="New evidence";
+    tone="newEvidence";
+    attention=true;
+  }else if(reviewDue>0){
+    label="Review due";
+    tone="reviewDue";
+    attention=true;
+  }else if(stale>0){
+    label="Stale";
+    tone="stale";
+    attention=true;
+  }else if(!currentResearch){
+    label="Monitored";
+    tone="monitored";
+  }
+
+  const coverageLabel=coverage==="DEEP_COVERAGE"
+    ? "Deep coverage"
+    : coverage==="RESEARCHED"
+      ? "Researched"
+      : "Monitored";
+
+  const version=currentResearch?.version ? "v"+currentResearch.version : null;
+  const detail=[coverageLabel,version].filter(Boolean).join(" · ");
+
+  return{
+    label,
+    tone,
+    attention,
+    detail,
+    dataCutoffAt:currentResearch?.data_cutoff_at ?? null,
+    newEvidence,
+    reviewDue,
+    stale,
+  };
+}
+
+function shortDate(value:string|null|undefined) {
+  if(!value) return null;
+  const date=new Date(value);
+  if(Number.isNaN(date.getTime())) return null;
+  return date.toLocaleDateString("en-US",{
+    month:"short",
+    day:"numeric",
+    year:"numeric",
+    timeZone:"UTC",
+  });
+}
+
 const errors:Record<string,string>={
   portfolio:"Portfolio could not be saved.",
   "portfolio-access":"That portfolio is not available to this account.",
@@ -74,6 +139,16 @@ export default async function PortfolioPage({
     : {data:[] as any[]};
 
   const positions=positionsR.data??[];
+
+  const researchStateR=positions.length
+    ? await supabase.rpc("get_my_portfolio_research_state_v1")
+    : {data:{positions:[] as any[]}};
+
+  const researchPositions=(researchStateR.data as any)?.positions??[];
+  const researchByPosition=new Map<string,any>(
+    researchPositions.map((item:any)=>[item.position_id,item.research_contract])
+  );
+
   const companyById=new Map(companies.map((company:any)=>[company.id,company]));
   const positionTickers=[...new Set(
     positions
@@ -103,6 +178,7 @@ export default async function PortfolioPage({
 
   let totalMarketValue=0;
   let totalCostBasis=0;
+  let attentionCount=0;
   for(const row of positions){
     const company=companyById.get(row.company_id);
     const qty=n(row.quantity);
@@ -110,6 +186,7 @@ export default async function PortfolioPage({
     const avg=row.average_cost==null?null:n(row.average_cost);
     totalMarketValue+=qty*price;
     if(avg!=null) totalCostBasis+=qty*avg;
+    if(researchState(researchByPosition.get(row.id)).attention) attentionCount+=1;
   }
 
   const displayName=profileR.data?.display_name?.trim()||"Investor";
@@ -137,7 +214,7 @@ export default async function PortfolioPage({
             <span className={styles.kicker}>YOUR PORTFOLIO</span>
             <h1>{displayName}, know what changed in what you own.</h1>
             <p>
-              B1 connects your account to manual holdings. The next Group B layers will attach thesis factors, material changes, and evidence to these positions.
+              B2 connects every holding to Group A's authoritative research state. You can now see which positions are current, stale, under review, or have new evidence before thesis personalization arrives.
             </p>
           </div>
           <div className={styles.heroStats}>
@@ -145,6 +222,8 @@ export default async function PortfolioPage({
             <div><span>Positions</span><strong>{positions.length}</strong></div>
             <div><span>Market value</span><strong>{money(totalMarketValue)}</strong></div>
             <div><span>Cost basis</span><strong>{totalCostBasis>0?money(totalCostBasis):"—"}</strong></div>
+            <div><span>Needs attention</span><strong>{attentionCount}</strong></div>
+            <div><span>Research linked</span><strong>{researchByPosition.size}/{positions.length}</strong></div>
           </div>
         </section>
 
@@ -226,6 +305,7 @@ export default async function PortfolioPage({
                       <span>Avg. cost</span>
                       <span>Price</span>
                       <span>Market value</span>
+                      <span>Research state</span>
                       <span></span>
                     </div>
                     {rows.map((row:any)=>{
@@ -234,6 +314,8 @@ export default async function PortfolioPage({
                       const qty=n(row.quantity);
                       const price=market?.price==null?null:n(market.price);
                       const value=price==null?null:qty*price;
+                      const state=researchState(researchByPosition.get(row.id));
+                      const cutoff=shortDate(state.dataCutoffAt);
                       return(
                         <div className={styles.positionRow} key={row.id}>
                           <Link href={"/research/"+company?.ticker} className={styles.companyCell}>
@@ -247,6 +329,13 @@ export default async function PortfolioPage({
                           <span>{row.average_cost==null?"—":money(n(row.average_cost))}</span>
                           <span>{price==null?"—":money(price)}</span>
                           <strong>{value==null?"—":money(value)}</strong>
+                          <div className={styles.researchState}>
+                            <span className={`${styles.researchBadge} ${styles[state.tone]??""}`}>
+                              {state.label}
+                            </span>
+                            <small>{state.detail}</small>
+                            {cutoff?<small>Data through {cutoff}</small>:null}
+                          </div>
                           <form action={deletePositionAction}>
                             <input type="hidden" name="position_id" value={row.id} />
                             <button className={styles.remove} type="submit">Remove</button>
