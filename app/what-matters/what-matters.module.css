@@ -29,3 +29,11 @@
 .missed button{grid-column:1/-1;justify-self:start;border:0;border-radius:10px;padding:10px 14px;background:#f5f7fa;color:#11161d;font-weight:700;cursor:pointer}
 .missed button:disabled{opacity:.45;cursor:not-allowed}
 @media(max-width:760px){.feedback{align-items:flex-start;flex-direction:column}.missed form{grid-template-columns:1fr}}
+
+.reviewed{margin-top:18px;border:1px solid rgba(255,255,255,.08);border-radius:16px;background:#0e141c}
+.reviewed summary{padding:16px 20px;cursor:pointer;color:#aab4c0;font-size:.9rem}
+.reviewed summary::marker{color:#84909f}
+.reviewedList{list-style:none;margin:0;padding:0 20px 18px;display:grid;gap:10px}
+.reviewedItem{display:flex;gap:12px;align-items:baseline;font-size:.85rem;color:#9aa4b2}
+.reviewedItem strong{color:#dbe1e9;min-width:58px}
+.reviewedItem em{margin-left:auto;font-style:normal;font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;color:#7c8796}

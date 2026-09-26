@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getSupabase } from "@/lib/supabase";
 import { ConsumerHeader } from "@/components/ConsumerHeader";
 import { decisionRankingMap, loadLatestDecisionRanking, readinessDisplay } from "@/lib/decision-ranking-read-model";
+import { track } from "@/lib/analytics";
 
 export const dynamic = "force-dynamic";
 
@@ -46,6 +47,8 @@ export default async function ResearchIndex() {
       </main>
     );
   }
+
+  await track("research_opened");
 
   const [{ data: companies, error: companyError }, { data: publishedRuns, error: runError }] =
     await Promise.all([

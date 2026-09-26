@@ -31,6 +31,47 @@ function quantity(value:number) {
   return new Intl.NumberFormat("en-US",{maximumFractionDigits:4}).format(value);
 }
 
+// ---- V1 quick wins: per-company freshness block (PRD section 13) ----
+// This page reads research state ONLY through the get_my_portfolio_research_state_v1
+// RPC, whose `freshness` payload is keyed by component_key and exposes per component:
+// status, last_checked_at, latest_evidence_at, last_reviewed_at,
+// last_recalculated_at, last_published_at, evidence_since_publication, next_due_at.
+// It does NOT expose the research_freshness table columns, so the PRD section 13
+// labels are mapped below to the closest field the contract actually exposes:
+//   Last evidence check  (market_updated_at)        -> market_data.last_checked_at
+//   Last market refresh  (market_updated_at)        -> market_data.latest_evidence_at
+//   Last fundamental refresh (fundamentals_updated_at) -> fundamentals.latest_evidence_at
+//   Last research review (research_reviewed_at)     -> thesis_review.last_reviewed_at
+//                                                    (fallback: published_research.last_reviewed_at)
+//   Last thesis change   (thesis_changed_at)        -> thesis_review.latest_evidence_at
+//   Next review due      (next_review_due_at)       -> thesis_review.next_due_at
+//                                                    (fallback: published_research.next_due_at)
+// Skipped because the contract does not expose them: peers_updated_at,
+// historical_valuation_updated_at, checklist_updated_at, last_full_refresh_at.
+function freshnessAt(contract:any,key:string,field:string) {
+  const item=contract?.freshness?.[key];
+  const value=item?.[field];
+  if(typeof value!=="string"||!value) return null;
+  return Number.isNaN(new Date(value).getTime())?null:value;
+}
+
+function relAgo(value:string|null) {
+  if(!value) return "—";
+  const then=new Date(value).getTime();
+  if(!Number.isFinite(then)) return "—";
+  const diff=Date.now()-then;
+  if(diff<0) return "—";
+  const minute=60*1000;
+  const hour=60*minute;
+  const day=24*hour;
+  if(diff<minute) return "just now";
+  if(diff<hour) return Math.floor(diff/minute)+"m ago";
+  if(diff<day) return Math.floor(diff/hour)+"h ago";
+  if(diff<30*day) return Math.floor(diff/day)+"d ago";
+  if(diff<365*day) return Math.floor(diff/(30*day))+"mo ago";
+  return Math.floor(diff/(365*day))+"y ago";
+}
+
 function researchState(contract:any) {
   const coverage=contract?.coverage?.coverage_level ?? "MONITORED";
   const currentResearch=contract?.current_research ?? null;
@@ -67,16 +108,40 @@ function researchState(contract:any) {
     ? "Deep coverage"
     : coverage==="RESEARCHED"
       ? "Researched"
-      : "Monitored";
+      : coverage==="UNSUPPORTED"
+        ? "Unsupported"
+        : "Monitored";
+
+  // PRD section 12 copy for the UNSUPPORTED coverage level.
+  const coverageNote=coverage==="UNSUPPORTED"
+    ? "Insufficient data or security type not currently supported"
+    : null;
 
   const version=currentResearch?.version ? "v"+currentResearch.version : null;
   const detail=[coverageLabel,version].filter(Boolean).join(" · ");
+
+  const freshnessRows=[
+    {label:"Last evidence check",value:relAgo(freshnessAt(contract,"market_data","last_checked_at"))},
+    {label:"Last market refresh",value:relAgo(freshnessAt(contract,"market_data","latest_evidence_at"))},
+    {label:"Last fundamental refresh",value:relAgo(freshnessAt(contract,"fundamentals","latest_evidence_at"))},
+    {label:"Last research review",value:relAgo(
+      freshnessAt(contract,"thesis_review","last_reviewed_at")
+      ?? freshnessAt(contract,"published_research","last_reviewed_at")
+    )},
+    {label:"Last thesis change",value:relAgo(freshnessAt(contract,"thesis_review","latest_evidence_at"))},
+    {label:"Next review due",value:relAgo(
+      freshnessAt(contract,"thesis_review","next_due_at")
+      ?? freshnessAt(contract,"published_research","next_due_at")
+    )},
+  ];
 
   return{
     label,
     tone,
     attention,
     detail,
+    coverageNote,
+    freshnessRows,
     dataCutoffAt:currentResearch?.data_cutoff_at ?? null,
     newEvidence,
     reviewDue,
@@ -326,11 +391,17 @@ export default async function PortfolioPage({
                           <span>{price==null?"—":money(price)}</span>
                           <strong>{value==null?"—":money(value)}</strong>
                           <div className={styles.researchState}>
-                            <span className={`${styles.researchBadge} ${styles[state.tone]??""}`}>
+                            <span className={`${styles.researchBadge} ${styles[state.tone]??""}`} title={state.coverageNote??undefined}>
                               {state.label}
                             </span>
                             <small>{state.detail}</small>
+                            {state.coverageNote?<small>{state.coverageNote}</small>:null}
                             {cutoff?<small>Data through {cutoff}</small>:null}
+                            <div style={{display:"grid",gap:2}}>
+                              {state.freshnessRows.map((row:any)=>(
+                                <small key={row.label}>{row.label}: {row.value}</small>
+                              ))}
+                            </div>
                             <Link href={"/portfolio/"+row.id+"/thesis"}>Personalize thesis →</Link>
                             <Link href={"/portfolio/"+row.id+"/attention"}>Attention settings →</Link>
                           </div>

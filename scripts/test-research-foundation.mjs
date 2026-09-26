@@ -64,10 +64,31 @@ assert.equal(
   FRESHNESS_STATUS.UNKNOWN
 );
 
-const monitored={};
+const empty={};
+assert.equal(
+  deriveCoverageLevel(empty),
+  COVERAGE_LEVELS.UNSUPPORTED,
+  "no market data, fundamentals, or filings must derive UNSUPPORTED"
+);
+assert.equal(
+  deriveCoverageLevel({hasMarketData:true}),
+  COVERAGE_LEVELS.MONITORED,
+  "any single evidence source makes the company at least MONITORED"
+);
+assert.equal(
+  deriveCoverageLevel({hasFundamentals:true}),
+  COVERAGE_LEVELS.MONITORED
+);
+assert.equal(
+  deriveCoverageLevel({hasSecFilings:true}),
+  COVERAGE_LEVELS.MONITORED
+);
+
+const monitored={hasMarketData:true};
 assert.equal(deriveCoverageLevel(monitored),COVERAGE_LEVELS.MONITORED);
 
 const researched={
+  hasMarketData:true,
   hasPublishedResearch:true,
   hasBusinessAssessment:true,
   thesisVariableCount:4,
@@ -97,6 +118,9 @@ assert.equal(
 
 assert.equal(canPersistCoverage(COVERAGE_LEVELS.DEEP_COVERAGE,researched),false);
 assert.equal(canPersistCoverage(COVERAGE_LEVELS.RESEARCHED,researched),true);
+assert.equal(canPersistCoverage(COVERAGE_LEVELS.UNSUPPORTED,empty),true);
+assert.equal(canPersistCoverage(COVERAGE_LEVELS.MONITORED,empty),false);
+assert.equal(canPersistCoverage(COVERAGE_LEVELS.UNSUPPORTED,researched),false);
 assert.equal(canPersistCoverage("FULL",deep),false);
 
 console.log("Group A research-foundation deterministic tests passed.");

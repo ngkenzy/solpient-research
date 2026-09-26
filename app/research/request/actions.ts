@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createConsumerServerClient } from "@/lib/supabase/server-client";
+import { track } from "@/lib/analytics";
 
 function field(formData:FormData,name:string){
   return String(formData.get(name)??"").trim();
@@ -53,6 +54,8 @@ export async function saveResearchDemandAction(formData:FormData){
     });
 
   if(error) redirect("/research/request?error=save");
+
+  await track("research_requested",{company_id:companyId,request_type:requestType});
 
   revalidatePath("/research/request");
 }

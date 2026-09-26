@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import styles from "@/app/home.module.css";
+import styles from "@/app/command-center/home.module.css";
 
 export type CapitalActivityItem = {
   id: string;

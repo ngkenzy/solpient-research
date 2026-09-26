@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createConsumerServerClient } from "@/lib/supabase/server-client";
+import { track } from "@/lib/analytics";
 
 async function requireUser() {
   const supabase=await createConsumerServerClient();
@@ -40,6 +41,7 @@ export async function createPortfolioAction(formData:FormData) {
   });
 
   if(error) redirect("/portfolio?error=portfolio");
+  await track("portfolio_created");
   revalidatePath("/portfolio");
 }
 
@@ -80,6 +82,7 @@ export async function upsertPositionAction(formData:FormData) {
   });
 
   if(error) redirect("/portfolio?error=position");
+  await track("position_added",{ticker});
   revalidatePath("/portfolio");
 }
 
@@ -90,6 +93,8 @@ export async function deletePositionAction(formData:FormData) {
   const {supabase}=await requireUser();
   const {error}=await supabase.from("portfolio_positions").delete().eq("id",id);
   if(error) redirect("/portfolio?error=delete");
+
+  await track("position_removed");
 
   revalidatePath("/portfolio");
 }
