@@ -8,6 +8,7 @@ set local role service_role;
 do $test$
 declare
   v_company uuid;
+  v_ticker text;
   v_fact_a uuid;
   v_fact_b uuid;
   v_level text;
@@ -21,6 +22,14 @@ begin
   insert into public.companies(ticker,company_name)
   values ('GA' || substr(replace(gen_random_uuid()::text,'-',''),1,6),'Group A Integration Test')
   returning id into v_company;
+  select c.ticker into v_ticker from public.companies c where c.id=v_company;
+
+  -- Fixture represents a monitorable company: a minimal market-data evidence
+  -- base. Zero-evidence companies are UNSUPPORTED per the PRD section 12
+  -- coverage taxonomy (mirrored by evaluate_research_coverage_v1), so the
+  -- fixture needs at least one evidence source to exercise the MONITORED path.
+  insert into public.market_snapshots(company_id,symbol,observed_at,trading_date,price,provider)
+  values (v_company,v_ticker,v_t0,v_t0::date,100,'group-a-test-fixture');
 
   -- Missing reviewed Research prerequisites must remain MONITORED.
   perform public.refresh_research_foundation_state_v1(v_company,v_t0);
@@ -160,3 +169,4 @@ $security$;
 
 set local role service_role;
 rollback;
+
